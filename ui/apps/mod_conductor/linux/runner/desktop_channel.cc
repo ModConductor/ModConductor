@@ -30,6 +30,7 @@ FlValue* DesktopChannel::State() {
   fl_value_set_string_take(result, "available", fl_value_new_bool(available_));
   fl_value_set_string_take(result, "count", fl_value_new_int(state.count));
   fl_value_set_string_take(result, "processId", fl_value_new_int(getpid()));
+  fl_value_set_string_take(result, "version", fl_value_new_string(FLUTTER_VERSION));
   if (state.first) {
     fl_value_set_string_take(result, "id", fl_value_new_int(state.first->id));
     fl_value_set_string_take(result, "nxmPending", fl_value_new_bool(state.first->private_pending));

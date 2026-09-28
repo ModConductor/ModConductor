@@ -21,6 +21,112 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'desktop.pbenum.dart';
 
+class UpdateHandoffRequest extends $pb.GeneratedMessage {
+  factory UpdateHandoffRequest() => create();
+
+  UpdateHandoffRequest._();
+
+  factory UpdateHandoffRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UpdateHandoffRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateHandoffRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateHandoffRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateHandoffRequest copyWith(void Function(UpdateHandoffRequest) updates) =>
+      super.copyWith((message) => updates(message as UpdateHandoffRequest))
+          as UpdateHandoffRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateHandoffRequest create() => UpdateHandoffRequest._();
+  @$core.override
+  UpdateHandoffRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UpdateHandoffRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateHandoffRequest>(create);
+  static UpdateHandoffRequest? _defaultInstance;
+}
+
+class UpdateHandoffReply extends $pb.GeneratedMessage {
+  factory UpdateHandoffReply({
+    $core.bool? ready,
+    $core.String? problem,
+  }) {
+    final result = create();
+    if (ready != null) result.ready = ready;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  UpdateHandoffReply._();
+
+  factory UpdateHandoffReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UpdateHandoffReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateHandoffReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'ready')
+    ..aOS(2, _omitFieldNames ? '' : 'problem')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateHandoffReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateHandoffReply copyWith(void Function(UpdateHandoffReply) updates) =>
+      super.copyWith((message) => updates(message as UpdateHandoffReply))
+          as UpdateHandoffReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateHandoffReply create() => UpdateHandoffReply._();
+  @$core.override
+  UpdateHandoffReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UpdateHandoffReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateHandoffReply>(create);
+  static UpdateHandoffReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get ready => $_getBF(0);
+  @$pb.TagNumber(1)
+  set ready($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasReady() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearReady() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get problem => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set problem($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProblem() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProblem() => $_clearField(2);
+}
+
 class ResolveDesktopRequestMessage extends $pb.GeneratedMessage {
   factory ResolveDesktopRequestMessage({
     $core.Iterable<$core.String>? arguments,

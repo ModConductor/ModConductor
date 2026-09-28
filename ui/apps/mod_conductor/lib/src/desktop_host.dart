@@ -12,6 +12,8 @@ class DesktopHost extends StatefulWidget {
 class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
   late final EngineOwner _owner;
   late final DesktopRequests _requests;
+  late final AppUpdatesController _updates;
+  late final AppUpdateHandoff _updateHandoff;
   late final StreamSubscription<EngineState> _changes;
 
   @override
@@ -36,6 +38,22 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
       ]),
     );
     _requests = DesktopRequests();
+    _updates = AppUpdatesController(
+      DesktopAppUpdateSource(),
+      windows: Platform.isWindows,
+    );
+    _updateHandoff = AppUpdateHandoff(
+      checkSafety: () async =>
+          await _owner.desktop?.updateHandoffProblem() ??
+          'Could not check active work. Try again.',
+      launchWaiter: launchAppUpdateWaiter,
+      requestQuit: () async =>
+          await ServicesBinding.instance.exitApplication(
+            AppExitType.cancelable,
+          ) ==
+          AppExitResponse.exit,
+    );
+    unawaited(_updates.loadVersion());
     _changes = _owner.changes.listen((_) {
       _requests.attach(_owner.desktop, nxm: _owner.nxm);
       if (mounted) setState(() {});
@@ -47,10 +65,17 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
   Future<AppExitResponse> didRequestAppExit() async =>
       await _owner.close() ? AppExitResponse.exit : AppExitResponse.cancel;
 
+  Future<void> _quitAndUpdate(AppUpdateManager manager) async {
+    if (!_updates.updateAvailable || _updates.manager != manager) return;
+    final problem = await _updateHandoff.start(manager);
+    if (problem != null && mounted) _updates.handoffFailed(problem);
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _requests.dispose();
+    _updates.dispose();
     unawaited(_changes.cancel());
     unawaited(_owner.close());
     super.dispose();
@@ -62,6 +87,8 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     workspaces: _owner.workspaces,
     migration: _owner.migration,
     settings: _owner.settings,
+    updates: _updates,
+    onQuitAndUpdate: _quitAndUpdate,
     modLibrary: _owner.modLibrary,
     profileMods: _owner.profileMods,
     modOrganization: _owner.modOrganization,

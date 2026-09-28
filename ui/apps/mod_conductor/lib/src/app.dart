@@ -36,6 +36,7 @@ part 'preferences_display.dart';
 part 'preferences_controls.dart';
 part 'preferences_actions.dart';
 part 'preferences_details.dart';
+part 'preferences_updates.dart';
 part 'status.dart';
 part 'desktop_host.dart';
 part 'help_articles.dart';
@@ -157,6 +158,8 @@ class ModConductorApp extends StatefulWidget {
     this.bundles,
     this.migration,
     this.settings,
+    this.updates,
+    this.onQuitAndUpdate,
     this.chooseArchive = desktop.chooseArchive,
     this.chooseExecutable = desktop.chooseExecutable,
     this.steamDiscovery,
@@ -203,6 +206,8 @@ class ModConductorApp extends StatefulWidget {
   final BundlesClient? bundles;
   final MigrationClient? migration;
   final SettingsClient? settings;
+  final AppUpdatesController? updates;
+  final Future<void> Function(AppUpdateManager)? onQuitAndUpdate;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -237,6 +242,7 @@ class _ModConductorAppState extends _AppStateBase
   @override
   void initState() {
     super.initState();
+    widget.updates?.addListener(_updatesChanged);
     widget.desktopRequests?.addListener(_requestsChanged);
     _scheduleIncomingRequest();
     _game.addListener(_gameChanged);
@@ -273,6 +279,10 @@ class _ModConductorAppState extends _AppStateBase
   @override
   void didUpdateWidget(ModConductorApp oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.updates, widget.updates)) {
+      oldWidget.updates?.removeListener(_updatesChanged);
+      widget.updates?.addListener(_updatesChanged);
+    }
     if (oldWidget.desktopRequests != widget.desktopRequests) {
       oldWidget.desktopRequests?.removeListener(_requestsChanged);
       widget.desktopRequests?.addListener(_requestsChanged);
@@ -289,6 +299,7 @@ class _ModConductorAppState extends _AppStateBase
 
   @override
   void dispose() {
+    widget.updates?.removeListener(_updatesChanged);
     widget.desktopRequests?.removeListener(_requestsChanged);
     _wakeModalSpaceWaiters();
     ++_setupEventEpoch;
@@ -398,6 +409,7 @@ class _ModConductorAppState extends _AppStateBase
             onRequests: () => unawaited(_presentRequests(context)),
             connectionStatus: widget.status,
             destination: _destination,
+            updateAvailable: widget.updates?.updateAvailable ?? false,
             onNavigate: _navigate,
             onQuit: widget.onQuit ?? _quitDesktop,
             workspacesFocus: _workspacesFocus,

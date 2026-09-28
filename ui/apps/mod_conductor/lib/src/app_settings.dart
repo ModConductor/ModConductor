@@ -45,6 +45,7 @@ class _SettingsFormState {
   bool inheritsDraft = true;
   bool hasConfirmed = false;
   bool loaded = false;
+  bool checkUpdatesOnStartup = true;
   bool loading = false;
   bool saving = false;
   String? problem;
@@ -57,6 +58,7 @@ class _SettingsFormState {
     applied = draft = _defaultPreferences;
     inheritsApplied = inheritsDraft = true;
     hasConfirmed = loaded = loading = saving = false;
+    checkUpdatesOnStartup = true;
     problem = diagnostic = null;
     savedAt = null;
   }
@@ -65,6 +67,7 @@ class _SettingsFormState {
     applied = draft = _preferences(snapshot);
     inheritsApplied = inheritsDraft = snapshot.inheritsApplication;
     hasConfirmed = true;
+    checkUpdatesOnStartup = snapshot.checkUpdatesOnStartup;
     loaded = true;
     loading = saving = false;
     problem = diagnostic = null;
@@ -90,16 +93,20 @@ _Preferences _preferences(SettingsSnapshot value) => (
   contrast: value.presentation.contrast,
 );
 
-SettingsSnapshot _snapshot(_Preferences value, {required bool inherits}) =>
-    SettingsSnapshot(
-      presentation: PresentationPreferences(
-        appearance: value.appearance,
-        textScale: value.textScale,
-        interfaceScale: value.interfaceScale,
-        contrast: value.contrast,
-      ),
-      inheritsApplication: inherits,
-    );
+SettingsSnapshot _snapshot(
+  _Preferences value, {
+  required bool inherits,
+  bool checkUpdatesOnStartup = true,
+}) => SettingsSnapshot(
+  presentation: PresentationPreferences(
+    appearance: value.appearance,
+    textScale: value.textScale,
+    interfaceScale: value.interfaceScale,
+    contrast: value.contrast,
+  ),
+  inheritsApplication: inherits,
+  checkUpdatesOnStartup: checkUpdatesOnStartup,
+);
 
 mixin _SettingsScope on _AppStateBase {
   _Preferences get _effectivePreferences =>
@@ -200,6 +207,9 @@ mixin _SettingsScope on _AppStateBase {
           : await client.readWorkspace(workspaceId!);
       if (!current()) return;
       setState(() => form.accept(loaded));
+      if (scope == _PreferenceScope.application) {
+        unawaited(widget.updates?.checkOnStartup(loaded.checkUpdatesOnStartup));
+      }
     } on Exception catch (error) {
       if (!current()) return;
       setState(() {
@@ -310,7 +320,13 @@ mixin _SettingsScope on _AppStateBase {
         client == widget.settings;
     try {
       final saved = scope == _PreferenceScope.application
-          ? await client.saveApplication(_snapshot(value, inherits: false))
+          ? await client.saveApplication(
+              _snapshot(
+                value,
+                inherits: false,
+                checkUpdatesOnStartup: form.checkUpdatesOnStartup,
+              ),
+            )
           : await client.saveWorkspace(
               workspaceId!,
               _snapshot(value, inherits: inherits),
@@ -342,6 +358,35 @@ mixin _SettingsScope on _AppStateBase {
   }
 
   void _cancelPreferences() => setState(() => _selectedSettings.cancel());
+
+  Future<void> _saveCheckUpdatesOnStartup(bool enabled) async {
+    final client = widget.settings;
+    final form = _applicationSettings;
+    if (client == null || !form.loaded || form.saving) return;
+    final generation = ++form.generation;
+    setState(() {
+      form.saving = true;
+      form.problem = null;
+    });
+    try {
+      final saved = await client.saveApplication(
+        _snapshot(
+          form.applied,
+          inherits: false,
+          checkUpdatesOnStartup: enabled,
+        ),
+      );
+      if (!mounted || generation != form.generation) return;
+      setState(() => form.accept(saved));
+    } on Exception catch (error) {
+      if (!mounted || generation != form.generation) return;
+      setState(() {
+        form.saving = false;
+        form.problem = 'save';
+        form.diagnostic = _settingsDiagnostic(error);
+      });
+    }
+  }
 
   Future<void> _quickTheme(AppearancePreference value) async {
     final scope =

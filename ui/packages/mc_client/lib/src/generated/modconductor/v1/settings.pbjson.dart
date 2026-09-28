@@ -141,6 +141,18 @@ const SettingsSnapshot$json = {
       '5': 8,
       '10': 'inheritsApplication'
     },
+    {
+      '1': 'check_updates_on_startup',
+      '3': 3,
+      '4': 1,
+      '5': 8,
+      '9': 0,
+      '10': 'checkUpdatesOnStartup',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_check_updates_on_startup'},
   ],
 };
 
@@ -148,7 +160,9 @@ const SettingsSnapshot$json = {
 final $typed_data.Uint8List settingsSnapshotDescriptor = $convert.base64Decode(
     'ChBTZXR0aW5nc1NuYXBzaG90EkkKDHByZXNlbnRhdGlvbhgBIAEoCzIlLm1vZGNvbmR1Y3Rvci'
     '52MS5QcmVzZW50YXRpb25TZXR0aW5nc1IMcHJlc2VudGF0aW9uEjEKFGluaGVyaXRzX2FwcGxp'
-    'Y2F0aW9uGAIgASgIUhNpbmhlcml0c0FwcGxpY2F0aW9u');
+    'Y2F0aW9uGAIgASgIUhNpbmhlcml0c0FwcGxpY2F0aW9uEjwKGGNoZWNrX3VwZGF0ZXNfb25fc3'
+    'RhcnR1cBgDIAEoCEgAUhVjaGVja1VwZGF0ZXNPblN0YXJ0dXCIAQFCGwoZX2NoZWNrX3VwZGF0'
+    'ZXNfb25fc3RhcnR1cA==');
 
 @$core.Deprecated('Use settingsFaultDescriptor instead')
 const SettingsFault$json = {

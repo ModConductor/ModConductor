@@ -2,6 +2,41 @@
 
 #include <flutter/standard_method_codec.h>
 
+#include <algorithm>
+#include <string>
+
+namespace {
+bool LaunchUpdateConsole(const std::string& encoded_command,
+                         DWORD& process_id, HANDLE& process_handle) {
+  if (encoded_command.empty() || encoded_command.size() > 16384 ||
+      !std::all_of(encoded_command.begin(), encoded_command.end(), [](char value) {
+        return (value >= 'A' && value <= 'Z') ||
+               (value >= 'a' && value <= 'z') ||
+               (value >= '0' && value <= '9') || value == '+' ||
+               value == '/' || value == '=';
+      })) return false;
+  wchar_t windows[MAX_PATH];
+  const UINT length = GetWindowsDirectoryW(windows, MAX_PATH);
+  if (length == 0 || length >= MAX_PATH) return false;
+  const std::wstring powershell = std::wstring(windows, length) +
+      L"\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+  std::wstring command_line = L"\"" + powershell +
+      L"\" -NoProfile -NoExit -EncodedCommand " +
+      std::wstring(encoded_command.begin(), encoded_command.end());
+  STARTUPINFOW startup{};
+  startup.cb = sizeof(startup);
+  PROCESS_INFORMATION process{};
+  if (!CreateProcessW(powershell.c_str(), command_line.data(), nullptr,
+                      nullptr, FALSE,
+                      CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT,
+                      nullptr, nullptr, &startup, &process)) return false;
+  process_id = process.dwProcessId;
+  process_handle = process.hProcess;
+  CloseHandle(process.hThread);
+  return true;
+}
+}  // namespace
+
 DesktopInstance::DesktopInstance() : handoff_(requests_) {}
 
 DesktopInstance::~DesktopInstance() { Detach(); }
@@ -20,6 +55,8 @@ void DesktopInstance::Detach() {
     channel_->SetMethodCallHandler(nullptr);
     channel_.reset();
   }
+  for (const auto& waiter : update_waiters_) CloseHandle(waiter.second);
+  update_waiters_.clear();
 }
 
 flutter::EncodableValue DesktopInstance::State() {
@@ -38,6 +75,7 @@ flutter::EncodableValue DesktopInstance::State() {
     result[V("arguments")] = V(args);
   }
   result[V("processId")] = V(static_cast<int32_t>(GetCurrentProcessId()));
+  result[V("version")] = V(FLUTTER_VERSION);
   return V(result);
 }
 void DesktopInstance::Attach(flutter::BinaryMessenger* messenger, HWND window) {
@@ -68,6 +106,47 @@ void DesktopInstance::Attach(flutter::BinaryMessenger* messenger, HWND window) {
                             ? std::get<int64_t>(*value)
                             : std::get<int32_t>(*value));
       nxm_->Notify();
+    } else if (call.method_name() == "launchUpdateWaiter") {
+      const auto* args = call.arguments() ? std::get_if<flutter::EncodableMap>(call.arguments()) : nullptr;
+      if (!args) {
+        result->Error("invalid", "Invalid update handoff."); return;
+      }
+      const auto encoded = args->find(flutter::EncodableValue("command"));
+      if (encoded == args->end() || !std::holds_alternative<std::string>(encoded->second)) {
+        result->Error("invalid", "Invalid update handoff."); return;
+      }
+      DWORD process_id = 0;
+      HANDLE process_handle = nullptr;
+      if (!LaunchUpdateConsole(std::get<std::string>(encoded->second), process_id,
+                               process_handle)) {
+        result->Error("unavailable", "Could not open the update console."); return;
+      }
+      update_waiters_.emplace(process_id, process_handle);
+      result->Success(flutter::EncodableValue(static_cast<int64_t>(process_id)));
+      return;
+    } else if (call.method_name() == "cancelUpdateWaiter") {
+      const auto* value = call.arguments();
+      if (!value || (!std::holds_alternative<int64_t>(*value) &&
+                     !std::holds_alternative<int32_t>(*value))) {
+        result->Error("invalid", "Invalid update waiter."); return;
+      }
+      const DWORD process_id = std::holds_alternative<int64_t>(*value)
+          ? static_cast<DWORD>(std::get<int64_t>(*value))
+          : static_cast<DWORD>(std::get<int32_t>(*value));
+      const auto waiter = update_waiters_.find(process_id);
+      if (waiter == update_waiters_.end()) {
+        result->Success(flutter::EncodableValue(false)); return;
+      }
+      const bool stopped = TerminateProcess(waiter->second, 1) != FALSE ||
+                           WaitForSingleObject(waiter->second, 0) == WAIT_OBJECT_0;
+      const bool completed = stopped &&
+                             WaitForSingleObject(waiter->second, 5000) == WAIT_OBJECT_0;
+      if (completed) {
+        CloseHandle(waiter->second);
+        update_waiters_.erase(waiter);
+      }
+      result->Success(flutter::EncodableValue(completed));
+      return;
     } else if (call.method_name() != "state") {
       result->NotImplemented();
       return;

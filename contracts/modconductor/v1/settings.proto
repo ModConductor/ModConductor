@@ -38,6 +38,7 @@ message PresentationSettings {
 message SettingsSnapshot {
   PresentationSettings presentation = 1;
   bool inherits_application = 2;
+  optional bool check_updates_on_startup = 3;
 }
 
 enum SettingsFaultCode {

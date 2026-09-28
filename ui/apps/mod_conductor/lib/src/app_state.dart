@@ -49,6 +49,10 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   final _detachedInstallations =
       <String, StreamSubscription<InstallationStatus>>{};
   final _installationRetries = <String, Timer>{};
+  void _updatesChanged() {
+    if (mounted) setState(() {});
+  }
+
   String? _installationWorkspace, _installationProfile;
   InstallationsClient? _installationClient;
   int _installationEpoch = 0;

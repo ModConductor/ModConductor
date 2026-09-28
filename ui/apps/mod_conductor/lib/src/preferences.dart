@@ -24,6 +24,11 @@ class _PreferencesPage extends StatelessWidget {
     required this.onCancel,
     required this.onRetry,
     required this.detailsFocus,
+    required this.updates,
+    required this.checkUpdatesOnStartup,
+    required this.canChangeCheckUpdatesOnStartup,
+    required this.onCheckUpdatesOnStartup,
+    required this.onQuitAndUpdate,
   });
   final AppLocalizations labels;
   final CredentialsClient? credentials;
@@ -47,6 +52,11 @@ class _PreferencesPage extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onRetry;
   final FocusNode detailsFocus;
+  final AppUpdatesController? updates;
+  final bool checkUpdatesOnStartup;
+  final bool canChangeCheckUpdatesOnStartup;
+  final ValueChanged<bool> onCheckUpdatesOnStartup;
+  final Future<void> Function(AppUpdateManager)? onQuitAndUpdate;
 
   @override
   Widget build(BuildContext context) => McPage(
@@ -58,6 +68,16 @@ class _PreferencesPage extends StatelessWidget {
         explicitChildNodes: true,
         child: Column(
           children: [
+            if (updates != null) ...[
+              _UpdatePreferencesSection(
+                controller: updates!,
+                checkOnStartup: checkUpdatesOnStartup,
+                canChangeCheckOnStartup: canChangeCheckUpdatesOnStartup,
+                onCheckOnStartup: onCheckUpdatesOnStartup,
+                onQuitAndUpdate: onQuitAndUpdate,
+              ),
+              const SizedBox(height: McSpacing.medium),
+            ],
             _DisplayPreferencesSection(
               labels: labels,
               scope: scope,
@@ -83,7 +103,7 @@ class _PreferencesPage extends StatelessWidget {
             Semantics(
               container: true,
               explicitChildNodes: true,
-              sortKey: const OrdinalSortKey(1, name: 'preferences-sections'),
+              sortKey: const OrdinalSortKey(2, name: 'preferences-sections'),
               child: CredentialPreferences(
                 client: credentials,
                 nexus: nexus,
@@ -94,7 +114,7 @@ class _PreferencesPage extends StatelessWidget {
             Semantics(
               container: true,
               explicitChildNodes: true,
-              sortKey: const OrdinalSortKey(2, name: 'preferences-sections'),
+              sortKey: const OrdinalSortKey(3, name: 'preferences-sections'),
               child: NexusLinkPreferences(
                 client: linkSetup,
                 labels: _nexusLinkLabels(labels),

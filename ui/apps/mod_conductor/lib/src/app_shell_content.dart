@@ -380,6 +380,13 @@ mixin _ShellContent
     credentials: widget.credentials,
     nexus: widget.nexus,
     linkSetup: widget.linkSetup,
+    updates: widget.updates,
+    checkUpdatesOnStartup: _applicationSettings.checkUpdatesOnStartup,
+    canChangeCheckUpdatesOnStartup:
+        _applicationSettings.loaded && !_applicationSettings.saving,
+    onCheckUpdatesOnStartup: (value) =>
+        unawaited(_saveCheckUpdatesOnStartup(value)),
+    onQuitAndUpdate: widget.onQuitAndUpdate,
     scope: _preferenceScope,
     onScope: _selectPreferenceScope,
     workspaceAvailable: _settingsWorkspaceId != null,

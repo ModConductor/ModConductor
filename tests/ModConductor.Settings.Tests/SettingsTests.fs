@@ -43,6 +43,7 @@ type SettingsTests() =
             application.InheritsApplication |> should equal false
             scoped.InheritsApplication |> should equal true
             application.Presentation |> should equal scoped.Presentation
+            application.CheckUpdatesOnStartup |> should equal true
         finally
             root.Delete true
 
@@ -59,13 +60,15 @@ type SettingsTests() =
 
                 let application =
                     { Presentation = presentation Appearance.Dark 1.25 Contrast.Standard
-                      InheritsApplication = false }
+                      InheritsApplication = false
+                      CheckUpdatesOnStartup = false }
 
                 let scoped =
                     { Presentation =
                         { presentation Appearance.Light 1.5 Contrast.High with
                             InterfaceScale = 0.9 }
-                      InheritsApplication = false }
+                      InheritsApplication = false
+                      CheckUpdatesOnStartup = false }
 
                 let! _ = owner.Save(SettingsScope.Application, application, CancellationToken.None)
 
@@ -80,13 +83,16 @@ type SettingsTests() =
 
                 owner.Read(SettingsScope.Workspace workspace.FullName)
                 |> value
-                |> should equal scoped
+                |> should equal { scoped with CheckUpdatesOnStartup = true }
 
                 let workspaceText =
                     File.ReadAllText(Path.Combine(workspace.FullName, "mod-conductor.toml"))
 
                 workspaceText.Contains("[presentation]", StringComparison.Ordinal)
                 |> should equal true
+
+                workspaceText.Contains("check_updates_on_startup", StringComparison.Ordinal)
+                |> should equal false
 
                 File.ReadAllBytes operational |> should equal [| 1uy; 2uy; 3uy |]
             finally
@@ -105,7 +111,8 @@ type SettingsTests() =
 
                 let inherited =
                     { Presentation = presentation Appearance.Dark 1.5 Contrast.High
-                      InheritsApplication = true }
+                      InheritsApplication = true
+                      CheckUpdatesOnStartup = true }
 
                 let! _ =
                     owner.Save(
@@ -164,7 +171,8 @@ type SettingsTests() =
 
                 let previous =
                     { Presentation = presentation Appearance.Light 1.0 Contrast.System
-                      InheritsApplication = false }
+                      InheritsApplication = false
+                      CheckUpdatesOnStartup = true }
 
                 let invalid =
                     { previous with
@@ -225,11 +233,13 @@ type SettingsTests() =
 
                 let previous =
                     { Presentation = presentation Appearance.Light 1.0 Contrast.System
-                      InheritsApplication = false }
+                      InheritsApplication = false
+                      CheckUpdatesOnStartup = true }
 
                 let next =
                     { Presentation = presentation Appearance.Dark 1.5 Contrast.High
-                      InheritsApplication = false }
+                      InheritsApplication = false
+                      CheckUpdatesOnStartup = true }
 
                 let! _ = owner.Save(SettingsScope.Application, previous, CancellationToken.None)
 

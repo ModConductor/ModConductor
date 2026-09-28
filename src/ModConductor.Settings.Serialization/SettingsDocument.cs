@@ -12,6 +12,9 @@ public sealed class SettingsDocument
 
   [JsonPropertyName("presentation")]
   public PresentationDocument? Presentation { get; set; }
+
+  [JsonPropertyName("check_updates_on_startup")]
+  public bool? CheckUpdatesOnStartup { get; set; }
 }
 
 public sealed class PresentationDocument

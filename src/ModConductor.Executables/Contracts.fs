@@ -149,6 +149,7 @@ type IExecutableRepository =
     abstract Update: ExecutableRun -> Task<ExecutableRun>
 
 type IExecutables =
+    abstract HasActive: unit -> bool
     abstract List: Guid * Guid option -> Task<Result<PresetPage, ExecutableError>>
     abstract ReadPreset: Guid * Guid -> Task<Result<ExecutablePreset, ExecutableError>>
     abstract Save: ExecutablePreset -> Task<Result<ExecutablePreset, ExecutableError>>

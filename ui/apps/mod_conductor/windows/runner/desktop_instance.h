@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include <memory>
+#include <unordered_map>
 
 #include "desktop_handoff.h"
 #include "../../runner/nxm_delivery.h"
@@ -33,5 +34,6 @@ class DesktopInstance {
   DesktopHandoff handoff_;
   std::unique_ptr<desktop::NxmDelivery> nxm_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
+  std::unordered_map<DWORD, HANDLE> update_waiters_;
 };
 #endif

@@ -32,7 +32,8 @@ type SettingsScope =
 
 type SettingsSnapshot =
     { Presentation: Presentation
-      InheritsApplication: bool }
+      InheritsApplication: bool
+      CheckUpdatesOnStartup: bool }
 
 [<RequireQualifiedAccess>]
 type SettingsError =
@@ -112,7 +113,8 @@ type SettingsOwner(applicationDirectory: string) =
             | null ->
                 Ok
                     { Presentation = defaults
-                      InheritsApplication = true }
+                      InheritsApplication = true
+                      CheckUpdatesOnStartup = true }
             | value ->
                 match decodeAppearance value.Appearance, decodeContrast value.Contrast with
                 | Ok appearance, Ok contrast ->
@@ -123,7 +125,12 @@ type SettingsOwner(applicationDirectory: string) =
                           Contrast = contrast }
                     |> Result.map (fun presentation ->
                         { Presentation = presentation
-                          InheritsApplication = false })
+                          InheritsApplication = false
+                          CheckUpdatesOnStartup =
+                            if scope = SettingsScope.Application then
+                                document.CheckUpdatesOnStartup.GetValueOrDefault true
+                            else
+                                true })
                 | Error error, _
                 | _, Error error -> Error error
 
@@ -139,7 +146,15 @@ type SettingsOwner(applicationDirectory: string) =
                     Contrast = encodeContrast snapshot.Presentation.Contrast
                 )
 
-        SettingsDocument(Version = 1L, Presentation = presentation)
+        SettingsDocument(
+            Version = 1L,
+            Presentation = presentation,
+            CheckUpdatesOnStartup =
+                if scope = SettingsScope.Application then
+                    Nullable snapshot.CheckUpdatesOnStartup
+                else
+                    Nullable()
+        )
 
     let readText file =
         try
@@ -179,7 +194,8 @@ type SettingsOwner(applicationDirectory: string) =
         if not (File.Exists file) then
             Ok
                 { Presentation = defaults
-                  InheritsApplication = scope <> SettingsScope.Application }
+                  InheritsApplication = scope <> SettingsScope.Application
+                  CheckUpdatesOnStartup = true }
         else
             readText file
             |> Result.bind (fun text ->
@@ -197,7 +213,8 @@ type SettingsOwner(applicationDirectory: string) =
                     { snapshot with
                         InheritsApplication = false }
                 else
-                    snapshot
+                    { snapshot with
+                        CheckUpdatesOnStartup = true }
 
             match validate saved.Presentation with
             | Error error -> return Error error

@@ -2,12 +2,24 @@ namespace ModConductor.Engine
 
 open System.Threading.Tasks
 open ModConductor.Desktop
+open ModConductor.Executables
 open ModConductor.Platform
 open ModConductor.Workspaces
 open ModConductor.Protocol.V1
 
-type DesktopService(state: IWorkspaceState) =
+type DesktopService(state: IWorkspaceState, executables: IExecutables) =
     inherit DesktopOperations.DesktopOperationsBase()
+
+    override _.CheckUpdateHandoff(_, _) =
+        Task.FromResult(
+            if executables.HasActive() then
+                UpdateHandoffReply(
+                    Ready = false,
+                    Problem = "Close the managed game or tool before updating Mod Conductor."
+                )
+            else
+                UpdateHandoffReply(Ready = true)
+        )
 
     override _.ResolveDesktopRequest(request, _) =
         task {

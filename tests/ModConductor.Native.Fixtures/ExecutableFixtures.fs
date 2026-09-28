@@ -8,6 +8,7 @@ open ModConductor.Platform
 open ModConductor.Persistence
 open ModConductor.Workspaces
 open ModConductor.Executables
+open ModConductor.Engine
 
 module ExecutableFixtures =
     let private wait = StorageWorker.wait
@@ -122,6 +123,16 @@ module ExecutableFixtures =
                     |> result
 
                 let api = store.Executables
+                let desktop = DesktopService(store.Workspaces, api)
+
+                let canHandOff () =
+                    desktop.CheckUpdateHandoff(
+                        ModConductor.Protocol.V1.UpdateHandoffRequest(),
+                        Unchecked.defaultof<_>
+                    )
+                        .GetAwaiter()
+                        .GetResult()
+                        .Ready
 
                 let preset =
                     api.Save
@@ -247,6 +258,8 @@ module ExecutableFixtures =
                     until api workspace chainRequest.Id (fun run ->
                         run.Phase = RunPhase.WaitingForChildren)
 
+                check "updateHandoffBlockedByManagedLaunch" (not (canHandOff ()))
+
                 check
                     "earlyRootExitKeepsChildObservation"
                     (waiting.RootExitCode = Some 0
@@ -280,6 +293,8 @@ module ExecutableFixtures =
 
                 let ended =
                     until api workspace chainRequest.Id (fun run -> run.Phase = RunPhase.Finished)
+
+                check "updateHandoffReadyAfterManagedLaunch" (canHandOff ())
 
                 check
                     "observedScopeCompletion"

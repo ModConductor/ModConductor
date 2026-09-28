@@ -84,7 +84,7 @@ class _DisplayPreferencesSection extends StatelessWidget {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      sortKey: const OrdinalSortKey(0, name: 'preferences-sections'),
+      sortKey: const OrdinalSortKey(1, name: 'preferences-sections'),
       child: McSection(
         title: labels.display,
         children: [

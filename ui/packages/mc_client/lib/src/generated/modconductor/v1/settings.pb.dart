@@ -201,11 +201,14 @@ class SettingsSnapshot extends $pb.GeneratedMessage {
   factory SettingsSnapshot({
     PresentationSettings? presentation,
     $core.bool? inheritsApplication,
+    $core.bool? checkUpdatesOnStartup,
   }) {
     final result = create();
     if (presentation != null) result.presentation = presentation;
     if (inheritsApplication != null)
       result.inheritsApplication = inheritsApplication;
+    if (checkUpdatesOnStartup != null)
+      result.checkUpdatesOnStartup = checkUpdatesOnStartup;
     return result;
   }
 
@@ -226,6 +229,7 @@ class SettingsSnapshot extends $pb.GeneratedMessage {
     ..aOM<PresentationSettings>(1, _omitFieldNames ? '' : 'presentation',
         subBuilder: PresentationSettings.create)
     ..aOB(2, _omitFieldNames ? '' : 'inheritsApplication')
+    ..aOB(3, _omitFieldNames ? '' : 'checkUpdatesOnStartup')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -266,6 +270,15 @@ class SettingsSnapshot extends $pb.GeneratedMessage {
   $core.bool hasInheritsApplication() => $_has(1);
   @$pb.TagNumber(2)
   void clearInheritsApplication() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get checkUpdatesOnStartup => $_getBF(2);
+  @$pb.TagNumber(3)
+  set checkUpdatesOnStartup($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCheckUpdatesOnStartup() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCheckUpdatesOnStartup() => $_clearField(3);
 }
 
 class SettingsFault extends $pb.GeneratedMessage {

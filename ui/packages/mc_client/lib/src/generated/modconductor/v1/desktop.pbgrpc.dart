@@ -39,6 +39,13 @@ class DesktopOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$resolveDesktopRequest, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.UpdateHandoffReply> checkUpdateHandoff(
+    $0.UpdateHandoffRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$checkUpdateHandoff, request, options: options);
+  }
+
   // method descriptors
 
   static final _$resolveDesktopRequest = $grpc.ClientMethod<
@@ -46,6 +53,11 @@ class DesktopOperationsClient extends $grpc.Client {
       '/modconductor.v1.DesktopOperations/ResolveDesktopRequest',
       ($0.ResolveDesktopRequestMessage value) => value.writeToBuffer(),
       $0.DesktopRequestReply.fromBuffer);
+  static final _$checkUpdateHandoff =
+      $grpc.ClientMethod<$0.UpdateHandoffRequest, $0.UpdateHandoffReply>(
+          '/modconductor.v1.DesktopOperations/CheckUpdateHandoff',
+          ($0.UpdateHandoffRequest value) => value.writeToBuffer(),
+          $0.UpdateHandoffReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.DesktopOperations')
@@ -62,6 +74,15 @@ abstract class DesktopOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.ResolveDesktopRequestMessage.fromBuffer(value),
         ($0.DesktopRequestReply value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.UpdateHandoffRequest, $0.UpdateHandoffReply>(
+            'CheckUpdateHandoff',
+            checkUpdateHandoff_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.UpdateHandoffRequest.fromBuffer(value),
+            ($0.UpdateHandoffReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.DesktopRequestReply> resolveDesktopRequest_Pre(
@@ -72,4 +93,13 @@ abstract class DesktopOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.DesktopRequestReply> resolveDesktopRequest(
       $grpc.ServiceCall call, $0.ResolveDesktopRequestMessage request);
+
+  $async.Future<$0.UpdateHandoffReply> checkUpdateHandoff_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.UpdateHandoffRequest> $request) async {
+    return checkUpdateHandoff($call, await $request);
+  }
+
+  $async.Future<$0.UpdateHandoffReply> checkUpdateHandoff(
+      $grpc.ServiceCall call, $0.UpdateHandoffRequest request);
 }

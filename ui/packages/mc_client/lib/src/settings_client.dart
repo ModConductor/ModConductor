@@ -36,19 +36,23 @@ class SettingsSnapshot {
   const SettingsSnapshot({
     required this.presentation,
     required this.inheritsApplication,
+    this.checkUpdatesOnStartup = true,
   });
 
   final PresentationPreferences presentation;
   final bool inheritsApplication;
+  final bool checkUpdatesOnStartup;
 
   @override
   bool operator ==(Object other) =>
       other is SettingsSnapshot &&
       presentation == other.presentation &&
-      inheritsApplication == other.inheritsApplication;
+      inheritsApplication == other.inheritsApplication &&
+      checkUpdatesOnStartup == other.checkUpdatesOnStartup;
 
   @override
-  int get hashCode => Object.hash(presentation, inheritsApplication);
+  int get hashCode =>
+      Object.hash(presentation, inheritsApplication, checkUpdatesOnStartup);
 }
 
 enum SettingsFault {
@@ -145,6 +149,7 @@ wire.SettingsSnapshot _encode(SettingsSnapshot value) => wire.SettingsSnapshot(
     },
   ),
   inheritsApplication: value.inheritsApplication,
+  checkUpdatesOnStartup: value.checkUpdatesOnStartup,
 );
 
 SettingsSnapshot _decode(wire.SettingsSnapshot value) => SettingsSnapshot(
@@ -173,6 +178,9 @@ SettingsSnapshot _decode(wire.SettingsSnapshot value) => SettingsSnapshot(
     },
   ),
   inheritsApplication: value.inheritsApplication,
+  checkUpdatesOnStartup: value.hasCheckUpdatesOnStartup()
+      ? value.checkUpdatesOnStartup
+      : true,
 );
 
 SettingsSnapshot _reply(wire.SettingsReply reply) =>

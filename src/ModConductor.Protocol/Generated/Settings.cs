@@ -30,44 +30,46 @@ namespace ModConductor.Protocol.V1 {
             "dGF0aW9uU2V0dGluZ3MSOQoKYXBwZWFyYW5jZRgBIAEoDjIlLm1vZGNvbmR1",
             "Y3Rvci52MS5BcHBlYXJhbmNlUHJlZmVyZW5jZRISCgp0ZXh0X3NjYWxlGAIg",
             "ASgBEjUKCGNvbnRyYXN0GAMgASgOMiMubW9kY29uZHVjdG9yLnYxLkNvbnRy",
-            "YXN0UHJlZmVyZW5jZRIXCg9pbnRlcmZhY2Vfc2NhbGUYBCABKAEibQoQU2V0",
-            "dGluZ3NTbmFwc2hvdBI7CgxwcmVzZW50YXRpb24YASABKAsyJS5tb2Rjb25k",
-            "dWN0b3IudjEuUHJlc2VudGF0aW9uU2V0dGluZ3MSHAoUaW5oZXJpdHNfYXBw",
-            "bGljYXRpb24YAiABKAgiUQoNU2V0dGluZ3NGYXVsdBIwCgRjb2RlGAEgASgO",
-            "MiIubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzRmF1bHRDb2RlEg4KBmRldGFp",
-            "bBgCIAEoCSJGChNSZWFkU2V0dGluZ3NSZXF1ZXN0Ei8KBnRhcmdldBgBIAEo",
-            "CzIfLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc1RhcmdldCJ7ChNTYXZlU2V0",
-            "dGluZ3NSZXF1ZXN0Ei8KBnRhcmdldBgBIAEoCzIfLm1vZGNvbmR1Y3Rvci52",
-            "MS5TZXR0aW5nc1RhcmdldBIzCghzZXR0aW5ncxgCIAEoCzIhLm1vZGNvbmR1",
-            "Y3Rvci52MS5TZXR0aW5nc1NuYXBzaG90IoIBCg1TZXR0aW5nc1JlcGx5EjUK",
-            "CHNldHRpbmdzGAEgASgLMiEubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzU25h",
-            "cHNob3RIABIvCgVmYXVsdBgCIAEoCzIeLm1vZGNvbmR1Y3Rvci52MS5TZXR0",
-            "aW5nc0ZhdWx0SABCCQoHb3V0Y29tZSqgAQoUQXBwZWFyYW5jZVByZWZlcmVu",
-            "Y2USJQohQVBQRUFSQU5DRV9QUkVGRVJFTkNFX1VOU1BFQ0lGSUVEEAASIAoc",
-            "QVBQRUFSQU5DRV9QUkVGRVJFTkNFX1NZU1RFTRABEh8KG0FQUEVBUkFOQ0Vf",
-            "UFJFRkVSRU5DRV9MSUdIVBACEh4KGkFQUEVBUkFOQ0VfUFJFRkVSRU5DRV9E",
-            "QVJLEAMqmQEKEkNvbnRyYXN0UHJlZmVyZW5jZRIjCh9DT05UUkFTVF9QUkVG",
-            "RVJFTkNFX1VOU1BFQ0lGSUVEEAASHgoaQ09OVFJBU1RfUFJFRkVSRU5DRV9T",
-            "WVNURU0QARIgChxDT05UUkFTVF9QUkVGRVJFTkNFX1NUQU5EQVJEEAISHAoY",
-            "Q09OVFJBU1RfUFJFRkVSRU5DRV9ISUdIEAMqrwIKEVNldHRpbmdzRmF1bHRD",
-            "b2RlEiMKH1NFVFRJTkdTX0ZBVUxUX0NPREVfVU5TUEVDSUZJRUQQABIlCiFT",
-            "RVRUSU5HU19GQVVMVF9DT0RFX0lOVkFMSURfU0NPUEUQARIoCiRTRVRUSU5H",
-            "U19GQVVMVF9DT0RFX0lOVkFMSURfRE9DVU1FTlQQAhIrCidTRVRUSU5HU19G",
-            "QVVMVF9DT0RFX1VOU1VQUE9SVEVEX1ZFUlNJT04QAxIlCiFTRVRUSU5HU19G",
-            "QVVMVF9DT0RFX0lOVkFMSURfVkFMVUUQBBIjCh9TRVRUSU5HU19GQVVMVF9D",
-            "T0RFX1VOQVZBSUxBQkxFEAUSKwonU0VUVElOR1NfRkFVTFRfQ09ERV9XT1JL",
-            "U1BBQ0VfTk9UX0ZPVU5EEAYywAEKElNldHRpbmdzT3BlcmF0aW9ucxJUCgxS",
-            "ZWFkU2V0dGluZ3MSJC5tb2Rjb25kdWN0b3IudjEuUmVhZFNldHRpbmdzUmVx",
-            "dWVzdBoeLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc1JlcGx5ElQKDFNhdmVT",
-            "ZXR0aW5ncxIkLm1vZGNvbmR1Y3Rvci52MS5TYXZlU2V0dGluZ3NSZXF1ZXN0",
-            "Gh4ubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzUmVwbHlCG6oCGE1vZENvbmR1",
-            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "YXN0UHJlZmVyZW5jZRIXCg9pbnRlcmZhY2Vfc2NhbGUYBCABKAEisQEKEFNl",
+            "dHRpbmdzU25hcHNob3QSOwoMcHJlc2VudGF0aW9uGAEgASgLMiUubW9kY29u",
+            "ZHVjdG9yLnYxLlByZXNlbnRhdGlvblNldHRpbmdzEhwKFGluaGVyaXRzX2Fw",
+            "cGxpY2F0aW9uGAIgASgIEiUKGGNoZWNrX3VwZGF0ZXNfb25fc3RhcnR1cBgD",
+            "IAEoCEgAiAEBQhsKGV9jaGVja191cGRhdGVzX29uX3N0YXJ0dXAiUQoNU2V0",
+            "dGluZ3NGYXVsdBIwCgRjb2RlGAEgASgOMiIubW9kY29uZHVjdG9yLnYxLlNl",
+            "dHRpbmdzRmF1bHRDb2RlEg4KBmRldGFpbBgCIAEoCSJGChNSZWFkU2V0dGlu",
+            "Z3NSZXF1ZXN0Ei8KBnRhcmdldBgBIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5T",
+            "ZXR0aW5nc1RhcmdldCJ7ChNTYXZlU2V0dGluZ3NSZXF1ZXN0Ei8KBnRhcmdl",
+            "dBgBIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc1RhcmdldBIzCghz",
+            "ZXR0aW5ncxgCIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc1NuYXBz",
+            "aG90IoIBCg1TZXR0aW5nc1JlcGx5EjUKCHNldHRpbmdzGAEgASgLMiEubW9k",
+            "Y29uZHVjdG9yLnYxLlNldHRpbmdzU25hcHNob3RIABIvCgVmYXVsdBgCIAEo",
+            "CzIeLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc0ZhdWx0SABCCQoHb3V0Y29t",
+            "ZSqgAQoUQXBwZWFyYW5jZVByZWZlcmVuY2USJQohQVBQRUFSQU5DRV9QUkVG",
+            "RVJFTkNFX1VOU1BFQ0lGSUVEEAASIAocQVBQRUFSQU5DRV9QUkVGRVJFTkNF",
+            "X1NZU1RFTRABEh8KG0FQUEVBUkFOQ0VfUFJFRkVSRU5DRV9MSUdIVBACEh4K",
+            "GkFQUEVBUkFOQ0VfUFJFRkVSRU5DRV9EQVJLEAMqmQEKEkNvbnRyYXN0UHJl",
+            "ZmVyZW5jZRIjCh9DT05UUkFTVF9QUkVGRVJFTkNFX1VOU1BFQ0lGSUVEEAAS",
+            "HgoaQ09OVFJBU1RfUFJFRkVSRU5DRV9TWVNURU0QARIgChxDT05UUkFTVF9Q",
+            "UkVGRVJFTkNFX1NUQU5EQVJEEAISHAoYQ09OVFJBU1RfUFJFRkVSRU5DRV9I",
+            "SUdIEAMqrwIKEVNldHRpbmdzRmF1bHRDb2RlEiMKH1NFVFRJTkdTX0ZBVUxU",
+            "X0NPREVfVU5TUEVDSUZJRUQQABIlCiFTRVRUSU5HU19GQVVMVF9DT0RFX0lO",
+            "VkFMSURfU0NPUEUQARIoCiRTRVRUSU5HU19GQVVMVF9DT0RFX0lOVkFMSURf",
+            "RE9DVU1FTlQQAhIrCidTRVRUSU5HU19GQVVMVF9DT0RFX1VOU1VQUE9SVEVE",
+            "X1ZFUlNJT04QAxIlCiFTRVRUSU5HU19GQVVMVF9DT0RFX0lOVkFMSURfVkFM",
+            "VUUQBBIjCh9TRVRUSU5HU19GQVVMVF9DT0RFX1VOQVZBSUxBQkxFEAUSKwon",
+            "U0VUVElOR1NfRkFVTFRfQ09ERV9XT1JLU1BBQ0VfTk9UX0ZPVU5EEAYywAEK",
+            "ElNldHRpbmdzT3BlcmF0aW9ucxJUCgxSZWFkU2V0dGluZ3MSJC5tb2Rjb25k",
+            "dWN0b3IudjEuUmVhZFNldHRpbmdzUmVxdWVzdBoeLm1vZGNvbmR1Y3Rvci52",
+            "MS5TZXR0aW5nc1JlcGx5ElQKDFNhdmVTZXR0aW5ncxIkLm1vZGNvbmR1Y3Rv",
+            "ci52MS5TYXZlU2V0dGluZ3NSZXF1ZXN0Gh4ubW9kY29uZHVjdG9yLnYxLlNl",
+            "dHRpbmdzUmVwbHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJv",
+            "dG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.AppearancePreference), typeof(global::ModConductor.Protocol.V1.ContrastPreference), typeof(global::ModConductor.Protocol.V1.SettingsFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsTarget), global::ModConductor.Protocol.V1.SettingsTarget.Parser, new[]{ "Application", "WorkspaceId" }, new[]{ "Target" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PresentationSettings), global::ModConductor.Protocol.V1.PresentationSettings.Parser, new[]{ "Appearance", "TextScale", "Contrast", "InterfaceScale" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsSnapshot), global::ModConductor.Protocol.V1.SettingsSnapshot.Parser, new[]{ "Presentation", "InheritsApplication" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsSnapshot), global::ModConductor.Protocol.V1.SettingsSnapshot.Parser, new[]{ "Presentation", "InheritsApplication", "CheckUpdatesOnStartup" }, new[]{ "CheckUpdatesOnStartup" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsFault), global::ModConductor.Protocol.V1.SettingsFault.Parser, new[]{ "Code", "Detail" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadSettingsRequest), global::ModConductor.Protocol.V1.ReadSettingsRequest.Parser, new[]{ "Target" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveSettingsRequest), global::ModConductor.Protocol.V1.SaveSettingsRequest.Parser, new[]{ "Target", "Settings" }, null, null, null, null),
@@ -718,6 +720,7 @@ namespace ModConductor.Protocol.V1 {
   {
     private static readonly pb::MessageParser<SettingsSnapshot> _parser = new pb::MessageParser<SettingsSnapshot>(() => new SettingsSnapshot());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<SettingsSnapshot> Parser { get { return _parser; } }
@@ -745,8 +748,10 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public SettingsSnapshot(SettingsSnapshot other) : this() {
+      _hasBits0 = other._hasBits0;
       presentation_ = other.presentation_ != null ? other.presentation_.Clone() : null;
       inheritsApplication_ = other.inheritsApplication_;
+      checkUpdatesOnStartup_ = other.checkUpdatesOnStartup_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -780,6 +785,33 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "check_updates_on_startup" field.</summary>
+    public const int CheckUpdatesOnStartupFieldNumber = 3;
+    private readonly static bool CheckUpdatesOnStartupDefaultValue = false;
+
+    private bool checkUpdatesOnStartup_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CheckUpdatesOnStartup {
+      get { if ((_hasBits0 & 1) != 0) { return checkUpdatesOnStartup_; } else { return CheckUpdatesOnStartupDefaultValue; } }
+      set {
+        _hasBits0 |= 1;
+        checkUpdatesOnStartup_ = value;
+      }
+    }
+    /// <summary>Gets whether the "check_updates_on_startup" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasCheckUpdatesOnStartup {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "check_updates_on_startup" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearCheckUpdatesOnStartup() {
+      _hasBits0 &= ~1;
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -797,6 +829,7 @@ namespace ModConductor.Protocol.V1 {
       }
       if (!object.Equals(Presentation, other.Presentation)) return false;
       if (InheritsApplication != other.InheritsApplication) return false;
+      if (CheckUpdatesOnStartup != other.CheckUpdatesOnStartup) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -806,6 +839,7 @@ namespace ModConductor.Protocol.V1 {
       int hash = 1;
       if (presentation_ != null) hash ^= Presentation.GetHashCode();
       if (InheritsApplication != false) hash ^= InheritsApplication.GetHashCode();
+      if (HasCheckUpdatesOnStartup) hash ^= CheckUpdatesOnStartup.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -832,6 +866,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(16);
         output.WriteBool(InheritsApplication);
       }
+      if (HasCheckUpdatesOnStartup) {
+        output.WriteRawTag(24);
+        output.WriteBool(CheckUpdatesOnStartup);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -850,6 +888,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(16);
         output.WriteBool(InheritsApplication);
       }
+      if (HasCheckUpdatesOnStartup) {
+        output.WriteRawTag(24);
+        output.WriteBool(CheckUpdatesOnStartup);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -864,6 +906,9 @@ namespace ModConductor.Protocol.V1 {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Presentation);
       }
       if (InheritsApplication != false) {
+        size += 1 + 1;
+      }
+      if (HasCheckUpdatesOnStartup) {
         size += 1 + 1;
       }
       if (_unknownFields != null) {
@@ -886,6 +931,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.InheritsApplication != false) {
         InheritsApplication = other.InheritsApplication;
+      }
+      if (other.HasCheckUpdatesOnStartup) {
+        CheckUpdatesOnStartup = other.CheckUpdatesOnStartup;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -917,6 +965,10 @@ namespace ModConductor.Protocol.V1 {
             InheritsApplication = input.ReadBool();
             break;
           }
+          case 24: {
+            CheckUpdatesOnStartup = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -945,6 +997,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 16: {
             InheritsApplication = input.ReadBool();
+            break;
+          }
+          case 24: {
+            CheckUpdatesOnStartup = input.ReadBool();
             break;
           }
         }

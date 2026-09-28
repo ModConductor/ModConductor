@@ -201,6 +201,14 @@ type ExecutableSession(repository: IExecutableRepository) =
         }
 
     interface IExecutables with
+        member _.HasActive() =
+            lock gate (fun () ->
+                roots.RemoveWhere(fun root -> root.IsCompleted) |> ignore
+                roots.Count <> 0
+                || (runs.Values
+                    |> Seq.exists (fun owner ->
+                        not (ExecutablePolicy.terminal owner.Snapshot.Phase))))
+
         member _.List(workspace, after) =
             if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))

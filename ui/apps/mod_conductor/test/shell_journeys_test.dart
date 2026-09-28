@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mc_skse/mc_skse.dart';
 import 'package:mod_conductor/src/app.dart';
 
@@ -25,6 +26,8 @@ Future<void> mount(
   ProfileModsClient? profileMods,
   ModOrganizationClient? modOrganization,
   ModLibraryClient? modLibrary,
+  AppUpdatesController? updates,
+  Future<void> Function(AppUpdateManager)? onQuitAndUpdate,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1280, 800);
@@ -37,6 +40,8 @@ Future<void> mount(
       onQuit: onQuit,
       status: status,
       settings: unavailableSettings ? null : settings ?? _SettingsFake(),
+      updates: updates,
+      onQuitAndUpdate: onQuitAndUpdate,
       diagnostics: diagnostics,
       workspaces: workspaces,
       gameContexts: gameContexts,
@@ -365,6 +370,29 @@ class _SettingsFake implements SettingsClient {
   ) async => settings;
 }
 
+class _UpdateSource implements AppUpdateSource {
+  _UpdateSource(this.latest, this.manager);
+  final AppRelease? latest;
+  final AppUpdateManager? manager;
+  int checks = 0;
+  Uri? opened;
+
+  @override
+  Future<String> installedVersion() async => '1.2.3';
+  @override
+  Future<AppRelease?> latestRelease() async {
+    checks++;
+    return latest;
+  }
+
+  @override
+  Future<AppUpdateManager?> installedManager(String _) async => manager;
+  @override
+  Future<void> openReleasePage(Uri page) async {
+    opened = page;
+  }
+}
+
 class _FailingSettingsFake extends _SettingsFake {
   _FailingSettingsFake(this.readFault);
 
@@ -470,6 +498,112 @@ Brightness brightness(WidgetTester tester) =>
     Theme.of(tester.element(keyed('quit'))).brightness;
 
 void main() {
+  testWidgets(
+    'disabled startup check persists and manual check offers the manager',
+    (tester) async {
+      final settings = _SettingsFake()
+        ..application = const SettingsSnapshot(
+          presentation: PresentationPreferences(
+            appearance: AppearancePreference.system,
+            textScale: 1,
+            contrast: ContrastPreference.system,
+          ),
+          inheritsApplication: false,
+          checkUpdatesOnStartup: false,
+        );
+      final source = _UpdateSource(
+        const AppRelease('1.2.4', true),
+        AppUpdateManager.scoop,
+      );
+      final updates = AppUpdatesController(source, windows: true);
+      addTearDown(updates.dispose);
+      AppUpdateManager? handedOff;
+      await mount(
+        tester,
+        settings: settings,
+        updates: updates,
+        onQuitAndUpdate: (manager) async => handedOff = manager,
+      );
+      expect(source.checks, 0);
+      await activate(tester, 'nav-preferences');
+      expect(find.text('1.2.3'), findsOneWidget);
+      expect(find.text('Not checked'), findsOneWidget);
+      expect(
+        tester.widget<Switch>(keyed('check-updates-on-startup')).value,
+        isFalse,
+      );
+      await activate(tester, 'check-app-updates');
+      expect(source.checks, 1);
+      expect(find.text('1.2.4'), findsOneWidget);
+      expect(find.text('Quit and update with Scoop'), findsOneWidget);
+      await activate(tester, 'app-update-action');
+      expect(handedOff, AppUpdateManager.scoop);
+      await tester.ensureVisible(keyed('check-updates-on-startup'));
+      await tester.tap(keyed('check-updates-on-startup'));
+      await tester.pumpAndSettle();
+      expect(settings.application.checkUpdatesOnStartup, isTrue);
+      expect(settings.applicationSaves, 1);
+    },
+  );
+
+  testWidgets('Nix update card shows version and external guidance only', (
+    tester,
+  ) async {
+    final source = _UpdateSource(const AppRelease('1.2.4', true), null);
+    final updates = AppUpdatesController(source, windows: false);
+    addTearDown(updates.dispose);
+    await mount(tester, updates: updates);
+    await activate(tester, 'nav-preferences');
+    expect(find.text('1.2.3'), findsOneWidget);
+    expect(
+      find.text('Update Mod Conductor with your Nix configuration.'),
+      findsOneWidget,
+    );
+    expect(keyed('check-app-updates'), findsNothing);
+    expect(keyed('app-update-action'), findsNothing);
+    expect(source.checks, 0);
+  });
+
+  testWidgets('unknown Windows channel opens the official release page', (
+    tester,
+  ) async {
+    final source = _UpdateSource(const AppRelease('1.2.4', true), null);
+    final updates = AppUpdatesController(source, windows: true);
+    addTearDown(updates.dispose);
+    await mount(tester, updates: updates);
+    expect(source.checks, 1);
+    await activate(tester, 'nav-preferences');
+    expect(find.text('Open release page'), findsOneWidget);
+    await activate(tester, 'app-update-action');
+    expect(
+      source.opened.toString(),
+      'https://github.com/alsi-lawr/ModConductor/releases/tag/v1.2.4',
+    );
+  });
+
+  testWidgets('disabling startup checks survives a new app session', (
+    tester,
+  ) async {
+    final settings = _SettingsFake();
+    final firstSource = _UpdateSource(null, null);
+    final first = AppUpdatesController(firstSource, windows: true);
+    addTearDown(first.dispose);
+    await mount(tester, settings: settings, updates: first);
+    expect(firstSource.checks, 1);
+    await activate(tester, 'nav-preferences');
+    await tester.ensureVisible(keyed('check-updates-on-startup'));
+    await tester.tap(keyed('check-updates-on-startup'));
+    await tester.pumpAndSettle();
+    expect(settings.application.checkUpdatesOnStartup, isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    final secondSource = _UpdateSource(null, null);
+    final second = AppUpdatesController(secondSource, windows: true);
+    addTearDown(second.dispose);
+    await mount(tester, settings: settings, updates: second);
+    expect(secondSource.checks, 0);
+  });
+
   testWidgets('setup completion refreshes open mods without the setup view', (
     tester,
   ) async {
@@ -494,8 +628,14 @@ void main() {
     expect(initial, greaterThan(0));
     expect(setup.streams['one:profile']?.hasListener, isTrue);
 
-    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpSkse,
-        active: true, canCancel: true));
+    setup.emit(
+      'one',
+      setup.phase(
+        SkyrimSetupStatusPhase.settingUpSkse,
+        active: true,
+        canCancel: true,
+      ),
+    );
     await tester.pump();
     setup.emit('one', setup.idle);
     await tester.pumpAndSettle();
@@ -510,16 +650,30 @@ void main() {
     expect(setup.watches, greaterThan(1));
     expect(query.reads, initial + 2);
 
-    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpEnb,
-        active: true, canCancel: true));
+    setup.emit(
+      'one',
+      setup.phase(
+        SkyrimSetupStatusPhase.settingUpEnb,
+        active: true,
+        canCancel: true,
+      ),
+    );
     await tester.pump();
-    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.failed,
-        canCancel: true));
+    setup.emit(
+      'one',
+      setup.phase(SkyrimSetupStatusPhase.failed, canCancel: true),
+    );
     await tester.pumpAndSettle();
     expect(query.reads, initial + 3);
 
-    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpFnis,
-        active: true, canCancel: true));
+    setup.emit(
+      'one',
+      setup.phase(
+        SkyrimSetupStatusPhase.settingUpFnis,
+        active: true,
+        canCancel: true,
+      ),
+    );
     await tester.pump();
     setup.emit('one', setup.phase(SkyrimSetupStatusPhase.cancelled));
     await tester.pumpAndSettle();
@@ -529,8 +683,14 @@ void main() {
     await tester.pumpAndSettle();
     await openWorkspace(tester, 'two');
     final switched = query.reads;
-    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpSkse,
-        active: true, canCancel: true));
+    setup.emit(
+      'one',
+      setup.phase(
+        SkyrimSetupStatusPhase.settingUpSkse,
+        active: true,
+        canCancel: true,
+      ),
+    );
     setup.emit('one', setup.idle);
     await tester.pumpAndSettle();
     expect(query.reads, switched);

@@ -28,6 +28,11 @@ type ExecutableTests() =
         flag "rootExitDoesNotUndeploy" |> should equal true
 
     [<Test>]
+    member _.``update handoff should wait for a managed launch to finish``() =
+        flag "updateHandoffBlockedByManagedLaunch" |> should equal true
+        flag "updateHandoffReadyAfterManagedLaunch" |> should equal true
+
+    [<Test>]
     member _.``stop waiting and owner closure should leave tools streams and deployed files intact``
         ()
         =

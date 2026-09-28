@@ -18,12 +18,25 @@ class DesktopProblem implements Exception {
 
 abstract interface class DesktopClient {
   Future<DesktopIntent> resolve(List<String> arguments);
+  Future<String?> updateHandoffProblem();
 }
 
 class GrpcDesktopClient implements DesktopClient {
   GrpcDesktopClient(ClientChannel channel, CallOptions options)
     : _client = wire.DesktopOperationsClient(channel, options: options);
   final wire.DesktopOperationsClient _client;
+  @override
+  Future<String?> updateHandoffProblem() async {
+    try {
+      final reply = await _client.checkUpdateHandoff(
+        wire.UpdateHandoffRequest(),
+      );
+      return reply.ready ? null : reply.problem;
+    } on GrpcError {
+      return 'Could not check active work. Try again.';
+    }
+  }
+
   @override
   Future<DesktopIntent> resolve(List<String> arguments) async {
     try {

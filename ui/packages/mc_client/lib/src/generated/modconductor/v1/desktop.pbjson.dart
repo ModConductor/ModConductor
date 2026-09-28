@@ -35,6 +35,29 @@ final $typed_data.Uint8List desktopIntentKindDescriptor = $convert.base64Decode(
     'T1JLU1BBQ0UQAhIfChtERVNLVE9QX0lOVEVOVF9LSU5EX0FSQ0hJVkUQAxIgChxERVNLVE9QX0'
     'lOVEVOVF9LSU5EX0FSQ0hJVkVTEAQSHwobREVTS1RPUF9JTlRFTlRfS0lORF9QUk9GSUxFEAU=');
 
+@$core.Deprecated('Use updateHandoffRequestDescriptor instead')
+const UpdateHandoffRequest$json = {
+  '1': 'UpdateHandoffRequest',
+};
+
+/// Descriptor for `UpdateHandoffRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateHandoffRequestDescriptor =
+    $convert.base64Decode('ChRVcGRhdGVIYW5kb2ZmUmVxdWVzdA==');
+
+@$core.Deprecated('Use updateHandoffReplyDescriptor instead')
+const UpdateHandoffReply$json = {
+  '1': 'UpdateHandoffReply',
+  '2': [
+    {'1': 'ready', '3': 1, '4': 1, '5': 8, '10': 'ready'},
+    {'1': 'problem', '3': 2, '4': 1, '5': 9, '10': 'problem'},
+  ],
+};
+
+/// Descriptor for `UpdateHandoffReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateHandoffReplyDescriptor = $convert.base64Decode(
+    'ChJVcGRhdGVIYW5kb2ZmUmVwbHkSFAoFcmVhZHkYASABKAhSBXJlYWR5EhgKB3Byb2JsZW0YAi'
+    'ABKAlSB3Byb2JsZW0=');
+
 @$core.Deprecated('Use resolveDesktopRequestMessageDescriptor instead')
 const ResolveDesktopRequestMessage$json = {
   '1': 'ResolveDesktopRequestMessage',

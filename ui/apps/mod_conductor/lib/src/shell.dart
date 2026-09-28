@@ -4,6 +4,7 @@ class _DesktopShell extends StatelessWidget {
   const _DesktopShell({
     super.key,
     required this.destination,
+    required this.updateAvailable,
     required this.connectionStatus,
     required this.onNavigate,
     required this.onQuit,
@@ -18,6 +19,7 @@ class _DesktopShell extends StatelessWidget {
   });
   final DesktopStatus connectionStatus;
   final _Destination destination;
+  final bool updateAvailable;
   final ValueChanged<_Destination> onNavigate;
   final VoidCallback onQuit;
   final FocusNode workspacesFocus;
@@ -94,16 +96,34 @@ class _DesktopShell extends StatelessWidget {
                                 : null,
                           ),
                           onPressed: () => onNavigate(item),
-                          child: McIconLabel(
-                            icon: Icon(
-                              item == _Destination.workspaces
-                                  ? Icons.home_outlined
-                                  : Icons.tune,
-                              size: 18,
-                            ),
-                            label: item == _Destination.workspaces
-                                ? labels.workspaces
-                                : labels.preferences,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              McIconLabel(
+                                icon: Icon(
+                                  item == _Destination.workspaces
+                                      ? Icons.home_outlined
+                                      : Icons.tune,
+                                  size: 18,
+                                ),
+                                label: item == _Destination.workspaces
+                                    ? labels.workspaces
+                                    : labels.preferences,
+                              ),
+                              if (item == _Destination.preferences &&
+                                  updateAvailable) ...[
+                                const SizedBox(width: 8),
+                                Semantics(
+                                  label: 'Update available',
+                                  child: CircleAvatar(
+                                    radius: 4,
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),

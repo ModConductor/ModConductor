@@ -69,7 +69,7 @@ module DesktopFixtures =
                 .GetResult()
             |> Result.defaultWith (fun _ -> failwith "create")
 
-        let service = DesktopService(store.Workspaces)
+        let service = DesktopService(store.Workspaces, store.Executables)
 
         let resolve args =
             let request = ResolveDesktopRequestMessage()

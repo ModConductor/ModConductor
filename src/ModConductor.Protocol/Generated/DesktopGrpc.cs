@@ -49,6 +49,10 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ResolveDesktopRequestMessage> __Marshaller_modconductor_v1_ResolveDesktopRequestMessage = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ResolveDesktopRequestMessage.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DesktopRequestReply> __Marshaller_modconductor_v1_DesktopRequestReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DesktopRequestReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.UpdateHandoffRequest> __Marshaller_modconductor_v1_UpdateHandoffRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.UpdateHandoffRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.UpdateHandoffReply> __Marshaller_modconductor_v1_UpdateHandoffReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.UpdateHandoffReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ResolveDesktopRequestMessage, global::ModConductor.Protocol.V1.DesktopRequestReply> __Method_ResolveDesktopRequest = new grpc::Method<global::ModConductor.Protocol.V1.ResolveDesktopRequestMessage, global::ModConductor.Protocol.V1.DesktopRequestReply>(
@@ -57,6 +61,14 @@ namespace ModConductor.Protocol.V1 {
         "ResolveDesktopRequest",
         __Marshaller_modconductor_v1_ResolveDesktopRequestMessage,
         __Marshaller_modconductor_v1_DesktopRequestReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.UpdateHandoffRequest, global::ModConductor.Protocol.V1.UpdateHandoffReply> __Method_CheckUpdateHandoff = new grpc::Method<global::ModConductor.Protocol.V1.UpdateHandoffRequest, global::ModConductor.Protocol.V1.UpdateHandoffReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "CheckUpdateHandoff",
+        __Marshaller_modconductor_v1_UpdateHandoffRequest,
+        __Marshaller_modconductor_v1_UpdateHandoffReply);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -70,6 +82,12 @@ namespace ModConductor.Protocol.V1 {
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.DesktopRequestReply> ResolveDesktopRequest(global::ModConductor.Protocol.V1.ResolveDesktopRequestMessage request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.UpdateHandoffReply> CheckUpdateHandoff(global::ModConductor.Protocol.V1.UpdateHandoffRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -123,6 +141,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_ResolveDesktopRequest, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.UpdateHandoffReply CheckUpdateHandoff(global::ModConductor.Protocol.V1.UpdateHandoffRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CheckUpdateHandoff(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.UpdateHandoffReply CheckUpdateHandoff(global::ModConductor.Protocol.V1.UpdateHandoffRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_CheckUpdateHandoff, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.UpdateHandoffReply> CheckUpdateHandoffAsync(global::ModConductor.Protocol.V1.UpdateHandoffRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CheckUpdateHandoffAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.UpdateHandoffReply> CheckUpdateHandoffAsync(global::ModConductor.Protocol.V1.UpdateHandoffRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_CheckUpdateHandoff, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override DesktopOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -137,7 +175,8 @@ namespace ModConductor.Protocol.V1 {
     public static grpc::ServerServiceDefinition BindService(DesktopOperationsBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_ResolveDesktopRequest, serviceImpl.ResolveDesktopRequest).Build();
+          .AddMethod(__Method_ResolveDesktopRequest, serviceImpl.ResolveDesktopRequest)
+          .AddMethod(__Method_CheckUpdateHandoff, serviceImpl.CheckUpdateHandoff).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -148,6 +187,7 @@ namespace ModConductor.Protocol.V1 {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, DesktopOperationsBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_ResolveDesktopRequest, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ResolveDesktopRequestMessage, global::ModConductor.Protocol.V1.DesktopRequestReply>(serviceImpl.ResolveDesktopRequest));
+      serviceBinder.AddMethod(__Method_CheckUpdateHandoff, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.UpdateHandoffRequest, global::ModConductor.Protocol.V1.UpdateHandoffReply>(serviceImpl.CheckUpdateHandoff));
     }
 
   }

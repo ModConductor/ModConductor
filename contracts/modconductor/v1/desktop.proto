@@ -4,7 +4,10 @@ option csharp_namespace = "ModConductor.Protocol.V1";
 
 service DesktopOperations {
   rpc ResolveDesktopRequest(ResolveDesktopRequestMessage) returns (DesktopRequestReply);
+  rpc CheckUpdateHandoff(UpdateHandoffRequest) returns (UpdateHandoffReply);
 }
+message UpdateHandoffRequest {}
+message UpdateHandoffReply { bool ready = 1; string problem = 2; }
 message ResolveDesktopRequestMessage { repeated string arguments = 1; }
 enum DesktopIntentKind {
   DESKTOP_INTENT_KIND_UNSPECIFIED = 0;

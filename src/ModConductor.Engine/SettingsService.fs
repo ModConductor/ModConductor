@@ -29,7 +29,8 @@ module private SettingsWire =
                     InterfaceScale = value.Presentation.InterfaceScale,
                     Contrast = contrast value.Presentation.Contrast
                 ),
-            InheritsApplication = value.InheritsApplication
+            InheritsApplication = value.InheritsApplication,
+            CheckUpdatesOnStartup = value.CheckUpdatesOnStartup
         )
 
     let fault code detail =
@@ -79,7 +80,12 @@ module private SettingsWire =
                             else
                                 value.Presentation.InterfaceScale
                           Contrast = contrast }
-                      InheritsApplication = value.InheritsApplication }
+                      InheritsApplication = value.InheritsApplication
+                      CheckUpdatesOnStartup =
+                        if value.HasCheckUpdatesOnStartup then
+                            value.CheckUpdatesOnStartup
+                        else
+                            true }
             | Error detail, _
             | _, Error detail -> Error detail
 
