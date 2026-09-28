@@ -28,7 +28,8 @@ module internal ArchivePolicyWire =
                 Problem = Option.defaultValue "" value.Problem
             )
 
-        value.Position |> Option.iter (uint32 >> fun position -> result.Position <- position)
+        value.Position
+        |> Option.iter (uint32 >> fun position -> result.Position <- position)
 
         value.Explicit
         |> Option.iter (fun explicit ->

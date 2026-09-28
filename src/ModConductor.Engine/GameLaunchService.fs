@@ -75,11 +75,13 @@ type GameLaunchService(launches: IGameLaunching, skse: SkseCoordinator, fnis: IF
                 |> Option.iter (fun detail -> wire.Problem <- detail)
 
                 value.Latest |> Option.iter (fun run -> wire.Latest <- ExecutableWire.run run)
+
                 fnisCheck
                 |> Option.iter (fun value ->
                     wire.FnisStale <- stale value.Phase
                     wire.FnisStatus <- value.Status
                     wire.CanRunFnis <- value.Phase <> FnisOutputPhase.Running)
+
                 return Protocol.V1.GameLaunchStateReply(State = wire)
         }
 

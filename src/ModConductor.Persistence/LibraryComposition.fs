@@ -151,6 +151,7 @@ module internal LibraryComposition =
                         retainedFiles
                         |> List.filter (fun file ->
                             not (deletedKeys.Contains(TargetPolicy.key input.Policy file.Path)))
+
                     let inlineKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
                     let fileKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
 

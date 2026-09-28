@@ -135,7 +135,9 @@ type GameLaunchSession
                                 (dataRevision |> Result.defaultValue -1L)
                                 deployed.ActiveGeneration = request.SourceToken
                             ->
-                            match Descriptor.createWith state deployed.RunnableRoot loader launch with
+                            match
+                                Descriptor.createWith state deployed.RunnableRoot loader launch
+                            with
                             | Error error -> return Error(ExecutableError.Unavailable error)
                             | Ok(context, runtime, launch) ->
                                 let game =
@@ -175,8 +177,7 @@ type GameLaunchSession
 
                 match state, deployed with
                 | Ok state, Ok deployed when
-                    deployed.WorkspaceId = workspace
-                    && deployed.ActiveGeneration = Some generation
+                    deployed.WorkspaceId = workspace && deployed.ActiveGeneration = Some generation
                     ->
                     let! loader = loaders.Read(workspace, profile, Some generation)
                     let! launch = launchConfiguration workspace profile (Some generation)

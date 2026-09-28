@@ -29,7 +29,9 @@ module internal GameViews =
                 held.Directory(name, Some entry.Identity)
             | _ -> raise (IOException "The profile game folder is not a directory.")
 
-        { Path = HostPath.create (Path.Combine(HostPath.value parent.Path, name)) |> Result.defaultWith invalidOp
+        { Path =
+            HostPath.create (Path.Combine(HostPath.value parent.Path, name))
+            |> Result.defaultWith invalidOp
           Identity = directory.Identity }
 
     let rootPath (workspace: HostPath) (profile: Guid) =
@@ -52,12 +54,13 @@ module internal GameViews =
                         use child = directory.Directory(name, Some entry.Identity)
                         removeEntries child
                         child.Identity
+
                     directory.RemoveDirectory(name, identity)
                 | Some entry when entry.Kind = EntryKind.RegularFile ->
                     directory.RemoveFile(name, entry.Identity)
-                | Some entry when entry.Kind = EntryKind.Link ->
-                    directory.RemoveLink(name, entry)
-                | Some _ -> raise (IOException "The owned profile game folder has an unsupported entry.")
+                | Some entry when entry.Kind = EntryKind.Link -> directory.RemoveLink(name, entry)
+                | Some _ ->
+                    raise (IOException "The owned profile game folder has an unsupported entry.")
                 | None -> raise (IOException "The owned profile game folder changed.")
 
         use root = HeldDirectory.Open(workspace.Path, workspace.Identity)
@@ -76,12 +79,14 @@ module internal GameViews =
                         use owned = views.Directory(profileName, Some profileEntry.Identity)
                         removeEntries owned
                         owned.Identity
+
                     views.RemoveDirectory(profileName, profileIdentity)
                 | Some _ -> raise (IOException "The owned profile game folder changed.")
 
                 views.Identity, (views.Names |> Seq.isEmpty)
 
-            if empty then root.RemoveDirectory(".mc-game-views", viewsIdentity)
+            if empty then
+                root.RemoveDirectory(".mc-game-views", viewsIdentity)
         | Some _ -> raise (IOException "The owned profile game folder changed.")
 
     let private rootEntries (source: Location) (token: CancellationToken) =
@@ -100,7 +105,10 @@ module internal GameViews =
                     prefix.IsEmpty
                     && (name.Equals("Data", StringComparison.OrdinalIgnoreCase)
                         || name.Equals("Skyrim.ccc", StringComparison.OrdinalIgnoreCase)
-                        || name.StartsWith(".modconductor-originals-", StringComparison.OrdinalIgnoreCase))
+                        || name.StartsWith(
+                            ".modconductor-originals-",
+                            StringComparison.OrdinalIgnoreCase
+                        ))
 
                 if not reserved then
                     count <- count + 1
@@ -119,6 +127,7 @@ module internal GameViews =
                     | Some entry when entry.Kind = EntryKind.RegularFile ->
                         let metadata = directory.InspectFile(name, Some entry.Identity)
                         identities.Add(logical, metadata.Identity)
+
                         files.Add
                             { Path = logical
                               Identity =
@@ -127,7 +136,10 @@ module internal GameViews =
                                       Length = metadata.Length
                                       Modified = metadata.Modified } }
                     | _ ->
-                        raise (IOException "The game root contains an unowned link or unavailable entry.")
+                        raise (
+                            IOException
+                                "The game root contains an unowned link or unavailable entry."
+                        )
 
         use held = HeldDirectory.Open(source.Path, source.Identity)
         walk held [] 0
@@ -183,16 +195,18 @@ module internal GameViews =
         gameRootId
         (token: CancellationToken)
         =
-        let gameSource: DataRoot = { Path = source.Path; Identity = source.Identity }
+        let gameSource: DataRoot =
+            { Path = source.Path
+              Identity = source.Identity }
+
         let _, _, bytes = PluginInputs.readFile gameSource "Skyrim.ccc" token
 
         let available =
-            dataFiles
-            |> List.map (fun file -> LogicalPath.display file.Path)
-            |> Set.ofList
+            dataFiles |> List.map (fun file -> LogicalPath.display file.Path) |> Set.ofList
 
         let installed name =
-            available |> Seq.exists (fun value -> value.Equals(name, StringComparison.OrdinalIgnoreCase))
+            available
+            |> Seq.exists (fun value -> value.Equals(name, StringComparison.OrdinalIgnoreCase))
 
         let creation =
             (UTF8Encoding(false, true).GetString bytes)
@@ -206,23 +220,25 @@ module internal GameViews =
             saved
             |> Option.bind (fun order ->
                 order.Entries
-                |> List.tryFind (fun row -> row.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                |> List.tryFind (fun row ->
+                    row.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             |> Option.bind _.Enabled
             |> Option.defaultValue true
 
         let optional = (OrderRules.baseFiles |> List.skip 2) @ creation
 
-        let disabled =
-            optional
-            |> List.filter (selected >> not)
-            |> List.filter installed
+        let disabled = optional |> List.filter (selected >> not) |> List.filter installed
 
         let excluded =
             dataFiles
             |> List.choose (fun file ->
                 let name = LogicalPath.display file.Path
 
-                if disabled |> List.exists (fun value -> value.Equals(name, StringComparison.OrdinalIgnoreCase)) then
+                if
+                    disabled
+                    |> List.exists (fun value ->
+                        value.Equals(name, StringComparison.OrdinalIgnoreCase))
+                then
                     Some { Root = dataRootId; Path = file.Path }
                 else
                     None)
@@ -232,9 +248,12 @@ module internal GameViews =
             creation
             |> List.filter selected
             |> fun lines ->
-                if lines.IsEmpty then [||]
-                else Encoding.UTF8.GetBytes(String.concat "\r\n" lines + "\r\n")
+                if lines.IsEmpty then
+                    [||]
+                else
+                    Encoding.UTF8.GetBytes(String.concat "\r\n" lines + "\r\n")
 
         excluded,
         [ { Root = gameRootId
-            Path = path [ "Skyrim.ccc" ] }, ccc ]
+            Path = path [ "Skyrim.ccc" ] },
+          ccc ]

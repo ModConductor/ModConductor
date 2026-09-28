@@ -163,10 +163,7 @@ type WorkspaceLocations(defaultRoot: string) =
         with
         | :? IOException
         | :? UnauthorizedAccessException ->
-            Error(
-                WorkspaceError.InvalidRoot
-                    "The default workspace folder could not be created."
-            )
+            Error(WorkspaceError.InvalidRoot "The default workspace folder could not be created.")
 
 type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations, images: IProfileImages)
     =
@@ -201,7 +198,10 @@ type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations, ima
             | Error error -> Task.FromResult(WorkspaceWire.pageReply (Error error))
             | Ok name ->
                 let path =
-                    if request.HasPath then Ok request.Path else locations.Default id
+                    if request.HasPath then
+                        Ok request.Path
+                    else
+                        locations.Default id
 
                 match path with
                 | Error error -> Task.FromResult(WorkspaceWire.pageReply (Error error))
@@ -243,8 +243,7 @@ type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations, ima
             task {
                 let source =
                     match request.ChangeCase with
-                    | SetProfileImageRequest.ChangeOneofCase.SourcePath ->
-                        Some request.SourcePath
+                    | SetProfileImageRequest.ChangeOneofCase.SourcePath -> Some request.SourcePath
                     | SetProfileImageRequest.ChangeOneofCase.Clear -> None
                     | _ -> WorkspaceWire.reject "Choose an image or remove the image."
 

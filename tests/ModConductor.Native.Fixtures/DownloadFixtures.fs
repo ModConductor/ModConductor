@@ -16,16 +16,24 @@ module DownloadFixtures =
     type private CountingArtifacts(inner: IArtifactLibrary) =
         let mutable reads = 0
         member _.Reads = Volatile.Read(&reads)
+
         interface IArtifactLibrary with
-            member _.List(workspace, after, incomplete, token) = inner.List(workspace, after, incomplete, token)
+            member _.List(workspace, after, incomplete, token) =
+                inner.List(workspace, after, incomplete, token)
+
             member _.LinkOptions(workspace, after) = inner.LinkOptions(workspace, after)
+
             member _.Read(workspace, id) =
                 Interlocked.Increment(&reads) |> ignore
                 inner.Read(workspace, id)
+
             member _.Add(value, token) = inner.Add(value, token)
             member _.Retry(value, token) = inner.Retry(value, token)
             member _.Locate(value, path, token) = inner.Locate(value, path, token)
-            member _.Link(value, modId, versionId, active) = inner.Link(value, modId, versionId, active)
+
+            member _.Link(value, modId, versionId, active) =
+                inner.Link(value, modId, versionId, active)
+
             member _.DeleteCopy value = inner.DeleteCopy value
             member _.Remove value = inner.Remove value
 
@@ -64,15 +72,23 @@ module DownloadFixtures =
         a.Download.Value.State = DownloadState.Complete
         || a.Download.Value.State = DownloadState.Failed
 
-    let private untilChanged (store: OperationStore) workspace id (initial: Artifact) (condition: Artifact -> bool) =
+    let private untilChanged
+        (store: OperationStore)
+        workspace
+        id
+        (initial: Artifact)
+        (condition: Artifact -> bool)
+        =
         use cancellation = new CancellationTokenSource(TimeSpan.FromSeconds 12.)
         let mutable value = initial
         let mutable changes = 0
 
         while not (condition value) do
-            store.Downloads.WaitForChange(workspace, [ id, value.Revision ], cancellation.Token)
+            store.Downloads
+                .WaitForChange(workspace, [ id, value.Revision ], cancellation.Token)
                 .GetAwaiter()
                 .GetResult()
+
             value <- read store workspace id
             changes <- changes + 1
 
@@ -165,12 +181,10 @@ module DownloadFixtures =
                  && server.Count "/slow" = requests)
 
             use idle = new CancellationTokenSource()
+
             let idleWatch =
-                store.Downloads.WaitForChange(
-                    workspace,
-                    [ crashed, restored.Revision ],
-                    idle.Token
-                )
+                store.Downloads.WaitForChange(workspace, [ crashed, restored.Revision ], idle.Token)
+
             Thread.Sleep 150
             check "idleDownloadWatchWaitsForChange" (not idleWatch.IsCompleted)
             idle.Cancel()
@@ -183,17 +197,28 @@ module DownloadFixtures =
             let watchRequest = DownloadWatchRequest(WorkspaceId = workspace.ToString("N"))
             watchRequest.Ids.Add(crashed.ToString("N"))
             let watching = service.WatchDownloads(watchRequest, stream, context)
+
             if not (SpinWait.SpinUntil((fun () -> stream.Count = 1), TimeSpan.FromSeconds 3.)) then
                 failwith "The download watch did not publish its initial snapshot."
+
             let initialReads = counted.Reads
             Thread.Sleep 150
             let idleReads = counted.Reads
+
             store.Downloads.Control(workspace, crashed, DownloadAction.Pause)
-            |> wait |> result |> ignore
+            |> wait
+            |> result
+            |> ignore
+
             WatchCountFixtures.until "download owner change" (fun () -> stream.Count = 2)
             let changedReads = counted.Reads
             watchCancellation.Cancel()
-            try watching.GetAwaiter().GetResult() with :? OperationCanceledException -> ()
+
+            try
+                watching.GetAwaiter().GetResult()
+            with :? OperationCanceledException ->
+                ()
+
             writer.WriteStartObject("watchRequestCounts")
             writer.WriteNumber("initialArtifactReads", initialReads)
             writer.WriteNumber("idleArtifactReads", idleReads)

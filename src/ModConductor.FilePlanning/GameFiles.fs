@@ -44,6 +44,7 @@ module GameFiles =
                     raise (IOException("The checked Data path is invalid.")))
 
             use root = HeldDirectory.Open(rootPath, identity)
+
             let produce ((entries, total, metadata): ObservedEntry list * int64 * int64) =
                 let totalFiles =
                     entries |> List.filter (fun entry -> not entry.Directory) |> List.length
@@ -134,12 +135,14 @@ module GameFiles =
     let current (observation: GameObservation) token =
         protect (fun () ->
             use root = HeldDirectory.Open(observation.Root, observation.Identity)
+
             GameInventory.inventory root observation.Projection token
             |> Result.map (fun (entries, _, _) -> entries = observation.Entries))
 
     let internal reuse projection (observation: GameObservation) token =
         protect (fun () ->
             use root = HeldDirectory.Open(observation.Root, observation.Identity)
+
             GameInventory.inventory root projection token
             |> Result.bind (fun (entries, _, metadata) ->
                 if entries <> observation.Entries then
@@ -163,8 +166,7 @@ module GameFiles =
         else
             match
                 observation.Entries
-                |> List.tryFind (fun entry ->
-                    not entry.Directory && entry.Path = source.SourcePath)
+                |> List.tryFind (fun entry -> not entry.Directory && entry.Path = source.SourcePath)
             with
             | Some entry when entry.Length = source.Length -> Ok entry
             | _ -> Error FilePlanError.Stale
@@ -194,5 +196,4 @@ module GameFiles =
                     if unchanged () then
                         Ok result
                     else
-                        Error FilePlanError.Stale
-            ))
+                        Error FilePlanError.Stale))

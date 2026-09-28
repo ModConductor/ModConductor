@@ -144,7 +144,11 @@ type SupportReport =
       Content: byte array }
 
 type IDiagnostics =
-    abstract Check: DiagnosticRequest * CancellationToken -> Task<Result<DiagnosticSnapshot, DiagnosticError>>
-    abstract Preview: Guid * string * CancellationToken -> Task<Result<RemediationPreview, DiagnosticError>>
+    abstract Check:
+        DiagnosticRequest * CancellationToken -> Task<Result<DiagnosticSnapshot, DiagnosticError>>
+
+    abstract Preview:
+        Guid * string * CancellationToken -> Task<Result<RemediationPreview, DiagnosticError>>
+
     abstract Apply: Guid * CancellationToken -> Task<Result<RemediationResult, DiagnosticError>>
     abstract Export: Guid * CancellationToken -> Task<Result<SupportReport, DiagnosticError>>

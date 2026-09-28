@@ -13,15 +13,27 @@ open ModConductor.Persistence
 open ModConductor.Protocol.V1
 
 type ProfileTransportService
-    (store: ProfileTransportStore, artifacts: IArtifactLibrary, downloads: DownloadSession, nexus: NexusSession) =
+    (
+        store: ProfileTransportStore,
+        artifacts: IArtifactLibrary,
+        downloads: DownloadSession,
+        nexus: NexusSession
+    ) =
     inherit ProfileTransportOperations.ProfileTransportOperationsBase()
 
-    let exact (requirement: ModConductor.Persistence.ProfileSourceRequirement) (artifact: Artifact) =
+    let exact
+        (requirement: ModConductor.Persistence.ProfileSourceRequirement)
+        (artifact: Artifact)
+        =
         artifact.Sha256 = Some requirement.Sha256
         && artifact.Length = Some requirement.Length
         && (artifact.State = ArtifactState.Ready || artifact.State = ArtifactState.Installed)
 
-    let existing workspace (requirement: ModConductor.Persistence.ProfileSourceRequirement) (token: CancellationToken) =
+    let existing
+        workspace
+        (requirement: ModConductor.Persistence.ProfileSourceRequirement)
+        (token: CancellationToken)
+        =
         task {
             let mutable cursor = None
             let mutable found = None
@@ -40,17 +52,32 @@ type ProfileTransportService
             return found
         }
 
-    let manual workspace (requirement: ModConductor.Persistence.ProfileSourceRequirement) (path: string) (token: CancellationToken) =
+    let manual
+        workspace
+        (requirement: ModConductor.Persistence.ProfileSourceRequirement)
+        (path: string)
+        (token: CancellationToken)
+        =
         task {
             use file = File.OpenRead path
 
             if file.Length <> requirement.Length then
-                raise (InvalidDataException("The selected archive for " + requirement.ModName + " has a different size."))
+                raise (
+                    InvalidDataException(
+                        "The selected archive for " + requirement.ModName + " has a different size."
+                    )
+                )
 
             let sha = SHA256.HashData file |> Convert.ToHexStringLower
 
             if not (String.Equals(sha, requirement.Sha256, StringComparison.OrdinalIgnoreCase)) then
-                raise (InvalidDataException("The selected archive for " + requirement.ModName + " is not the exact source."))
+                raise (
+                    InvalidDataException(
+                        "The selected archive for "
+                        + requirement.ModName
+                        + " is not the exact source."
+                    )
+                )
 
             let! added =
                 artifacts.Add(
@@ -63,12 +90,27 @@ type ProfileTransportService
 
             match added with
             | Ok value when exact requirement value -> return Some value
-            | _ -> return raise (InvalidDataException("The exact archive for " + requirement.ModName + " could not be saved."))
+            | _ ->
+                return
+                    raise (
+                        InvalidDataException(
+                            "The exact archive for " + requirement.ModName + " could not be saved."
+                        )
+                    )
         }
 
-    let provider workspace (requirement: ModConductor.Persistence.ProfileSourceRequirement) (token: CancellationToken) =
+    let provider
+        workspace
+        (requirement: ModConductor.Persistence.ProfileSourceRequirement)
+        (token: CancellationToken)
+        =
         task {
-            match requirement.ProviderGame, requirement.ProviderMod, requirement.ProviderFile, requirement.ProviderVersion with
+            match
+                requirement.ProviderGame,
+                requirement.ProviderMod,
+                requirement.ProviderFile,
+                requirement.ProviderVersion
+            with
             | Some game, Some modId, Some fileId, Some version ->
                 do! nexus.SavedConnection.WaitAsync token
 
@@ -78,7 +120,10 @@ type ProfileTransportService
                     let! upstream = nexus.ReadFile(game, modId, fileId).WaitAsync token
 
                     match upstream with
-                    | Ok (file: NexusFile) when file.Version = version && (file.Bytes.IsNone || file.Bytes = Some requirement.Length) ->
+                    | Ok(file: NexusFile) when
+                        file.Version = version
+                        && (file.Bytes.IsNone || file.Bytes = Some requirement.Length)
+                        ->
                         let source =
                             DownloadSource.Nexus
                                 { Account = account.Subject
@@ -108,10 +153,21 @@ type ProfileTransportService
 
                                 if exact requirement current then
                                     running <- false
-                                elif current.Download |> Option.exists (fun value -> value.State = DownloadState.Failed || value.State = DownloadState.Paused) then
+                                elif
+                                    current.Download
+                                    |> Option.exists (fun value ->
+                                        value.State = DownloadState.Failed
+                                        || value.State = DownloadState.Paused)
+                                then
                                     running <- false
                                 else
-                                    do! downloads.WaitForChange(workspace, [ current.Id, current.Revision ], token)
+                                    do!
+                                        downloads.WaitForChange(
+                                            workspace,
+                                            [ current.Id, current.Revision ],
+                                            token
+                                        )
+
                                     let! changed = artifacts.Read(workspace, current.Id)
 
                                     match changed with
@@ -123,7 +179,12 @@ type ProfileTransportService
             | _ -> return None
         }
 
-    let resolve workspace (requirement: ModConductor.Persistence.ProfileSourceRequirement) (manualPath: string option) (token: CancellationToken) =
+    let resolve
+        workspace
+        (requirement: ModConductor.Persistence.ProfileSourceRequirement)
+        (manualPath: string option)
+        (token: CancellationToken)
+        =
         task {
             let! found = existing workspace requirement token
 
@@ -176,7 +237,10 @@ type ProfileTransportService
             source.ProviderGame |> Option.iter (fun value -> item.ProviderGame <- value)
             source.ProviderMod |> Option.iter (fun value -> item.ProviderMod <- value)
             source.ProviderFile |> Option.iter (fun value -> item.ProviderFile <- value)
-            source.ProviderVersion |> Option.iter (fun value -> item.ProviderVersion <- value)
+
+            source.ProviderVersion
+            |> Option.iter (fun value -> item.ProviderVersion <- value)
+
             result.Sources.Add item
 
         result
@@ -190,7 +254,15 @@ type ProfileTransportService
                 | :? InvalidDataException as error ->
                     raise (RpcException(Status(StatusCode.InvalidArgument, error.Message)))
                 | :? IOException ->
-                    raise (RpcException(Status(StatusCode.InvalidArgument, "The profile file could not be read.")))
+                    raise (
+                        RpcException(
+                            Status(
+                                StatusCode.InvalidArgument,
+                                "The profile file could not be read."
+                            )
+                        )
+                    )
+
             return reply value
         }
 
@@ -200,15 +272,25 @@ type ProfileTransportService
                 let workspace = ModLibraryWire.id request.WorkspaceId
                 let profile = ModLibraryWire.id request.ProfileId
                 let! value = store.PreviewExport(workspace, profile, context.CancellationToken)
+
                 return
                     match value with
                     | Ok value -> reply value
-                    | Error problem -> raise (RpcException(Status(StatusCode.FailedPrecondition, problem)))
+                    | Error problem ->
+                        raise (RpcException(Status(StatusCode.FailedPrecondition, problem)))
             with
             | :? InvalidDataException as error ->
                 return raise (RpcException(Status(StatusCode.FailedPrecondition, error.Message)))
             | :? IOException ->
-                return raise (RpcException(Status(StatusCode.FailedPrecondition, "The profile files could not be read.")))
+                return
+                    raise (
+                        RpcException(
+                            Status(
+                                StatusCode.FailedPrecondition,
+                                "The profile files could not be read."
+                            )
+                        )
+                    )
         }
 
     override _.ExportProfileTransport(request, context) =
@@ -216,15 +298,28 @@ type ProfileTransportService
             try
                 let workspace = ModLibraryWire.id request.WorkspaceId
                 let profile = ModLibraryWire.id request.ProfileId
-                let! written = store.Export(workspace, profile, request.Destination, request.IncludeSaves, context.CancellationToken)
+
+                let! written =
+                    store.Export(
+                        workspace,
+                        profile,
+                        request.Destination,
+                        request.IncludeSaves,
+                        context.CancellationToken
+                    )
 
                 return
                     match written with
                     | Ok() -> ProfileTransportResult()
                     | Error problem -> ProfileTransportResult(Problem = problem)
             with
-            | :? InvalidDataException as error -> return ProfileTransportResult(Problem = error.Message)
-            | :? IOException -> return ProfileTransportResult(Problem = "The profile could not be saved at that location.")
+            | :? InvalidDataException as error ->
+                return ProfileTransportResult(Problem = error.Message)
+            | :? IOException ->
+                return
+                    ProfileTransportResult(
+                        Problem = "The profile could not be saved at that location."
+                    )
         }
 
     override _.ImportProfileTransport(request, context) =
@@ -233,6 +328,7 @@ type ProfileTransportService
                 let preview = store.Inspect request.Path
                 let workspace = ModLibraryWire.id request.WorkspaceId
                 let target = ModLibraryWire.id request.GameProfileId
+
                 let supplied =
                     request.ManualSources
                     |> Seq.map (fun value -> int value.ModIndex, value.Path)
@@ -260,7 +356,13 @@ type ProfileTransportService
                     | Ok profile -> ProfileTransportResult(ProfileId = profile.ToString("N"))
                     | Error problem -> ProfileTransportResult(Problem = problem)
             with
-            | :? InvalidDataException as error -> return ProfileTransportResult(Problem = error.Message)
-            | :? IOException -> return ProfileTransportResult(Problem = "The profile or selected source file could not be read.")
-            | :? OperationCanceledException -> return ProfileTransportResult(Problem = "Profile import was cancelled.")
+            | :? InvalidDataException as error ->
+                return ProfileTransportResult(Problem = error.Message)
+            | :? IOException ->
+                return
+                    ProfileTransportResult(
+                        Problem = "The profile or selected source file could not be read."
+                    )
+            | :? OperationCanceledException ->
+                return ProfileTransportResult(Problem = "Profile import was cancelled.")
         }

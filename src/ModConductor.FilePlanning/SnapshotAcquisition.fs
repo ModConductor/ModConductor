@@ -59,7 +59,10 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                 | Error error -> return Error error
                 | Ok evidence ->
                     let! projected =
-                        repository.GameProjection(baseSources |> Result.map _.Stamp |> Result.defaultValue sources.Stamp, token)
+                        repository.GameProjection(
+                            baseSources |> Result.map _.Stamp |> Result.defaultValue sources.Stamp,
+                            token
+                        )
 
                     match projected with
                     | Error error -> return Error error
@@ -122,17 +125,26 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                             else
                                 let! snapshot = create sources (Some observation)
                                 token.ThrowIfCancellationRequested()
+
                                 let! current =
                                     match candidate with
                                     | None -> repository.Current sources.Stamp
                                     | Some run ->
                                         task {
                                             let! baseCurrent =
-                                                repository.Current(baseSources |> Result.map _.Stamp |> Result.defaultValue sources.Stamp)
-                                            let! candidateCurrent = repository.ReadFnisCandidate(profile, run)
+                                                repository.Current(
+                                                    baseSources
+                                                    |> Result.map _.Stamp
+                                                    |> Result.defaultValue sources.Stamp
+                                                )
+
+                                            let! candidateCurrent =
+                                                repository.ReadFnisCandidate(profile, run)
+
                                             return
                                                 match baseCurrent, candidateCurrent with
-                                                | Ok true, Ok value -> Ok(value.Stamp = sources.Stamp)
+                                                | Ok true, Ok value ->
+                                                    Ok(value.Stamp = sources.Stamp)
                                                 | Ok false, _ -> Ok false
                                                 | Error error, _ -> Error error
                                                 | _, Error error -> Error error

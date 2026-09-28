@@ -21,7 +21,8 @@ module internal ProfileTransportZip =
             | PortableContent.Payload(memberName, _, _)
             | PortableContent.Patch(memberName, _, _, _) -> memberName)
 
-    let private invalid () = raise (InvalidDataException "The profile ZIP is invalid.")
+    let private invalid () =
+        raise (InvalidDataException "The profile ZIP is invalid.")
 
     let private checkMembers (zip: ZipArchive) (profile: PortableProfile) =
         let expected = "profile.json" :: referenced profile
@@ -31,7 +32,8 @@ module internal ProfileTransportZip =
             actual.Length <> (actual |> List.distinct).Length
             || expected.Length <> (expected |> List.distinct).Length
             || Set.ofList actual <> Set.ofList expected
-            || zip.Entries |> Seq.exists (fun entry -> entry.Length < 0L || entry.Length > limit)
+            || zip.Entries
+               |> Seq.exists (fun entry -> entry.Length < 0L || entry.Length > limit)
         then
             invalid ()
 
@@ -67,14 +69,19 @@ module internal ProfileTransportZip =
             invalid ()
 
         if File.Exists destination then
-            raise (InvalidDataException "Choose a new .mcprof file name. The existing file was not changed.")
+            raise (
+                InvalidDataException
+                    "Choose a new .mcprof file name. The existing file was not changed."
+            )
 
         let folder = Path.GetDirectoryName(Path.GetFullPath destination)
         let temporary = Path.Combine(folder, "." + Guid.NewGuid().ToString("N") + ".mcprof")
 
         try
             let create () =
-                use output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)
+                use output =
+                    new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)
+
                 use zip = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen = true)
 
                 let add name compression (source: Stream) =
@@ -98,7 +105,8 @@ module internal ProfileTransportZip =
             create ()
             File.Move(temporary, destination)
         finally
-            if File.Exists temporary then File.Delete temporary
+            if File.Exists temporary then
+                File.Delete temporary
 
     type Bundle(path: string) =
         let zip = ZipFile.OpenRead path
@@ -124,9 +132,20 @@ module internal ProfileTransportZip =
 
         member _.Copy(memberName: string, destination: string, expectedSha: string option) =
             let entry = zip.GetEntry memberName
-            if isNull entry || File.Exists destination then invalid ()
+
+            if isNull entry || File.Exists destination then
+                invalid ()
+
             use source = entry.Open()
-            use target = new FileStream(destination, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)
+
+            use target =
+                new FileStream(
+                    destination,
+                    FileMode.CreateNew,
+                    FileAccess.ReadWrite,
+                    FileShare.None
+                )
+
             copyBounded source target entry.Length
             target.Flush(true)
 

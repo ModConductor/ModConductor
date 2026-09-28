@@ -129,8 +129,10 @@ let internal registerWorkspaceServices
     |> ignore
 
     services.AddSingleton<ModConductor.Engine.InventoryExportService>() |> ignore
+
     services.AddSingleton<ModConductor.Persistence.ProfileTransportStore>(store.ProfileTransport)
     |> ignore
+
     services.AddSingleton<ModConductor.Engine.ProfileTransportService>() |> ignore
 
     services.AddSingleton<ModConductor.FilePlanning.IFilePlans>(store.FilePlans)

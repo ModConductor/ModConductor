@@ -601,7 +601,10 @@ type DeletionStore internal (database: StateDatabase, access: LibraryAccess) =
 
                 DeletionRows.generations connection null workspace
                 |> List.choose (fun (context, generation) ->
-                    if context.Active = Some generation.Id && DeletionRows.uses targets generation then
+                    if
+                        context.Active = Some generation.Id
+                        && DeletionRows.uses targets generation
+                    then
                         generation.Provenance
                         |> Option.bind _.Profile
                         |> Option.map (fun profile -> profile.Id, generation.Id)

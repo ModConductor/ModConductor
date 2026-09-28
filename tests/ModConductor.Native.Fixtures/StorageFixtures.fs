@@ -20,20 +20,25 @@ module StorageFixtures =
         member _.Initial = Volatile.Read(&initial)
         member _.Changes = Volatile.Read(&changes)
         member _.Waits = Volatile.Read(&waits)
+
         interface IOperationStore with
             member _.Begin value = inner.Begin value
             member _.Advance(id, progress, runtime) = inner.Advance(id, progress, runtime)
             member _.Cancel id = inner.Cancel id
             member _.Get id = inner.Get id
+
             member _.InitialFeed after =
                 Interlocked.Increment(&initial) |> ignore
                 inner.InitialFeed after
+
             member _.Changes cursor =
                 Interlocked.Increment(&changes) |> ignore
                 inner.Changes cursor
+
             member _.WaitForChanges(cursor, token) =
                 Interlocked.Increment(&waits) |> ignore
                 inner.WaitForChanges(cursor, token)
+
             member _.Interrupt id = inner.Interrupt id
 
     let private wait = StorageWorker.wait
@@ -314,7 +319,11 @@ module StorageFixtures =
 
     let private observeWatchCounts (writer: Utf8JsonWriter) directory =
         do
-            let watchState = Directory.CreateDirectory(Path.Combine(directory, "operation-watch-counts")).FullName
+            let watchState =
+                Directory
+                    .CreateDirectory(Path.Combine(directory, "operation-watch-counts"))
+                    .FullName
+
             use store = new OperationStore(watchState)
             let counted = CountingOperations(store :> IOperationStore)
             let operations = counted :> IOperationStore
@@ -324,20 +333,47 @@ module StorageFixtures =
             let stream = WatchCountFixtures.CounterStream<OperationBatch>()
             let context = WatchCountFixtures.StreamContext(cancellation.Token)
             let watching = service.WatchOperations(WatchRequest(), stream, context)
-            if not (SpinWait.SpinUntil((fun () -> counted.Waits = 1 && stream.Count = 1), TimeSpan.FromSeconds 3.)) then
+
+            if
+                not (
+                    SpinWait.SpinUntil(
+                        (fun () -> counted.Waits = 1 && stream.Count = 1),
+                        TimeSpan.FromSeconds 3.
+                    )
+                )
+            then
                 failwith "The operation watch did not publish its initial snapshot."
+
             let initial = counted.Initial, counted.Changes, counted.Waits
             Thread.Sleep 150
             let idle = counted.Initial, counted.Changes, counted.Waits
             let feed = (store :> IOperationStore).InitialFeed None |> wait
+
             let begun =
-                operations.Begin { Id = Guid.NewGuid().ToString("N"); ExpectedRevision = feed.Revision; Count = 1 }
+                operations.Begin
+                    { Id = Guid.NewGuid().ToString("N")
+                      ExpectedRevision = feed.Revision
+                      Count = 1 }
                 |> wait
-            if not (SpinWait.SpinUntil((fun () -> counted.Changes >= 1 && stream.Count >= 2), TimeSpan.FromSeconds 3.)) then
+
+            if
+                not (
+                    SpinWait.SpinUntil(
+                        (fun () -> counted.Changes >= 1 && stream.Count >= 2),
+                        TimeSpan.FromSeconds 3.
+                    )
+                )
+            then
                 failwith "The operation watch did not publish the owner change."
+
             let changed = counted.Initial, counted.Changes, counted.Waits
             cancellation.Cancel()
-            try watching.GetAwaiter().GetResult() with :? OperationCanceledException -> ()
+
+            try
+                watching.GetAwaiter().GetResult()
+            with :? OperationCanceledException ->
+                ()
+
             writer.WriteStartObject("operationWatchCounts")
             let initialFeed, initialChanges, initialWaits = initial
             let idleFeed, idleChanges, idleWaits = idle
@@ -354,6 +390,7 @@ module StorageFixtures =
             writer.WriteBoolean("idleUnchanged", (initial = idle))
             writer.WriteBoolean("oneChangeRead", (changedChanges = initialChanges + 1))
             writer.WriteEndObject()
+
             if initial <> idle || changedChanges <> initialChanges + 1 then
                 failwith "Operation watch repeated a read while idle or missed its change."
 
@@ -443,9 +480,14 @@ module StorageFixtures =
             Thread.Sleep 150
             let idle = not pending.IsCompleted
             let id = Guid.NewGuid().ToString("N")
+
             let begun =
-                operations.Begin { Id = id; ExpectedRevision = initial.Revision; Count = 1 }
+                operations.Begin
+                    { Id = id
+                      ExpectedRevision = initial.Revision
+                      Count = 1 }
                 |> wait
+
             pending.WaitAsync(TimeSpan.FromSeconds 3.).GetAwaiter().GetResult()
             let feed = operations.Changes initial.Cursor |> wait
             writer.WriteStartObject("operationEvents")

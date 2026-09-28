@@ -126,10 +126,11 @@ module ExecutableFixtures =
                 let desktop = DesktopService(store.Workspaces, api)
 
                 let canHandOff () =
-                    desktop.CheckUpdateHandoff(
-                        ModConductor.Protocol.V1.UpdateHandoffRequest(),
-                        Unchecked.defaultof<_>
-                    )
+                    desktop
+                        .CheckUpdateHandoff(
+                            ModConductor.Protocol.V1.UpdateHandoffRequest(),
+                            Unchecked.defaultof<_>
+                        )
                         .GetAwaiter()
                         .GetResult()
                         .Ready
@@ -266,6 +267,7 @@ module ExecutableFixtures =
                      && waiting.ActiveProcesses |> Option.exists ((<) 0))
 
                 use changedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds 5.)
+
                 let changed =
                     api.WaitForChange(
                         workspace,
@@ -273,6 +275,7 @@ module ExecutableFixtures =
                         waiting.Revision,
                         changedTimeout.Token
                     )
+
                 Thread.Sleep 150
                 check "idleExecutableWatchWaitsForChange" (not changed.IsCompleted)
 

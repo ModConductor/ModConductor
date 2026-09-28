@@ -89,7 +89,10 @@ module internal Checks =
             let gameSetup =
                 match run.Source with
                 | RunSource.Game game ->
-                    [ correlation CorrelationKind.GameSetup game.ContextId (Some state.ContextRevision) ]
+                    [ correlation
+                          CorrelationKind.GameSetup
+                          game.ContextId
+                          (Some state.ContextRevision) ]
                 | RunSource.Preset _ -> []
 
             [ baseFinding
@@ -132,7 +135,9 @@ module internal Checks =
                   "Mod Conductor cannot fix this game setup"
                   []
                   DiagnosticAction.NavigateGame
-                  [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name; evidence "Game" state.Name ] ]
+                  [ evidence "Workspace" workspace.Name
+                    evidence "Profile" profile.Name
+                    evidence "Game" state.Name ] ]
         | _ -> []
 
     let fileProblems
@@ -144,73 +149,149 @@ module internal Checks =
         problems
         |> List.map (fun problem ->
             let tie = problem.Code = "priority-tie"
-            let visibleSources = problem.Sources |> List.filter (fun source -> not source.Hidden)
+
+            let visibleSources =
+                problem.Sources |> List.filter (fun source -> not source.Hidden)
+
             let fixableTie = tie && visibleSources.Length = 2
+
             let action =
                 if fixableTie then
                     visibleSources
                     |> List.tryHead
-                    |> Option.map (fun source -> DiagnosticAction.HideFileCopy(summary.Id, source.Copy))
+                    |> Option.map (fun source ->
+                        DiagnosticAction.HideFileCopy(summary.Id, source.Copy))
                     |> Option.defaultValue DiagnosticAction.None
                 else
                     DiagnosticAction.None
 
-            let title = if tie then "Two copies have the same priority" else problem.Title
+            let title =
+                if tie then
+                    "Two copies have the same priority"
+                else
+                    problem.Title
+
             let area = profile.Name + " mod files"
+
             let next =
                 if fixableTie then
                     "Preview a change that hides one file copy."
                 else
                     "Open Mods. Check the mod files."
+
             let target = problem.Target |> Option.map ModConductor.Platform.LogicalPath.display
+
             let sourceEvidence =
                 problem.Sources
                 |> List.truncate 2
-                |> List.map (fun source -> evidence source.Name (source.VersionLabel + " · priority " + string source.Priority))
+                |> List.map (fun source ->
+                    evidence
+                        source.Name
+                        (source.VersionLabel + " · priority " + string source.Priority))
 
             baseFinding
-                workspace profile "Skyrim Special Edition" ("mod-files:" + problem.Id) problem.Code DiagnosticSeverity.Error
+                workspace
+                profile
+                "Skyrim Special Edition"
+                ("mod-files:" + problem.Id)
+                problem.Code
+                DiagnosticSeverity.Error
                 title
-                (if tie then "Mod Conductor cannot select one file copy" else problem.Title)
+                (if tie then
+                     "Mod Conductor cannot select one file copy"
+                 else
+                     problem.Title)
                 None
-                area next
-                (if action = DiagnosticAction.None then Fixability.NotFixable else Fixability.PreviewAvailable)
-                (if action = DiagnosticAction.None then "Open the mod files" else "Preview change")
-                [ correlation CorrelationKind.ModFiles summary.Id None ] action
+                area
+                next
+                (if action = DiagnosticAction.None then
+                     Fixability.NotFixable
+                 else
+                     Fixability.PreviewAvailable)
+                (if action = DiagnosticAction.None then
+                     "Open the mod files"
+                 else
+                     "Preview change")
+                [ correlation CorrelationKind.ModFiles summary.Id None ]
+                action
                 ([ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ]
-                 @ (target |> Option.map (evidence "Target" >> List.singleton) |> Option.defaultValue [])
+                 @ (target
+                    |> Option.map (evidence "Target" >> List.singleton)
+                    |> Option.defaultValue [])
                  @ sourceEvidence))
 
     let deployment (workspace: Workspace) (profile: Profile) game (receipt: DeploymentReceipt) =
         if receipt.Phase = DeploymentPhase.Blocked || receipt.Completed < receipt.Total then
-            [ baseFinding workspace profile game ("deployment:" + receipt.Id.ToString "N") "deployment-incomplete"
-                  DiagnosticSeverity.Error "Deployment did not finish" "Mod Conductor can continue the restore" None
-                  (profile.Name + " deployment") "Preview the remaining paths. Then continue the restore."
-                  Fixability.PreviewAvailable "Mod Conductor can restore this"
+            [ baseFinding
+                  workspace
+                  profile
+                  game
+                  ("deployment:" + receipt.Id.ToString "N")
+                  "deployment-incomplete"
+                  DiagnosticSeverity.Error
+                  "Deployment did not finish"
+                  "Mod Conductor can continue the restore"
+                  None
+                  (profile.Name + " deployment")
+                  "Preview the remaining paths. Then continue the restore."
+                  Fixability.PreviewAvailable
+                  "Mod Conductor can restore this"
                   [ correlation CorrelationKind.Deployment receipt.Id (Some receipt.Revision) ]
                   (DiagnosticAction.RecoverDeployment(receipt.Id, receipt.Revision))
-                  [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name
-                    evidence "Progress" (string receipt.Completed + " of " + string receipt.Total + " changes restored") ] ]
-        else []
+                  [ evidence "Workspace" workspace.Name
+                    evidence "Profile" profile.Name
+                    evidence
+                        "Progress"
+                        (string receipt.Completed
+                         + " of "
+                         + string receipt.Total
+                         + " changes restored") ] ]
+        else
+            []
 
     let profileData (workspace: Workspace) (profile: Profile) game (state: ProfileDataState) =
         match state.Pending, state.Problem with
         | Some action, _ ->
-            [ baseFinding workspace profile game ("profile:" + action.ToString "N") "profile-action-incomplete"
-                  DiagnosticSeverity.Warning "A profile change did not finish" "Mod Conductor can continue the saved change." None
-                  profile.Name "Open Profiles. Continue the saved change."
-                  Fixability.NotFixable "Open the profile tools"
+            [ baseFinding
+                  workspace
+                  profile
+                  game
+                  ("profile:" + action.ToString "N")
+                  "profile-action-incomplete"
+                  DiagnosticSeverity.Warning
+                  "A profile change did not finish"
+                  "Mod Conductor can continue the saved change."
+                  None
+                  profile.Name
+                  "Open Profiles. Continue the saved change."
+                  Fixability.NotFixable
+                  "Open the profile tools"
                   [ correlation CorrelationKind.Profile profile.Id (Some state.Revision)
                     correlation CorrelationKind.Action action None ]
                   (DiagnosticAction.ResumeProfileData action)
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ] ]
         | None, Some problem ->
-            [ baseFinding workspace profile game "profile:problem" "profile-data-problem" DiagnosticSeverity.Warning
-                  problem problem None
-                  profile.Name "Open Profiles. Check the profile files."
-                  Fixability.NotFixable "Open the profile files" [] DiagnosticAction.None
-                  [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name; evidence "Problem" problem ] ]
+            [ baseFinding
+                  workspace
+                  profile
+                  game
+                  "profile:problem"
+                  "profile-data-problem"
+                  DiagnosticSeverity.Warning
+                  problem
+                  problem
+                  None
+                  profile.Name
+                  "Open Profiles. Check the profile files."
+                  Fixability.NotFixable
+                  "Open the profile files"
+                  []
+                  DiagnosticAction.None
+                  [ evidence "Workspace" workspace.Name
+                    evidence "Profile" profile.Name
+                    evidence "Problem" problem ] ]
         | _ -> []
+
     let skseLog
         (workspace: Workspace)
         (profile: Profile)

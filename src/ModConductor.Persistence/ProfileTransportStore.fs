@@ -44,8 +44,11 @@ type ProfileTransportStore
         profileData: IProfileGameData,
         directory: string
     ) =
-    let writer = ProfileTransportWriter(database, access, artifacts, inspection, images, directory)
-    let importMod = ProfileTransportImportMod(database, access, library, installations, artifacts, directory)
+    let writer =
+        ProfileTransportWriter(database, access, artifacts, inspection, images, directory)
+
+    let importMod =
+        ProfileTransportImportMod(database, access, library, installations, artifacts, directory)
 
     let payloadLength (file: PortableFile) =
         match file.Content with
@@ -57,9 +60,11 @@ type ProfileTransportStore
             value.Base
             |> Option.map (fun source -> source.Selected |> List.map _.Destination |> Set.ofList)
             |> Option.defaultValue Set.empty
+
         let deleted = value.Deleted |> Set.ofList
         let changed = value.Files |> List.map _.Path |> Set.ofList
         let hidden = value.Hidden |> Set.ofList
+
         Set.difference (Set.union (Set.difference original deleted) changed) hidden
         |> Set.count
 
@@ -67,19 +72,28 @@ type ProfileTransportStore
         let rec count (folder: HeldDirectory) depth =
             if depth > 128 then
                 raise (InvalidDataException "The private profile folder exceeds the depth limit.")
+
             folder.Names
-            |> Seq.fold (fun (files, bytes) name ->
-                token.ThrowIfCancellationRequested()
-                match folder.InspectEntry name with
-                | Some entry when entry.Kind = EntryKind.Directory ->
-                    use child = folder.Directory(name, Some entry.Identity)
-                    let nestedFiles, nestedBytes = count child (depth + 1)
-                    files + nestedFiles, bytes + nestedBytes
-                | Some entry when entry.Kind = EntryKind.RegularFile ->
-                    let stream, _ = folder.Read(name, Some entry.Identity)
-                    use stream = stream
-                    files + 1, bytes + stream.Length
-                | _ -> raise (InvalidDataException "The private profile folder contains an unsupported entry.")) (0, 0L)
+            |> Seq.fold
+                (fun (files, bytes) name ->
+                    token.ThrowIfCancellationRequested()
+
+                    match folder.InspectEntry name with
+                    | Some entry when entry.Kind = EntryKind.Directory ->
+                        use child = folder.Directory(name, Some entry.Identity)
+                        let nestedFiles, nestedBytes = count child (depth + 1)
+                        files + nestedFiles, bytes + nestedBytes
+                    | Some entry when entry.Kind = EntryKind.RegularFile ->
+                        let stream, _ = folder.Read(name, Some entry.Identity)
+                        use stream = stream
+                        files + 1, bytes + stream.Length
+                    | _ ->
+                        raise (
+                            InvalidDataException
+                                "The private profile folder contains an unsupported entry."
+                        ))
+                (0, 0L)
+
         match root with
         | Some root ->
             use folder = HeldDirectory.Open(root.Path, root.Identity)
@@ -114,42 +128,73 @@ type ProfileTransportStore
 
     let validate (profile: PortableProfile) =
         let uniquePaths paths =
-            let seen = Collections.Generic.HashSet<string>(
-                TargetPolicy.comparer ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-            )
+            let seen =
+                Collections.Generic.HashSet<string>(
+                    TargetPolicy.comparer ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                )
+
             let keys =
                 paths
                 |> List.map (fun parts ->
-                    let path = LogicalPath.create parts
-                               |> Result.defaultWith (fun _ -> raise (InvalidDataException "The profile has an invalid file path."))
-                    if not (TargetPolicy.problems ModConductor.GameContexts.Skyrim.definition.TargetPolicy path).IsEmpty then
-                        raise (InvalidDataException "The profile has a file path that the game cannot use.")
+                    let path =
+                        LogicalPath.create parts
+                        |> Result.defaultWith (fun _ ->
+                            raise (InvalidDataException "The profile has an invalid file path."))
+
+                    if
+                        not
+                            (TargetPolicy.problems
+                                ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                                path)
+                                .IsEmpty
+                    then
+                        raise (
+                            InvalidDataException
+                                "The profile has a file path that the game cannot use."
+                        )
+
                     TargetPolicy.key ModConductor.GameContexts.Skyrim.definition.TargetPolicy path)
+
             keys |> List.forall seen.Add
 
         let validMod (value: PortableMod) =
             let current = value.Files |> List.map _.Path
-            let selected = value.Base |> Option.map (fun item -> item.Selected |> List.map _.Destination) |> Option.defaultValue []
+
+            let selected =
+                value.Base
+                |> Option.map (fun item -> item.Selected |> List.map _.Destination)
+                |> Option.defaultValue []
+
             uniquePaths current
             && uniquePaths value.Deleted
             && uniquePaths value.Hidden
             && (value.Base.IsSome || value.Deleted.IsEmpty)
             && (value.Deleted |> List.forall (fun path -> List.contains path selected))
-            && (value.Base |> Option.forall (fun baseValue ->
-                baseValue.ArchiveLength >= 0L
-                && baseValue.ArchiveSha256.Length = 64
-                && not baseValue.Selected.IsEmpty
-                && uniquePaths selected
-                && (baseValue.Selected |> List.forall (fun file -> file.ArchiveIndex >= 0))))
+            && (value.Base
+                |> Option.forall (fun baseValue ->
+                    baseValue.ArchiveLength >= 0L
+                    && baseValue.ArchiveSha256.Length = 64
+                    && not baseValue.Selected.IsEmpty
+                    && uniquePaths selected
+                    && (baseValue.Selected |> List.forall (fun file -> file.ArchiveIndex >= 0))))
 
         if
             profile.Game <> GameId.value GameId.SkyrimSpecialEditionSteam
             || profile.Mods.Length > 100000
-            || profile.Mods |> List.mapi (fun index modItem -> index = modItem.Priority) |> List.exists not
+            || profile.Mods
+               |> List.mapi (fun index modItem -> index = modItem.Priority)
+               |> List.exists not
             || profile.Mods |> List.exists (validMod >> not)
             || not (uniquePaths (profile.Settings |> List.map _.Path))
             || not (uniquePaths (profile.Saves |> List.map _.Path))
-            || profile.Mods |> List.exists (fun modItem -> modItem.Base.IsNone && (modItem.Files |> List.exists (fun file -> match file.Content with | PortableContent.Patch _ -> true | _ -> false)))
+            || profile.Mods
+               |> List.exists (fun modItem ->
+                   modItem.Base.IsNone
+                   && (modItem.Files
+                       |> List.exists (fun file ->
+                           match file.Content with
+                           | PortableContent.Patch _ -> true
+                           | _ -> false)))
         then
             raise (InvalidDataException "The profile metadata is not supported.")
 
@@ -157,6 +202,7 @@ type ProfileTransportStore
         database.Enqueue(fun () ->
             use transaction = database.Connection.BeginTransaction(deferred = false)
             let connection = database.Connection
+
             let existing =
                 Sqlite.number
                     connection
@@ -172,7 +218,8 @@ type ProfileTransportStore
                             connection
                             transaction
                             "SELECT game_id FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile AND failure IS NULL"
-                            [ "$workspace", box (string workspace); "$profile", box (string target) ]
+                            [ "$workspace", box (string workspace)
+                              "$profile", box (string target) ]
 
                     match query.ExecuteScalar() with
                     | :? string as selected when selected = game -> Some target
@@ -182,17 +229,27 @@ type ProfileTransportStore
             if existing <> 0L then
                 Error "Use a new profile name in this workspace."
             elif source.IsNone then
-                Error "Select a profile with the same local game installation in the target workspace."
+                Error
+                    "Select a profile with the same local game installation in the target workspace."
             else
                 let id = Guid.NewGuid()
+
                 let current =
                     WorkspaceRows.find connection transaction workspace
-                    |> Option.bind (fun row -> WorkspaceProfiles.summary connection transaction row.Receipt)
+                    |> Option.bind (fun row ->
+                        WorkspaceProfiles.summary connection transaction row.Receipt)
 
                 match current with
                 | None -> Error "The target workspace is unavailable."
                 | Some current ->
-                    match WorkspaceProfiles.editIn connection transaction workspace current.Revision (ProfileEdit.Create { Id = id; Name = name }) with
+                    match
+                        WorkspaceProfiles.editIn
+                            connection
+                            transaction
+                            workspace
+                            current.Revision
+                            (ProfileEdit.Create { Id = id; Name = name })
+                    with
                     | Error _ -> Error "The target workspace changed. Try again."
                     | Ok _ ->
                         Sqlite.execute
@@ -211,11 +268,11 @@ type ProfileTransportStore
         database.Enqueue(fun () ->
             use transaction = database.Connection.BeginTransaction(deferred = false)
             let existing = SelectionRows.all database.Connection transaction profile
-            let imported =
-                mods
-                |> List.filter (fun (value, _) -> value.Kind <> "fnis-output")
+            let imported = mods |> List.filter (fun (value, _) -> value.Kind <> "fnis-output")
             let importedIds = imported |> List.map snd |> Set.ofList
-            let unrelated = existing |> List.filter (fun row -> not (Set.contains row.Id importedIds))
+
+            let unrelated =
+                existing |> List.filter (fun row -> not (Set.contains row.Id importedIds))
 
             Sqlite.execute
                 database.Connection
@@ -258,7 +315,10 @@ type ProfileTransportStore
                     [ "$profile", box (string profile)
                       "$mod", box (string row.Id)
                       "$priority", box (imported.Length + offset)
-                      "$enabled", row.Enabled |> Option.map (fun _ -> box 0) |> Option.defaultValue (box DBNull.Value) ]
+                      "$enabled",
+                      row.Enabled
+                      |> Option.map (fun _ -> box 0)
+                      |> Option.defaultValue (box DBNull.Value) ]
 
             Sqlite.execute
                 database.Connection
@@ -277,27 +337,35 @@ type ProfileTransportStore
                 HostPath.create path
                 |> Result.defaultWith (fun _ -> invalidOp "The private profile path is invalid.")
                 |> RootSelection.select
-                |> Result.defaultWith (fun _ -> invalidOp "The private profile path is unavailable.")
+                |> Result.defaultWith (fun _ ->
+                    invalidOp "The private profile path is unavailable.")
+
             let identity =
                 match (RootSelection.facts selected).File with
                 | Known value -> value
-                | Unknown _ -> raise (InvalidDataException "The target private folder is unavailable.")
+                | Unknown _ ->
+                    raise (InvalidDataException "The target private folder is unavailable.")
 
             use root = HeldDirectory.Open(RootSelection.path selected, identity)
 
             let rec clear (folder: HeldDirectory) depth =
-                if depth > 128 then raise (InvalidDataException "The private folder exceeds the depth limit.")
+                if depth > 128 then
+                    raise (InvalidDataException "The private folder exceeds the depth limit.")
 
                 for name in folder.Names |> Seq.toList do
                     match folder.InspectEntry name with
-                    | Some entry when entry.Kind = EntryKind.RegularFile -> folder.RemoveFile(name, entry.Identity)
+                    | Some entry when entry.Kind = EntryKind.RegularFile ->
+                        folder.RemoveFile(name, entry.Identity)
                     | Some entry when entry.Kind = EntryKind.Directory ->
                         do
                             use child = folder.Directory(name, Some entry.Identity)
                             clear child (depth + 1)
 
                         folder.RemoveDirectory(name, entry.Identity)
-                    | _ -> raise (InvalidDataException "The private folder contains an unsupported entry.")
+                    | _ ->
+                        raise (
+                            InvalidDataException "The private folder contains an unsupported entry."
+                        )
 
             let rec copy (folder: HeldDirectory) (path: string list) (staged: string) =
                 match path with
@@ -312,8 +380,12 @@ type ProfileTransportStore
                     use child =
                         match folder.InspectEntry name with
                         | None -> folder.CreateDirectory name
-                        | Some entry when entry.Kind = EntryKind.Directory -> folder.Directory(name, Some entry.Identity)
-                        | _ -> raise (InvalidDataException "The private file path conflicts with a file.")
+                        | Some entry when entry.Kind = EntryKind.Directory ->
+                            folder.Directory(name, Some entry.Identity)
+                        | _ ->
+                            raise (
+                                InvalidDataException "The private file path conflicts with a file."
+                            )
 
                     copy child remaining staged
 
@@ -322,24 +394,33 @@ type ProfileTransportStore
             for file in files do
                 match file.Content with
                 | PortableContent.Payload(memberName, sha, _) ->
-                    let stage = Path.Combine(directory, "profile-transport", Guid.NewGuid().ToString("N") + ".private")
+                    let stage =
+                        Path.Combine(
+                            directory,
+                            "profile-transport",
+                            Guid.NewGuid().ToString("N") + ".private"
+                        )
+
                     Directory.CreateDirectory(Path.GetDirectoryName stage) |> ignore
 
                     try
                         bundle.Copy(memberName, stage, Some sha)
                         copy root file.Path stage
                     finally
-                        if File.Exists stage then File.Delete stage
+                        if File.Exists stage then
+                            File.Delete stage
                 | PortableContent.Patch _ ->
                     raise (InvalidDataException "Private profile files must be complete payloads.")
 
     let restorePrivate workspace profile (value: PortableProfile) bundle token =
         task {
             let! state = profileData.Read(workspace, profile)
+
             let state =
                 match state with
                 | Ok value -> value
-                | Error _ -> raise (InvalidDataException "The target game settings are unavailable.")
+                | Error _ ->
+                    raise (InvalidDataException "The target game settings are unavailable.")
 
             let options =
                 { Settings = value.SettingsEnabled || not value.Settings.IsEmpty
@@ -359,23 +440,32 @@ type ProfileTransportStore
 
                 match edited with
                 | Ok result when result.Complete -> ()
-                | _ -> raise (InvalidDataException "The target private settings could not be created.")
+                | _ ->
+                    raise (InvalidDataException "The target private settings could not be created.")
 
                 let! current = profileData.Read(workspace, profile)
+
                 let current =
                     match current with
                     | Ok current -> current
-                    | _ -> raise (InvalidDataException "The target private settings are unavailable.")
+                    | _ ->
+                        raise (InvalidDataException "The target private settings are unavailable.")
 
                 copyPrivate bundle current.SettingsPath value.Settings
                 copyPrivate bundle current.SavesPath value.Saves
 
-                if options <> { Settings = value.SettingsEnabled; Saves = value.SavesEnabled } then
+                if
+                    options
+                    <> { Settings = value.SettingsEnabled
+                         Saves = value.SavesEnabled }
+                then
                     let! changed =
                         profileData.Edit(
                             { Id = Guid.NewGuid()
                               Expected = current.Reference
-                              Options = { Settings = value.SettingsEnabled; Saves = value.SavesEnabled }
+                              Options =
+                                { Settings = value.SettingsEnabled
+                                  Saves = value.SavesEnabled }
                               InitialSaves = InitialSaves.Empty
                               DisabledFiles = DisabledFiles.Keep },
                             ignore,
@@ -384,26 +474,40 @@ type ProfileTransportStore
 
                     match changed with
                     | Ok result when result.Complete -> ()
-                    | _ -> raise (InvalidDataException "The imported settings state could not be restored.")
+                    | _ ->
+                        raise (
+                            InvalidDataException
+                                "The imported settings state could not be restored."
+                        )
 
             if not value.PluginOrder.IsEmpty then
                 do!
                     database.Enqueue(fun () ->
                         use transaction = database.Connection.BeginTransaction(deferred = false)
+
                         use query =
                             Sqlite.command
                                 database.Connection
                                 transaction
                                 "SELECT p.context_id FROM profile_data_profiles p JOIN profile_data_contexts c ON c.id=p.context_id WHERE c.workspace_id=$workspace AND p.profile_id=$profile"
-                                [ "$workspace", box (string workspace); "$profile", box (string profile) ]
+                                [ "$workspace", box (string workspace)
+                                  "$profile", box (string profile) ]
 
                         let context = query.ExecuteScalar()
 
                         match context with
                         | :? string as id ->
                             let contextId = Guid.Parse id
-                            let privateData = ProfileDataRows.profile database.Connection transaction contextId profile
+
+                            let privateData =
+                                ProfileDataRows.profile
+                                    database.Connection
+                                    transaction
+                                    contextId
+                                    profile
+
                             let privateData = privateData.Value
+
                             let order: ModConductor.Bethesda.PluginOrder =
                                 { ModConductor.Bethesda.PluginOrder.Document = Array.empty
                                   Entries =
@@ -417,8 +521,14 @@ type ProfileTransportStore
                                 database.Connection
                                 transaction
                                 contextId
-                                { privateData with Revision = privateData.Revision + 1L; PluginOrder = Some order }
-                        | _ -> raise (InvalidDataException "The imported plugin order has no private storage.")
+                                { privateData with
+                                    Revision = privateData.Revision + 1L
+                                    PluginOrder = Some order }
+                        | _ ->
+                            raise (
+                                InvalidDataException
+                                    "The imported plugin order has no private storage."
+                            )
 
                         transaction.Commit())
         }
@@ -434,18 +544,27 @@ type ProfileTransportStore
             let! observed =
                 database.Enqueue(fun () ->
                     use transaction = database.Connection.BeginTransaction(deferred = true)
-                    let result = ProfileTransportSnapshot.read database.Connection transaction workspace profile
+
+                    let result =
+                        ProfileTransportSnapshot.read
+                            database.Connection
+                            transaction
+                            workspace
+                            profile
+
                     transaction.Commit()
                     result)
+
             match observed with
             | Error problem -> return Error problem
             | Ok observed ->
                 let mods =
                     observed.Mods
                     |> List.filter (fun value ->
-                        value.Entry.Kind = ModKind.Regular
-                        && value.Selection.Enabled = Some true)
+                        value.Entry.Kind = ModKind.Regular && value.Selection.Enabled = Some true)
+
                 let saveFiles, saveBytes = privateUsage observed.Saves token
+
                 return
                     Ok
                         { Name = observed.Name
@@ -470,7 +589,15 @@ type ProfileTransportStore
     member _.Export(workspace, profile, destination, includeSaves, token) =
         writer.Write(workspace, profile, destination, includeSaves, token)
 
-    member _.Import(path, workspace, targetProfile: Guid option, name, artifactsByMod: Map<int, Guid>, token: CancellationToken) =
+    member _.Import
+        (
+            path,
+            workspace,
+            targetProfile: Guid option,
+            name,
+            artifactsByMod: Map<int, Guid>,
+            token: CancellationToken
+        ) =
         task {
             try
                 use bundle = new ProfileTransportZip.Bundle(path)
@@ -478,22 +605,38 @@ type ProfileTransportStore
                 validate value
 
                 let! root = access.Root workspace
+
                 if Result.isError root then
                     raise (InvalidDataException "The target workspace is unavailable.")
 
                 for requirement in (preview value).Sources do
                     match artifactsByMod |> Map.tryFind requirement.ModIndex with
                     | None ->
-                        raise (InvalidDataException("The exact archive for " + requirement.ModName + " is required."))
+                        raise (
+                            InvalidDataException(
+                                "The exact archive for " + requirement.ModName + " is required."
+                            )
+                        )
                     | Some artifact ->
                         let! found = artifacts.Read(workspace, artifact)
 
                         match found with
-                        | Ok source when source.Sha256 = Some requirement.Sha256 && source.Length = Some requirement.Length -> ()
+                        | Ok source when
+                            source.Sha256 = Some requirement.Sha256
+                            && source.Length = Some requirement.Length
+                            ->
+                            ()
                         | _ ->
-                            raise (InvalidDataException("The exact archive for " + requirement.ModName + " is unavailable."))
+                            raise (
+                                InvalidDataException(
+                                    "The exact archive for "
+                                    + requirement.ModName
+                                    + " is unavailable."
+                                )
+                            )
 
                 let! created = createProfile workspace targetProfile name value.Game
+
                 let profile =
                     match created with
                     | Ok profile -> profile
@@ -504,7 +647,10 @@ type ProfileTransportStore
                 for index, modItem in value.Mods |> List.indexed do
                     token.ThrowIfCancellationRequested()
                     let artifact = artifactsByMod |> Map.tryFind index
-                    let! modId, _ = importMod.Import(workspace, profile, modItem, artifact, bundle, token)
+
+                    let! modId, _ =
+                        importMod.Import(workspace, profile, modItem, artifact, bundle, token)
+
                     imported.Add(modItem, modId)
 
                 do! selectMods workspace profile (imported |> Seq.toList)
@@ -512,22 +658,33 @@ type ProfileTransportStore
 
                 match value.Artwork with
                 | Some file ->
-                    let stage = Path.Combine(directory, "profile-transport", Guid.NewGuid().ToString("N") + ".image")
+                    let stage =
+                        Path.Combine(
+                            directory,
+                            "profile-transport",
+                            Guid.NewGuid().ToString("N") + ".image"
+                        )
+
                     Directory.CreateDirectory(Path.GetDirectoryName stage) |> ignore
 
                     try
                         match file.Content with
-                        | PortableContent.Payload(memberName, sha, _) -> bundle.Copy(memberName, stage, Some sha)
+                        | PortableContent.Payload(memberName, sha, _) ->
+                            bundle.Copy(memberName, stage, Some sha)
                         | _ -> raise (InvalidDataException "The custom image is invalid.")
 
                         let! saved = images.Set(workspace, profile, Some stage)
-                        if Result.isError saved then raise (InvalidDataException "The custom image could not be saved.")
+
+                        if Result.isError saved then
+                            raise (InvalidDataException "The custom image could not be saved.")
                     finally
-                        if File.Exists stage then File.Delete stage
+                        if File.Exists stage then
+                            File.Delete stage
                 | None -> ()
 
                 return Ok profile
             with
             | :? InvalidDataException as error -> return Error error.Message
-            | :? OperationCanceledException -> return Error "Profile import was cancelled. The new profile may be incomplete."
+            | :? OperationCanceledException ->
+                return Error "Profile import was cancelled. The new profile may be incomplete."
         }

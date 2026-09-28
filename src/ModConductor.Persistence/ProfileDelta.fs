@@ -81,11 +81,7 @@ module internal ProfileDelta =
             checkFile baseFile baseSha (FileInfo(baseFile).Length)
             checkFile edited editedSha editedLength
 
-            do!
-                run
-                    executable
-                    [ "-a"; "-A"; "-D"; "-R"; "-e"; "-s"; baseFile; edited; patch ]
-                    token
+            do! run executable [ "-a"; "-A"; "-D"; "-R"; "-e"; "-s"; baseFile; edited; patch ] token
 
             checkHeader patch
         }

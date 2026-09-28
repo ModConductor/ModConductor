@@ -15,7 +15,8 @@ module SkseArchiveLayout =
     let private startsWith (prefix: string list) (parts: string list) =
         prefix.Length <= parts.Length
         && List.forall2
-            (fun expected actual -> String.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
+            (fun expected actual ->
+                String.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
             prefix
             (List.take prefix.Length parts)
 
@@ -42,7 +43,11 @@ module SkseArchiveLayout =
                 let destination =
                     match relative with
                     | [ value ] when
-                        String.Equals(value, "skse64_loader.exe", StringComparison.OrdinalIgnoreCase)
+                        String.Equals(
+                            value,
+                            "skse64_loader.exe",
+                            StringComparison.OrdinalIgnoreCase
+                        )
                         ->
                         loader <- Some value
                         Some(ComponentRoot.GameRoot, relative)
@@ -79,7 +84,11 @@ module SkseArchiveLayout =
                         | ComponentRoot.Data -> "Data" :: target
 
                     let storedPath = path stored
-                    selected.Add({ Index = entry.Index; Destination = storedPath })
+
+                    selected.Add(
+                        { Index = entry.Index
+                          Destination = storedPath }
+                    )
 
                     componentFiles.Add(
                         { Source = storedPath

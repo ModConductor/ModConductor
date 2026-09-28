@@ -33,8 +33,7 @@ type FnisTests() =
 
     [<Test>]
     member _.``direct acquisition should retain complete generator provenance``() =
-        flag "directAcquisitionPublishesGeneratorAndProvenance"
-        |> should equal true
+        flag "directAcquisitionPublishesGeneratorAndProvenance" |> should equal true
 
     [<Test>]
     member _.``cancel retry failure and recovery should preserve the active setup``() =
@@ -53,7 +52,10 @@ type FnisTests() =
         flag "transportKeepsExactFnisProviderAttribution" |> should equal true
         flag "importedFnisOutputIsPrivateBeforeFirstRun" |> should equal true
         flag "importedFnisOutputKeepsTransportRepresentation" |> should equal true
-        flag "firstRunReplacesImportedOutputWithoutSecondVisibleMod" |> should equal true
+
+        flag "firstRunReplacesImportedOutputWithoutSecondVisibleMod"
+        |> should equal true
+
         flag "runWithNoOutputPreservesPriorOutputAndExitCode" |> should equal true
         flag "generatedFilesRemainAvailableAfterNonzeroExit" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
@@ -70,11 +72,21 @@ type FnisTests() =
         flag "completedFnisRunStreamsTerminalStateWithoutWaiting" |> should equal true
         flag "unknownFnisRunStreamReturnsNotFound" |> should equal true
         flag "rerunReplacesPriorOutputWithoutSavingDeployment" |> should equal true
-        flag "successorReceiptRemainsReadableAfterTransientPredecessorIsPruned" |> should equal true
-        flag "interruptionBeforeActivationPreservesPriorViewAndWorkingOutput" |> should equal true
+
+        flag "successorReceiptRemainsReadableAfterTransientPredecessorIsPruned"
+        |> should equal true
+
+        flag "interruptionBeforeActivationPreservesPriorViewAndWorkingOutput"
+        |> should equal true
+
         flag "interruptionAfterActivationFinalizesWorkingOutput" |> should equal true
-        flag "savedDeploymentRestoresExactFnisFilesAndMarksWorkingOutputStale" |> should equal true
-        flag "deletingOwnerProfileDeletesPrivateFnisOutputAndKeepsOtherProfile" |> should equal true
+
+        flag "savedDeploymentRestoresExactFnisFilesAndMarksWorkingOutputStale"
+        |> should equal true
+
+        flag "deletingOwnerProfileDeletesPrivateFnisOutputAndKeepsOtherProfile"
+        |> should equal true
+
         flag "runningFnisStreamFinishesAfterCancellation" |> should equal true
         flag "engineShutdownCompletesFnisRunStream" |> should equal true
         flag "timedOutRunRetainsDetailAndRemovesStage" |> should equal true

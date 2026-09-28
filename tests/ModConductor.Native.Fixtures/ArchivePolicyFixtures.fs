@@ -18,6 +18,7 @@ module ArchivePolicyFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
     let private token = CancellationToken.None
+
     let private check name value =
         if not value then
             invalidOp ("Archive policy fixture failed: " + name)
@@ -61,7 +62,8 @@ module ArchivePolicyFixtures =
           Problem = None }
 
     let private observeIni (writer: Utf8JsonWriter) =
-        let plain = "# retained\r\n[Archive]\r\nSResourceArchiveList=Old.bsa\r\nSResourceArchiveList2=Old2.bsa\r\n"
+        let plain =
+            "# retained\r\n[Archive]\r\nSResourceArchiveList=Old.bsa\r\nSResourceArchiveList2=Old2.bsa\r\n"
 
         let encoded =
             [ UTF8Encoding(false, true) :> Encoding
@@ -88,7 +90,11 @@ module ArchivePolicyFixtures =
         try
             Ini.applyArchives
                 [ "One.bsa" ]
-                (Some(Encoding.UTF8.GetBytes("[Archive]\nSResourceArchiveList=A.bsa\nSResourceArchiveList=B.bsa\n")))
+                (Some(
+                    Encoding.UTF8.GetBytes(
+                        "[Archive]\nSResourceArchiveList=A.bsa\nSResourceArchiveList=B.bsa\n"
+                    )
+                ))
             |> ignore
         with :? IOException ->
             duplicateRefused <- true
@@ -105,9 +111,7 @@ module ArchivePolicyFixtures =
                     "; kept\r\n[Display]\r\nfGamma=1.0\r\n[Archive]\r\nSResourceArchiveList=Old.bsa\r\nOther=kept\r\n"
                 ))
 
-        let names =
-            SkyrimArchives.required
-            @ [ "QuietRivers.bsa" ]
+        let names = SkyrimArchives.required @ [ "QuietRivers.bsa" ]
 
         let applied, receipt = Ini.applyArchives names (Some original) |> result
         let entries = Ini.tryArchiveEntries applied |> result
@@ -131,10 +135,9 @@ module ArchivePolicyFixtures =
         )
 
         let changed =
-            Encoding.Unicode.GetString(applied).Replace(
-                "SResourceArchiveList=",
-                "SResourceArchiveList=External.bsa, "
-            )
+            Encoding.Unicode
+                .GetString(applied)
+                .Replace("SResourceArchiveList=", "SResourceArchiveList=External.bsa, ")
             |> Encoding.Unicode.GetBytes
             |> fun bytes -> Array.append (Encoding.Unicode.GetPreamble()) bytes
 
@@ -144,10 +147,7 @@ module ArchivePolicyFixtures =
                 detail = "The active Skyrim archive list changed. Read it again before restoration."
             | _ -> false
 
-        writer.WriteBoolean(
-            "changedIniRefusesRestore",
-            check "changedIniRefusesRestore" refused
-        )
+        writer.WriteBoolean("changedIniRefusesRestore", check "changedIniRefusesRestore" refused)
 
     let private observeResolution (writer: Utf8JsonWriter) =
         let explicit =
@@ -178,6 +178,7 @@ module ArchivePolicyFixtures =
               yield candidate "Foreign.ba2" "BA2 v1 GNRL" ]
 
         let policy = SkyrimArchivePolicy.resolve (input explicit order) candidates
+
         let row name =
             policy.Entries
             |> List.find (fun row -> row.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
@@ -205,7 +206,12 @@ module ArchivePolicyFixtures =
         let missingRequired =
             candidates
             |> List.filter (fun value ->
-                not (value.Name.Equals(SkyrimArchives.required.Head, StringComparison.OrdinalIgnoreCase)))
+                not (
+                    value.Name.Equals(
+                        SkyrimArchives.required.Head,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                ))
             |> SkyrimArchivePolicy.resolve (input [] order)
 
         writer.WriteBoolean(
@@ -233,6 +239,7 @@ module ArchivePolicyFixtures =
         )
 
         let inspection = Inspection(Unchecked.defaultof<IArtifactSource>)
+
         let header (magic: string) (version: uint32) =
             use bytes = new MemoryStream()
             use binary = new BinaryWriter(bytes, Encoding.ASCII, true)
@@ -251,10 +258,19 @@ module ArchivePolicyFixtures =
 
     let private observeProfile (writer: Utf8JsonWriter) =
         let area =
-            Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "mc-archive-policy-" + Guid.NewGuid().ToString("N"))).FullName
+            Directory
+                .CreateDirectory(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "mc-archive-policy-" + Guid.NewGuid().ToString("N")
+                    )
+                )
+                .FullName
 
         try
-            let workspaceRoot = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+            let workspaceRoot =
+                Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
             let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
             let data = Path.Combine(game, "Data")
 
@@ -339,8 +355,14 @@ module ArchivePolicyFixtures =
             |> ignore
 
             (store.GameContexts :> IGameContexts)
-                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                Path = game; Proton = Some proton })
+                .Save(
+                    workspace,
+                    profile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = Some proton }
+                )
             |> wait
             |> result
             |> ignore
@@ -390,10 +412,12 @@ module ArchivePolicyFixtures =
 
             let beforeNoChange = profileApi.Read(workspace, profile) |> wait |> result
             let noChangeId = Guid.NewGuid()
+
             let noChange =
                 archiveApi.Apply(noChangeId, first.Reference, first.Snapshot.Id, ignore, token)
                 |> wait
                 |> result
+
             let noChangeAction = store.ProfileDataActionBytes noChangeId |> wait
 
             writer.WriteBoolean(
@@ -410,9 +434,7 @@ module ArchivePolicyFixtures =
 
             let editArchives expected content =
                 let opened =
-                    profileApi.ReadConfiguration(expected, "Skyrim.ini", token)
-                    |> wait
-                    |> result
+                    profileApi.ReadConfiguration(expected, "Skyrim.ini", token) |> wait |> result
 
                 profileApi.SaveConfiguration(
                     { Id = Guid.NewGuid()
@@ -432,7 +454,9 @@ module ArchivePolicyFixtures =
             let observeEdits () =
                 let edited = editArchives first.Reference withoutQuiet
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let changed = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let changed =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
                 writer.WriteBoolean(
                     "profileArchiveEditShowsOneDelta",
@@ -444,14 +468,19 @@ module ArchivePolicyFixtures =
                          && not changed.Applied)
                 )
 
-                let refreshed = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+                let refreshed =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
                 let reverted =
                     editArchives
                         refreshed.Reference
                         "; original\n[Archive]\nSResourceArchiveList=QuietRivers.bsa\n[Display]\nfGamma=1.0\n"
 
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let revertedPolicy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let revertedPolicy =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
                 let revertedNoChange =
                     archiveApi.Apply(
                         Guid.NewGuid(),
@@ -481,7 +510,9 @@ module ArchivePolicyFixtures =
             let observeStaleAndRestore () =
                 editArchives revertedReference withoutQuiet |> ignore
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let changed = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let changed =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
                 let target = Path.Combine(data, SkyrimArchives.required.Head)
                 let replacement = target + ".new"
@@ -489,10 +520,17 @@ module ArchivePolicyFixtures =
                 File.Move(replacement, target, true)
 
                 let refused =
-                    archiveApi.Apply(Guid.NewGuid(), changed.Reference, changed.Snapshot.Id, ignore, token)
+                    archiveApi.Apply(
+                        Guid.NewGuid(),
+                        changed.Reference,
+                        changed.Snapshot.Id,
+                        ignore,
+                        token
+                    )
                     |> wait
 
                 let afterRefusal = profileApi.Read(workspace, profile) |> wait |> result
+
                 writer.WriteBoolean(
                     "changedArchiveRefusesBeforeReceipt",
                     check
@@ -503,11 +541,21 @@ module ArchivePolicyFixtures =
                 )
 
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let policy =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
                 check "stale input keeps archive draft" (policy.Changes = changed.Changes)
                 |> ignore
+
                 let applied =
-                    archiveApi.Apply(Guid.NewGuid(), policy.Reference, policy.Snapshot.Id, ignore, token)
+                    archiveApi.Apply(
+                        Guid.NewGuid(),
+                        policy.Reference,
+                        policy.Snapshot.Id,
+                        ignore,
+                        token
+                    )
                     |> wait
                     |> result
 
@@ -520,8 +568,7 @@ module ArchivePolicyFixtures =
                     check
                         "applyUsesReceiptAndIgnoresArchivesTxt"
                         (applied.Complete
-                         && (Ini.tryArchiveEntries appliedBytes |> result |> List.map _.Name)
-                            = SkyrimArchives.required
+                         && (Ini.tryArchiveEntries appliedBytes |> result |> List.map _.Name) = SkyrimArchives.required
                          && not (Encoding.UTF8.GetString(appliedBytes).Contains "Bogus.bsa")
                          && File.ReadAllText archivesTxt = "Bogus.bsa\n")
                 )
@@ -546,16 +593,25 @@ module ArchivePolicyFixtures =
             let observeAbsentIniRestore () =
                 File.Delete documentsIni
                 let afterRestore = profileApi.Read(workspace, profile) |> wait |> result
+
                 let changed =
                     editArchives
                         afterRestore.Reference
                         "; original\n[Archive]\nSResourceArchiveList=QuietRivers.bsa\n[Display]\nfGamma=1.0\n"
 
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let policy =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
                 let createdGlobal =
-                    archiveApi.Apply(Guid.NewGuid(), policy.Reference, policy.Snapshot.Id, ignore, token)
+                    archiveApi.Apply(
+                        Guid.NewGuid(),
+                        policy.Reference,
+                        policy.Snapshot.Id,
+                        ignore,
+                        token
+                    )
                     |> wait
                     |> result
 
@@ -592,8 +648,14 @@ module ArchivePolicyFixtures =
                 |> ignore
 
                 (store.GameContexts :> IGameContexts)
-                    .Save(workspace, inactive, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                     Path = game; Proton = Some proton })
+                    .Save(
+                        workspace,
+                        inactive,
+                        0L,
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
+                          Proton = Some proton }
+                    )
                 |> wait
                 |> result
                 |> ignore
@@ -615,6 +677,7 @@ module ArchivePolicyFixtures =
 
                 let inactiveEdit = editArchives inactiveEnabled.State.Reference withoutQuiet
                 let headers = store.Plugins.Scan(inactive, token) |> wait |> result
+
                 let inactivePolicy =
                     archiveApi.Scan(workspace, inactive, headers.Id, token) |> wait |> result
 
@@ -670,10 +733,15 @@ module ArchivePolicyFixtures =
 
                 let restored = editArchives saved.State.Reference opened.Document.Content
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let recovered = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let recovered =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
                 let changed = editArchives restored.State.Reference withoutQuiet
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let changedPolicy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let changedPolicy =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
                 writer.WriteBoolean(
                     "correctedArchiveKeysRecoverDeltaTracking",
@@ -705,6 +773,7 @@ module ArchivePolicyFixtures =
 
                 let current = profileApi.Read(workspace, profile) |> wait |> require "read"
                 let content = "[Archive]\nSResourceArchiveList=" + String.concat ", " names + "\n"
+
                 let opened =
                     profileApi.ReadConfiguration(current.Reference, "Skyrim.ini", token)
                     |> wait
@@ -724,12 +793,13 @@ module ArchivePolicyFixtures =
                     |> require "edit"
 
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
+
                 let policy =
-                    archiveApi.Scan(workspace, profile, headers.Id, token)
-                    |> wait
-                    |> require "scan"
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> require "scan"
+
                 let privateIni = Path.Combine(edited.State.SettingsPath, "Skyrim.ini")
                 let privateBefore = File.ReadAllBytes privateIni
+
                 let documentsBytes () =
                     if File.Exists documentsIni then
                         Some(File.ReadAllBytes documentsIni)
@@ -771,18 +841,28 @@ module ArchivePolicyFixtures =
                 let afterRestore = profileApi.Read(workspace, profile) |> wait |> result
                 editArchives afterRestore.Reference withoutQuiet |> ignore
                 let headers = store.Plugins.Scan(profile, token) |> wait |> result
-                let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                let policy =
+                    archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
                 let changedGlobal =
-                    archiveApi.Apply(Guid.NewGuid(), policy.Reference, policy.Snapshot.Id, ignore, token)
+                    archiveApi.Apply(
+                        Guid.NewGuid(),
+                        policy.Reference,
+                        policy.Snapshot.Id,
+                        ignore,
+                        token
+                    )
                     |> wait
                     |> result
 
                 let changedBytes =
-                    File.ReadAllText(documentsIni).Replace(
-                        "SResourceArchiveList=",
-                        "SResourceArchiveList=ExternallyChanged.bsa, "
-                    )
+                    File
+                        .ReadAllText(documentsIni)
+                        .Replace(
+                            "SResourceArchiveList=",
+                            "SResourceArchiveList=ExternallyChanged.bsa, "
+                        )
                     |> Encoding.UTF8.GetBytes
 
                 File.WriteAllBytes(documentsIni, changedBytes)

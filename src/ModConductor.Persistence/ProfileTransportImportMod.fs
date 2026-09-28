@@ -18,7 +18,14 @@ type internal ProfileTransportImportMod
         artifacts: IArtifactLibrary,
         directory: string
     ) =
-    let codec = Path.Combine(AppContext.BaseDirectory, if OperatingSystem.IsWindows() then "xdelta3.exe" else "xdelta3")
+    let codec =
+        Path.Combine(
+            AppContext.BaseDirectory,
+            if OperatingSystem.IsWindows() then
+                "xdelta3.exe"
+            else
+                "xdelta3"
+        )
 
     let metadata (value: PortableMod) =
         { ModMetadata.Name = value.Name
@@ -33,9 +40,11 @@ type internal ProfileTransportImportMod
                   Label = label
                   Missing = true }) }
 
-    let problem = function
+    let problem =
+        function
         | Ok value -> value
-        | Error _ -> raise (InvalidDataException "The imported profile files could not be restored.")
+        | Error _ ->
+            raise (InvalidDataException "The imported profile files could not be restored.")
 
     let baseVersion workspace (value: PortableMod) artifact token =
         task {
@@ -43,8 +52,13 @@ type internal ProfileTransportImportMod
             let source = problem found
             let expected = value.Base.Value
 
-            if source.Sha256 <> Some expected.ArchiveSha256 || source.Length <> Some expected.ArchiveLength then
-                raise (InvalidDataException("The exact archive for " + value.Name + " is unavailable."))
+            if
+                source.Sha256 <> Some expected.ArchiveSha256
+                || source.Length <> Some expected.ArchiveLength
+            then
+                raise (
+                    InvalidDataException("The exact archive for " + value.Name + " is unavailable.")
+                )
 
             let reference =
                 { ArtifactRef.WorkspaceId = workspace
@@ -55,13 +69,27 @@ type internal ProfileTransportImportMod
             let prepared = problem prepared
 
             let manual =
-                if prepared.Installer = InstallationMode.Manual then prepared
-                else installations.UseInstaller(workspace, prepared.Id, prepared.Revision, InstallationMode.Manual) |> problem
+                if prepared.Installer = InstallationMode.Manual then
+                    prepared
+                else
+                    installations.UseInstaller(
+                        workspace,
+                        prepared.Id,
+                        prepared.Revision,
+                        InstallationMode.Manual
+                    )
+                    |> problem
 
             let withRoot =
-                if expected.Root.IsEmpty then manual
+                if expected.Root.IsEmpty then
+                    manual
                 else
-                    installations.Change(workspace, manual.Id, manual.Revision, LayoutChange.Root expected.Root)
+                    installations.Change(
+                        workspace,
+                        manual.Id,
+                        manual.Revision,
+                        LayoutChange.Root expected.Root
+                    )
                     |> problem
 
             let selected =
@@ -71,19 +99,37 @@ type internal ProfileTransportImportMod
                       Destination = LogicalPath.create file.Destination |> problem })
 
             let reviewed =
-                installations.SelectReviewed(workspace, withRoot.Id, withRoot.Revision, value.Name, value.Version, selected)
+                installations.SelectReviewed(
+                    workspace,
+                    withRoot.Id,
+                    withRoot.Revision,
+                    value.Name,
+                    value.Version,
+                    selected
+                )
                 |> problem
 
-            let started = installations.Start(workspace, reviewed.Id, reviewed.Revision, Guid.NewGuid()) |> problem
+            let started =
+                installations.Start(workspace, reviewed.Id, reviewed.Revision, Guid.NewGuid())
+                |> problem
+
             let! completed = installations.UntilStopped(workspace, started.Id, started, token)
             let completed = problem completed
 
             if completed.State <> InstallationState.Complete then
-                raise (InvalidDataException("The exact archive for " + value.Name + " did not install: " + defaultArg completed.Problem "Installation stopped."))
+                raise (
+                    InvalidDataException(
+                        "The exact archive for "
+                        + value.Name
+                        + " did not install: "
+                        + defaultArg completed.Problem "Installation stopped."
+                    )
+                )
 
             do!
                 database.Enqueue(fun () ->
                     use transaction = database.Connection.BeginTransaction(deferred = false)
+
                     Sqlite.execute
                         database.Connection
                         transaction
@@ -91,6 +137,7 @@ type internal ProfileTransportImportMod
                         [ "$name", box expected.ArchiveName
                           "$workspace", box (string workspace)
                           "$id", box (string completed.Id) ]
+
                     transaction.Commit())
 
             return completed.ModId.Value, completed.VersionId.Value
@@ -99,7 +146,15 @@ type internal ProfileTransportImportMod
     let createMod workspace id (value: PortableMod) =
         database.Enqueue(fun () ->
             use transaction = database.Connection.BeginTransaction(deferred = false)
-            InventoryOutput.createFromOutputs database.Connection transaction workspace id (metadata value) |> ignore
+
+            InventoryOutput.createFromOutputs
+                database.Connection
+                transaction
+                workspace
+                id
+                (metadata value)
+            |> ignore
+
             transaction.Commit()
             id)
 
@@ -108,7 +163,9 @@ type internal ProfileTransportImportMod
             let! source =
                 database.Enqueue(fun () ->
                     LibraryRows.version database.Connection null version 0 100001
-                    |> Option.bind (fun value -> value.Entries |> List.tryFind (fun item -> LogicalPath.components item.Path = path))
+                    |> Option.bind (fun value ->
+                        value.Entries
+                        |> List.tryFind (fun item -> LogicalPath.components item.Path = path))
                     |> Option.bind (fun value ->
                         match
                             LibraryRows.library database.Connection null workspace,
@@ -124,23 +181,48 @@ type internal ProfileTransportImportMod
                 let root = problem root
                 use folder = LibraryFiles.openLibrary root library
                 LibraryFiles.verify folder payload
-                let input, _ = folder.Read(LibraryFiles.payloadName payload.Payload.Id, Some payload.Identity)
+
+                let input, _ =
+                    folder.Read(LibraryFiles.payloadName payload.Payload.Id, Some payload.Identity)
+
                 use input = input
-                use output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)
+
+                use output =
+                    new FileStream(
+                        destination,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None
+                    )
+
                 do! input.CopyToAsync output
                 do! output.FlushAsync()
                 return payload.Payload.Sha256
         }
 
-    let stageFile (bundle: ProfileTransportZip.Bundle) workspace (value: PortableFile) stage baseVersion token =
+    let stageFile
+        (bundle: ProfileTransportZip.Bundle)
+        workspace
+        (value: PortableFile)
+        stage
+        baseVersion
+        token
+        =
         task {
-            let target = Path.Combine(stage, String.Join(Path.DirectorySeparatorChar, value.Path))
+            let target =
+                Path.Combine(stage, String.Join(Path.DirectorySeparatorChar, value.Path))
+
             Directory.CreateDirectory(Path.GetDirectoryName target) |> ignore
 
             match value.Content with
-            | PortableContent.Payload(memberName, sha, _) -> bundle.Copy(memberName, target, Some sha)
+            | PortableContent.Payload(memberName, sha, _) ->
+                bundle.Copy(memberName, target, Some sha)
             | PortableContent.Patch(memberName, baseSha, sha, length) ->
-                let version = baseVersion |> Option.defaultWith (fun () -> raise (InvalidDataException "A patch has no exact base."))
+                let version =
+                    baseVersion
+                    |> Option.defaultWith (fun () ->
+                        raise (InvalidDataException "A patch has no exact base."))
+
                 let baseFile = Path.Combine(stage, Guid.NewGuid().ToString("N") + ".base")
                 let patch = Path.Combine(stage, Guid.NewGuid().ToString("N") + ".patch")
                 let! observed = copyBase workspace version value.Path baseFile
@@ -152,6 +234,7 @@ type internal ProfileTransportImportMod
                 do! ProfileDelta.decode codec baseFile baseSha patch target sha length token
                 File.Delete baseFile
                 File.Delete patch
+
             return ()
         }
 
@@ -159,18 +242,27 @@ type internal ProfileTransportImportMod
         task {
             let selected = RootSelection.select (HostPath.create stage |> problem) |> problem
             let root = RootSelection.path selected
+
             let identity =
                 match (RootSelection.facts selected).File with
                 | Known identity -> identity
                 | Unknown _ -> raise (InvalidDataException "The imported files are unavailable.")
 
             use folder = HeldDirectory.Open(root, identity)
-            let scanned = SourceFiles.scan folder Set.empty 100000 (fun () -> token.ThrowIfCancellationRequested())
+
+            let scanned =
+                SourceFiles.scan folder Set.empty 100000 (fun () ->
+                    token.ThrowIfCancellationRequested())
+
             let files = scanned |> Result.mapError _.Error |> problem
             let files = fst files
 
             let! row = database.Enqueue(fun () -> LibraryRows.find database.Connection null modId)
-            let row = row |> Option.defaultWith (fun () -> raise (InvalidDataException "The imported mod is unavailable."))
+
+            let row =
+                row
+                |> Option.defaultWith (fun () ->
+                    raise (InvalidDataException "The imported mod is unavailable."))
 
             let input =
                 { ActionId = Guid.NewGuid()
@@ -191,16 +283,37 @@ type internal ProfileTransportImportMod
 
             let! published =
                 access.Run(fun () ->
-                    library.PublicationOwner.Compose(modId, row.Entry.Revision, version, input, token, ignore, ignore, ignore))
+                    library.PublicationOwner.Compose(
+                        modId,
+                        row.Entry.Revision,
+                        version,
+                        input,
+                        token,
+                        ignore,
+                        ignore,
+                        ignore
+                    ))
 
             return (problem published).CurrentVersion.Value
         }
 
-    member _.Import(workspace, profile, (value: PortableMod), artifact: Guid option, bundle: ProfileTransportZip.Bundle, (token: CancellationToken)) =
+    member _.Import
+        (
+            workspace,
+            profile,
+            (value: PortableMod),
+            artifact: Guid option,
+            bundle: ProfileTransportZip.Bundle,
+            (token: CancellationToken)
+        ) =
         task {
             token.ThrowIfCancellationRequested()
 
-            if value.Kind <> "regular" && value.Kind <> "fnis-output" && value.Kind <> "generated-output" then
+            if
+                value.Kind <> "regular"
+                && value.Kind <> "fnis-output"
+                && value.Kind <> "generated-output"
+            then
                 return raise (InvalidDataException "The profile contains an unsupported mod kind.")
             else
                 let! modId, baseVersion =
@@ -210,16 +323,26 @@ type internal ProfileTransportImportMod
                             let! id, version = baseVersion workspace value source token
                             return id, Some version
                         | Some _, None ->
-                            return raise (InvalidDataException("The exact archive for " + value.Name + " is required."))
+                            return
+                                raise (
+                                    InvalidDataException(
+                                        "The exact archive for " + value.Name + " is required."
+                                    )
+                                )
                         | None, _ ->
                             let id =
-                                if value.Kind = "fnis-output" then FnisRunRows.outputId profile else Guid.NewGuid()
+                                if value.Kind = "fnis-output" then
+                                    FnisRunRows.outputId profile
+                                else
+                                    Guid.NewGuid()
 
                             let! id = createMod workspace id value
                             return id, None
                     }
 
-                let stage = Path.Combine(directory, "profile-transport", Guid.NewGuid().ToString("N"))
+                let stage =
+                    Path.Combine(directory, "profile-transport", Guid.NewGuid().ToString("N"))
+
                 Directory.CreateDirectory stage |> ignore
 
                 try
@@ -242,7 +365,8 @@ type internal ProfileTransportImportMod
 
                     do!
                         database.Enqueue(fun () ->
-                            use transaction = database.Connection.BeginTransaction(deferred = false)
+                            use transaction =
+                                database.Connection.BeginTransaction(deferred = false)
 
                             if value.Kind = "fnis-output" || value.Kind = "generated-output" then
                                 Sqlite.execute
@@ -261,7 +385,10 @@ type internal ProfileTransportImportMod
                                     [ "$workspace", box (string workspace)
                                       "$mod", box (string modId)
                                       "$version", box (string version)
-                                      "$path", box (LibraryEncoding.path (LogicalPath.create path |> problem)) ]
+                                      "$path",
+                                      box (
+                                          LibraryEncoding.path (LogicalPath.create path |> problem)
+                                      ) ]
 
                             match value.Source with
                             | Some source ->
@@ -269,8 +396,11 @@ type internal ProfileTransportImportMod
                                     database.Connection
                                     transaction
                                     version
-                                    { Game = source.Game; Mod = source.ModId }
-                                    { Id = source.FileId; Version = source.FileVersion; Manual = true }
+                                    { Game = source.Game
+                                      Mod = source.ModId }
+                                    { Id = source.FileId
+                                      Version = source.FileVersion
+                                      Manual = true }
                             | None -> ()
 
                             transaction.Commit())

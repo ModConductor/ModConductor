@@ -17,21 +17,36 @@ module WatchCountFixtures =
         override _.RequestHeadersCore = Metadata()
         override _.CancellationTokenCore = token
         override _.ResponseTrailersCore = Metadata()
-        override _.StatusCore with get () = status and set value = status <- value
-        override _.WriteOptionsCore with get () = options and set value = options <- value
+
+        override _.StatusCore
+            with get () = status
+            and set value = status <- value
+
+        override _.WriteOptionsCore
+            with get () = options
+            and set value = options <- value
+
         override _.AuthContextCore = Unchecked.defaultof<AuthContext>
-        override _.CreatePropagationTokenCore _ = Unchecked.defaultof<ContextPropagationToken>
+
+        override _.CreatePropagationTokenCore _ =
+            Unchecked.defaultof<ContextPropagationToken>
+
         override _.WriteResponseHeadersAsyncCore _ = Task.CompletedTask
 
     type CounterStream<'a>() =
         let mutable count = 0
         let mutable options = null
         member _.Count = Volatile.Read(&count)
+
         interface IServerStreamWriter<'a> with
-            member _.WriteOptions with get () = options and set value = options <- value
+            member _.WriteOptions
+                with get () = options
+                and set value = options <- value
+
             member _.WriteAsync(_) =
                 Interlocked.Increment(&count) |> ignore
                 Task.CompletedTask
+
             member _.WriteAsync(_, _) =
                 Interlocked.Increment(&count) |> ignore
                 Task.CompletedTask

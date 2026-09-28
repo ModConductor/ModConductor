@@ -30,7 +30,12 @@ module internal SupportExport =
         writer.WriteString("workspaceId", snapshot.WorkspaceId.ToString "N")
         writer.WriteString("profileId", snapshot.ProfileId.ToString "N")
         writer.WriteString("operatingSystem", Environment.OSVersion.Platform.ToString())
-        writer.WriteString("architecture", System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString())
+
+        writer.WriteString(
+            "architecture",
+            System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString()
+        )
+
         writer.WriteStartArray("problems")
 
         for finding in snapshot.Findings |> List.truncate Limits.findings do
@@ -43,7 +48,10 @@ module internal SupportExport =
                 writer.WriteStartObject()
                 writer.WriteString("kind", correlation value.Kind)
                 writer.WriteString("id", value.Id.ToString "N")
-                value.Revision |> Option.iter (fun revision -> writer.WriteNumber("revision", revision))
+
+                value.Revision
+                |> Option.iter (fun revision -> writer.WriteNumber("revision", revision))
+
                 writer.WriteEndObject()
 
             writer.WriteEndArray()

@@ -21,7 +21,13 @@ module NativeToolLaunch =
 
         bytes
 
-    let runIn streamDirectory (request: NativeLaunch) (input: byte array) limits (token: CancellationToken) =
+    let runIn
+        streamDirectory
+        (request: NativeLaunch)
+        (input: byte array)
+        limits
+        (token: CancellationToken)
+        =
         task {
             if input.Length > limits.InputBytes then
                 invalidArg "input" "The native tool input exceeds its write limit."

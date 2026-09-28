@@ -11,11 +11,10 @@ module FnisFreshness =
         IO.Path.GetExtension(LogicalPath.display path).ToLowerInvariant()
 
     let relevant (path: LogicalPath) =
-        let components =
-            LogicalPath.components path
-            |> List.map _.ToLowerInvariant()
+        let components = LogicalPath.components path |> List.map _.ToLowerInvariant()
 
         let file = List.last components
+
         let underActors =
             match components with
             | "meshes" :: "actors" :: _ -> true

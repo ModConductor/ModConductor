@@ -127,8 +127,14 @@ module NxmFixtures =
             GameContextFixtures.create game 104
 
             (store.GameContexts :> ModConductor.GameContexts.IGameContexts)
-                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                Path = game; Proton = None })
+                .Save(
+                    workspace,
+                    profile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = None }
+                )
             |> wait
             |> result
             |> ignore

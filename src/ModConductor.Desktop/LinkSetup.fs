@@ -252,7 +252,8 @@ type LinuxLinkSetup
                         match saved with
                         | Some(old, path, before) ->
                             if
-                                path <> target || (SetupFiles.read owned |> Option.exists ((<>) old))
+                                path <> target
+                                || (SetupFiles.read owned |> Option.exists ((<>) old))
                             then
                                 SetupFiles.refuse
                                     "The Nexus link setup changed outside MC. It was not overwritten."

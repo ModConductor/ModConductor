@@ -44,7 +44,8 @@ module internal DeploymentProjection =
 
                     DeploymentRows.context connection transaction current
                     |> Option.orElseWith (fun () ->
-                        ModConductor.Deployment.DeploymentContextId.legacyFingerprint binding.Evidence
+                        ModConductor.Deployment.DeploymentContextId.legacyFingerprint
+                            binding.Evidence
                         |> id
                         |> DeploymentRows.context connection transaction))
 
@@ -70,10 +71,9 @@ module internal DeploymentProjection =
 
                     match evidence, root with
                     | Some _, Some root when
-                        (HostPath.value root.Directory.Path).Contains(
-                            ".mc-game-views",
-                            StringComparison.Ordinal
-                        ) ->
+                        (HostPath.value root.Directory.Path)
+                            .Contains(".mc-game-views", StringComparison.Ordinal)
+                        ->
                         // The selected installation is a source. Managed links live in the
                         // separate profile root and must not enter its source inventory.
                         Ok GameProjection.empty

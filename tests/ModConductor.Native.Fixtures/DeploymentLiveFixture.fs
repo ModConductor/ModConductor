@@ -209,7 +209,12 @@ module DeploymentLiveFixture =
             checkpoint "phase1" active
             let contexts = store.GameContexts :> IGameContexts
             let context = contexts.Read(workspace, profile) |> wait |> result
-            contexts.Refresh(workspace, profile, context.Revision) |> wait |> result |> ignore
+
+            contexts.Refresh(workspace, profile, context.Revision)
+            |> wait
+            |> result
+            |> ignore
+
             write firstPath "generation two\n"
             let secondVersion = Guid.NewGuid()
 
@@ -232,7 +237,12 @@ module DeploymentLiveFixture =
 
             checkpoint "phase2" active
             let context = contexts.Read(workspace, profile) |> wait |> result
-            contexts.Refresh(workspace, profile, context.Revision) |> wait |> result |> ignore
+
+            contexts.Refresh(workspace, profile, context.Revision)
+            |> wait
+            |> result
+            |> ignore
+
             let current = backend.Read profile |> wait |> result
 
             let baseline =
@@ -274,7 +284,10 @@ module DeploymentLiveFixture =
             if not reloaded.Binding.Value.NeedsCheck then
                 invalidOp "Restart did not require context revalidation."
 
-            contexts.Refresh(workspace, profile, reloaded.Revision) |> wait |> result |> ignore
+            contexts.Refresh(workspace, profile, reloaded.Revision)
+            |> wait
+            |> result
+            |> ignore
 
             let restored =
                 store.Deployments.Recover(

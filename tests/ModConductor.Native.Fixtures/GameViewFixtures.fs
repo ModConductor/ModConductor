@@ -16,6 +16,7 @@ open ModConductor.Workspaces
 
 module GameViewFixtures =
     let private wait = StorageWorker.wait
+
     let private result value =
         value
         |> Result.defaultWith (fun error ->
@@ -45,7 +46,10 @@ module GameViewFixtures =
 
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "game-view")).FullName
-        let workspacePath = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
+        let workspacePath =
+            Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
         let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
         let data = Path.Combine(game, "Data")
         let baseHeader = BethesdaSamples.header 1u 1.7f [] false
@@ -61,14 +65,16 @@ module GameViewFixtures =
 
         let created =
             workspaces.Create(workspace, "Game view", StorageWorker.select workspacePath)
-            |> wait |> result
+            |> wait
+            |> result
 
         let mutable revision = created.Workspace.Revision
 
         for id, name in [ first, "Off"; second, "On" ] do
             let changed =
                 workspaces.Edit(workspace, revision, ProfileEdit.Create { Id = id; Name = name })
-                |> wait |> result
+                |> wait
+                |> result
 
             revision <- changed.Workspace.Revision
 
@@ -81,9 +87,12 @@ module GameViewFixtures =
                       Path = game
                       Proton = if OperatingSystem.IsLinux() then Some proton else None }
                 )
-            |> wait |> result |> ignore
+            |> wait
+            |> result
+            |> ignore
 
-        let selected = (store.GameContexts :> IGameContexts).Read(workspace, first) |> wait |> result
+        let selected =
+            (store.GameContexts :> IGameContexts).Read(workspace, first) |> wait |> result
 
         for location in
             [ selected.Binding.Value.Evidence.Locations.Documents
@@ -98,24 +107,24 @@ module GameViewFixtures =
 
         for name in [ "Dawnguard.esm"; "ccBGSSSE001-Fish.esm" ] do
             off <-
-                orders.Change(
-                    off.Reference,
-                    headers.Id,
-                    PluginOrderChange.Enable([ name ], false)
-                )
-                |> wait |> result
+                orders.Change(off.Reference, headers.Id, PluginOrderChange.Enable([ name ], false))
+                |> wait
+                |> result
 
         let backend = store.Deployments
 
         let deploy profile =
             let state = backend.Read profile |> wait |> result
+
             let prepared =
                 backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
-                |> wait |> result
+                |> wait
+                |> result
 
             let active =
                 backend.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
-                |> wait |> result
+                |> wait
+                |> result
 
             if active.Phase <> DeploymentPhase.Complete then
                 invalidOp "The profile game view did not activate."
@@ -124,6 +133,7 @@ module GameViewFixtures =
 
         let offRoot = deploy first
         let offData = Path.Combine(offRoot, "Data")
+
         let offExcludes =
             not (File.Exists(Path.Combine(offData, "Dawnguard.esm")))
             && not (File.Exists(Path.Combine(offData, "ccBGSSSE001-Fish.esm")))
@@ -132,6 +142,7 @@ module GameViewFixtures =
 
         let onRoot = deploy second
         let onData = Path.Combine(onRoot, "Data")
+
         let onIncludes =
             File.Exists(Path.Combine(onData, "Dawnguard.esm"))
             && File.Exists(Path.Combine(onData, "ccBGSSSE001-Fish.esm"))
@@ -143,7 +154,8 @@ module GameViewFixtures =
         let projected order =
             store.LootProjectionForFixture(order, CancellationToken.None)
             |> Async.StartAsTask
-            |> wait |> result
+            |> wait
+            |> result
 
         let offStage, offGame, _ = projected off
         let onStage, onGame, _ = projected onOrder
@@ -167,30 +179,41 @@ module GameViewFixtures =
                 (DeploymentContextId.fingerprint selected.Binding.Value.Evidence)
 
         let active = (store.Deployment.Context contextId |> wait).Value
-        let generation = (store.Deployment.Generation(contextId, active.Active.Value) |> wait).Value
+
+        let generation =
+            (store.Deployment.Generation(contextId, active.Active.Value) |> wait).Value
+
         let sample = generation.Files.Head
 
         let logical parts =
-            LogicalPath.create parts |> Result.defaultWith (fun _ -> invalidOp "Invalid scale path.")
+            LogicalPath.create parts
+            |> Result.defaultWith (fun _ -> invalidOp "Invalid scale path.")
 
         let synthetic nested =
             { generation with
                 Files =
                     [ for index in 1..4200 ->
                           let target =
-                              if nested then logical [ "Scripts"; "file" + index.ToString("D4") + ".txt" ]
-                              else logical [ "file" + index.ToString("D4") + ".txt" ]
-                          { sample with Target = { sample.Target with Path = target } } ]
+                              if nested then
+                                  logical [ "Scripts"; "file" + index.ToString("D4") + ".txt" ]
+                              else
+                                  logical [ "file" + index.ToString("D4") + ".txt" ]
+
+                          { sample with
+                              Target = { sample.Target with Path = target } } ]
                 Observed = []
                 Working = []
                 Writable = [] }
 
         let direct = synthetic false
         let nested = synthetic true
+
         let directBoundaries =
             PhysicalTargets.boundaries TargetPolicy.windows [] [] direct CancellationToken.None
+
         let nestedBoundaries =
             PhysicalTargets.boundaries TargetPolicy.windows [] [] nested CancellationToken.None
+
         let scaleBound =
             directBoundaries.IsEmpty
             && direct.Files.Length > 4096
@@ -198,7 +221,9 @@ module GameViewFixtures =
             && LogicalPath.display nestedBoundaries.Head.Path = "Scripts"
 
         let local =
-            let state = (store.GameContexts :> IGameContexts).Read(workspace, first) |> wait |> result
+            let state =
+                (store.GameContexts :> IGameContexts).Read(workspace, first) |> wait |> result
+
             match state.Binding.Value.Evidence.Locations.LocalAppData with
             | Location.Located(path, _) -> path
             | Location.Unavailable reason -> invalidOp reason
@@ -207,21 +232,25 @@ module GameViewFixtures =
         File.WriteAllText(Path.Combine(local, "Plugins.txt"), "# Skyrim.esm\r\n# Update.esm\r\n")
         let fresh = store.Plugins.Scan(first, CancellationToken.None) |> wait |> result
         let retained = orders.Read(workspace, first, fresh.Id) |> wait |> result
+
         let stillOff =
             retained.View.Order.Entries
-            |> List.filter (fun row -> row.Name = "Dawnguard.esm" || row.Name = "ccBGSSSE001-Fish.esm")
+            |> List.filter (fun row ->
+                row.Name = "Dawnguard.esm" || row.Name = "ccBGSSSE001-Fish.esm")
             |> List.forall (fun row -> row.Enabled = Some false)
 
         let switched =
             workspaces.Edit(workspace, revision, ProfileEdit.Select second)
-            |> wait |> result
+            |> wait
+            |> result
 
         let unowned = Path.Combine(offRoot, "unowned.log")
         File.WriteAllText(unowned, "disposable game log")
 
         let deleted =
             workspaces.Edit(workspace, switched.Workspace.Revision, ProfileEdit.Delete first)
-            |> wait |> result
+            |> wait
+            |> result
 
         let deletionRetiresOwnedView =
             deleted.Deleted = Some first
@@ -234,17 +263,25 @@ module GameViewFixtures =
             new SqliteConnection(
                 "Data Source=" + Path.Combine(area, "state", "state.db") + ";Pooling=False"
             )
+
         db.Open()
+
         let remaining table predicate =
             use query = db.CreateCommand()
-            query.CommandText <- "SELECT COUNT(*) FROM " + table + " WHERE " + predicate + "=$context"
+
+            query.CommandText <-
+                "SELECT COUNT(*) FROM " + table + " WHERE " + predicate + "=$context"
+
             query.Parameters.AddWithValue("$context", string contextId) |> ignore
             query.ExecuteScalar() :?> int64
+
         let deletionRemovesOwnedHistory =
             remaining "deployment_contexts" "id" = 0L
             && remaining "deployment_generations" "context_id" = 0L
             && remaining "deployment_receipts" "context_id" = 0L
-            && not (Directory.Exists(Path.GetDirectoryName(HostPath.value generation.Directory.Path)))
+            && not (
+                Directory.Exists(Path.GetDirectoryName(HostPath.value generation.Directory.Path))
+            )
 
         writer.WriteStartObject("gameView")
         writer.WriteBoolean("offExcludesDlcAndCreation", offExcludes)
@@ -255,5 +292,11 @@ module GameViewFixtures =
         writer.WriteBoolean("derivedViewFileRemovedOnDeletion", not (File.Exists unowned))
         writer.WriteBoolean("deletionRetiresOwnedView", deletionRetiresOwnedView)
         writer.WriteBoolean("deletionRemovesOwnedHistoryAndTree", deletionRemovesOwnedHistory)
-        writer.WriteBoolean("originalInstallationUntouched", File.ReadAllBytes(Path.Combine(game, "SkyrimSE.exe")) = originalExecutable && File.Exists(Path.Combine(data, "Dawnguard.esm")))
+
+        writer.WriteBoolean(
+            "originalInstallationUntouched",
+            File.ReadAllBytes(Path.Combine(game, "SkyrimSE.exe")) = originalExecutable
+            && File.Exists(Path.Combine(data, "Dawnguard.esm"))
+        )
+
         writer.WriteEndObject()

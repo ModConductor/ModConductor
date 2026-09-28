@@ -9,9 +9,17 @@ open ModConductor.Workspaces
 module SkyrimFixtureWorkspace =
     let create
         (store: OperationStore)
-        area name workspaceDirectory installationDirectory includeProton =
+        area
+        name
+        workspaceDirectory
+        installationDirectory
+        includeProton
+        =
         let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
-        let root = Directory.CreateDirectory(Path.Combine(area, workspaceDirectory)).FullName
+
+        let root =
+            Directory.CreateDirectory(Path.Combine(area, workspaceDirectory)).FullName
+
         let game, proton = ProtonFixtures.create (Path.Combine(area, installationDirectory))
 
         if OperatingSystem.IsLinux() then
@@ -29,6 +37,7 @@ module SkyrimFixtureWorkspace =
             )
 
         let workspaces = store.Workspaces :> IWorkspaceState
+
         let created =
             workspaces.Create(workspace, name, StorageWorker.select root)
             |> StorageWorker.wait
@@ -51,7 +60,11 @@ module SkyrimFixtureWorkspace =
                     0L,
                     { GameId = GameId.SkyrimSpecialEditionSteam
                       Path = game
-                      Proton = if includeProton && OperatingSystem.IsLinux() then Some proton else None }
+                      Proton =
+                        if includeProton && OperatingSystem.IsLinux() then
+                            Some proton
+                        else
+                            None }
                 )
             |> StorageWorker.wait
 

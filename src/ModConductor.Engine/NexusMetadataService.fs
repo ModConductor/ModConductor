@@ -45,8 +45,7 @@ type NexusMetadataService
                 let! result = details.Link(value, None, None)
                 return NexusMetadataWire.reply result
             | Ok value ->
-                let! context =
-                    games.Read(value.Workspace, ModLibraryWire.id request.ProfileId)
+                let! context = games.Read(value.Workspace, ModLibraryWire.id request.ProfileId)
 
                 match context with
                 | Ok context when

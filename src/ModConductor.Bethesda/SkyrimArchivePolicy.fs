@@ -69,7 +69,8 @@ module internal SkyrimArchivePolicy =
                     { Name = existing.Name
                       Source = None
                       Format = None
-                      Problem = Some("More than one planned Data file has this archive name ignoring case.") }
+                      Problem =
+                        Some("More than one planned Data file has this archive name ignoring case.") }
 
         let names = ResizeArray<string>()
         names.AddRange desired
@@ -106,10 +107,7 @@ module internal SkyrimArchivePolicy =
                   let bsa = name.EndsWith(".bsa", StringComparison.OrdinalIgnoreCase)
 
                   let supported =
-                      bsa
-                      && candidate
-                         |> Option.bind _.Format
-                         |> Option.exists (same "BSA v105")
+                      bsa && candidate |> Option.bind _.Format |> Option.exists (same "BSA v105")
 
                   let sourceProblem = candidate |> Option.bind _.Problem
 
@@ -135,6 +133,7 @@ module internal SkyrimArchivePolicy =
                       | _ -> ArchivePolicyState.Inactive, None
 
                   let rowName = candidate |> Option.map _.Name |> Option.defaultValue name
+
                   let reasons =
                       [ if isRequired then
                             "Required in Skyrim.ini"

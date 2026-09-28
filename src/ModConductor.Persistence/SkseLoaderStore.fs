@@ -121,7 +121,8 @@ module internal SkseRows =
                   Detail = reader.GetString 4
                   NexusFileId = if reader.IsDBNull 5 then None else Some(reader.GetInt64 5)
                   CheckedAt = DateTimeOffset.Parse(reader.GetString 6) }
-        else None
+        else
+            None
 
     let writeStatus connection transaction (value: StoredSkseStatus) =
         Sqlite.execute
@@ -352,16 +353,13 @@ type internal SkseLoaderStore(database: StateDatabase) =
                 None)
 
     member _.SaveStatus(value: StoredSkseStatus) =
-        database.EnqueueInternal(fun () ->
-            SkseRows.writeStatus database.Connection null value)
+        database.EnqueueInternal(fun () -> SkseRows.writeStatus database.Connection null value)
 
     member _.ReadStatus(workspace: Guid, profile: Guid) =
-        database.Enqueue(fun () ->
-            SkseRows.readStatus database.Connection null workspace profile)
+        database.Enqueue(fun () -> SkseRows.readStatus database.Connection null workspace profile)
 
     member _.SaveCheckedUpdateStatus
-        (generation: Guid, version: Guid, observed: StoredSkseStatus option, value: StoredSkseStatus)
-        =
+        (generation: Guid, version: Guid, observed: StoredSkseStatus option, value: StoredSkseStatus) =
         database.EnqueueInternal(fun () ->
             use transaction = database.Connection.BeginTransaction(deferred = false)
             let workspace, profile = value.WorkspaceId, value.ProfileId

@@ -52,8 +52,7 @@ type WindowsLinkValues() =
         member _.ProtocolRegistered scheme =
             use key = Registry.ClassesRoot.OpenSubKey scheme
 
-            not (isNull key)
-            && key.GetValue("URL Protocol", null) :? string
+            not (isNull key) && key.GetValue("URL Protocol", null) :? string
 
         member _.Write value =
             use key = Registry.CurrentUser.CreateSubKey value.Path
@@ -179,9 +178,9 @@ type WindowsLinkSetup
                     SetupFiles.refuse "The Mod Conductor app path cannot be used for Nexus links."
 
                 let previous = saved () |> Option.defaultValue []
+
                 let ownsProtocol =
-                    previous
-                    |> List.exists (fun value -> value.Path = "Software\\Classes\\nxm")
+                    previous |> List.exists (fun value -> value.Path = "Software\\Classes\\nxm")
 
                 let desired =
                     entries executable

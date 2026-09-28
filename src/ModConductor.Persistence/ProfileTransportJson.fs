@@ -13,6 +13,7 @@ module internal ProfileTransportJson =
     let private field (value: JsonElement) (name: string) = value.GetProperty name
     let private text (value: JsonElement) (name: string) = (field value name).GetString()
     let private number (value: JsonElement) (name: string) = (field value name).GetInt64()
+
     let private items (value: JsonElement) (name: string) =
         (field value name).EnumerateArray() |> Seq.toList
 
@@ -21,7 +22,8 @@ module internal ProfileTransportJson =
 
         LogicalPath.create parts
         |> Result.map LogicalPath.components
-        |> Result.defaultWith (fun _ -> raise (InvalidDataException "The profile has an invalid file path."))
+        |> Result.defaultWith (fun _ ->
+            raise (InvalidDataException "The profile has an invalid file path."))
 
     let private rootPath (value: JsonElement) =
         if value.GetArrayLength() = 0 then [] else path value
@@ -201,8 +203,7 @@ module internal ProfileTransportJson =
     let private readFiles (value: JsonElement) (name: string) =
         items value name |> List.map readFile
 
-    let private readPaths (value: JsonElement) (name: string) =
-        items value name |> List.map path
+    let private readPaths (value: JsonElement) (name: string) = items value name |> List.map path
 
     let private readSource (value: JsonElement) =
         if value.ValueKind = JsonValueKind.Null then
@@ -259,13 +260,18 @@ module internal ProfileTransportJson =
 
     let read (bytes: byte array) =
         try
-            use document = JsonDocument.Parse(ReadOnlyMemory bytes, JsonDocumentOptions(MaxDepth = 64))
+            use document =
+                JsonDocument.Parse(ReadOnlyMemory bytes, JsonDocumentOptions(MaxDepth = 64))
+
             let value = document.RootElement
 
             if number value "format" <> 1L || text value "patchEncoding" <> Encoding then
                 raise (InvalidDataException "This profile format is not supported.")
 
-            if value.EnumerateObject() |> Seq.exists (fun property -> property.Name = "outputs") then
+            if
+                value.EnumerateObject()
+                |> Seq.exists (fun property -> property.Name = "outputs")
+            then
                 raise (InvalidDataException "This profile has an unsupported output section.")
 
             let artwork = field value "artwork"
@@ -289,7 +295,7 @@ module internal ProfileTransportJson =
                         if locked.ValueKind = JsonValueKind.Null then
                             None
                         else
-                          Some(locked.GetInt32()) })
+                            Some(locked.GetInt32()) })
               SettingsEnabled = (field value "settingsEnabled").GetBoolean()
               SavesEnabled = (field value "savesEnabled").GetBoolean()
               Settings = readFiles value "settings"

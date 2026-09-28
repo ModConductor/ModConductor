@@ -249,7 +249,12 @@ module TextEditFixtures =
         use reopened = new OperationStore(state)
         let contexts = reopened.GameContexts :> IGameContexts
         let staleContext = contexts.Read(workspace, profile) |> wait |> result
-        contexts.Refresh(workspace, profile, staleContext.Revision) |> wait |> result |> ignore
+
+        contexts.Refresh(workspace, profile, staleContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
         let resumedPlans = reopened.FilePlans :> IFilePlans
         let resumedSnapshot, resumedSource = managedSource resumedPlans profile
 

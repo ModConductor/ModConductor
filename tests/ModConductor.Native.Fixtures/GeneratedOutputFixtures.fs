@@ -101,7 +101,8 @@ module GeneratedOutputFixtures =
                     let steam, library =
                         match proton.Association with
                         | ProtonAssociation.Steam(root, library) -> root, library
-                        | ProtonAssociation.Manual -> invalidOp "Expected the selected Steam fixture."
+                        | ProtonAssociation.Manual ->
+                            invalidOp "Expected the selected Steam fixture."
 
                     let configuration = Path.Combine(steam, "config", "config.vdf")
                     let replacement = configuration + ".replacement"
@@ -126,7 +127,9 @@ module GeneratedOutputFixtures =
                          && reused.Proton.Value.GlobalTool = Some "fixture_tool")
 
                     let readAgain =
-                        (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+                        (store.GameContexts :> IGameContexts).Read(workspace, profile)
+                        |> wait
+                        |> result
 
                     check
                         "ordinaryReadKeepsSessionSnapshot"
@@ -168,7 +171,9 @@ module GeneratedOutputFixtures =
 
                 check
                     "nonRegularWritableFileReturnsErrorAndReleasesObservation"
-                    (refused = Error(OutputError.Unavailable "A writable file is not a regular file.")
+                    (refused = Error(
+                        OutputError.Unavailable "A writable file is not a regular file."
+                     )
                      && recovered.Files = 0)
 
             observeUnsupportedWritableFile ()
@@ -218,24 +223,24 @@ module GeneratedOutputFixtures =
                      && File.ReadAllText(output) = "changed output")
 
                 let invalidName =
-                    outputs.Add(Guid.NewGuid(), scope (), " ", OutputPurpose.ToolFolder)
-                    |> wait
+                    outputs.Add(Guid.NewGuid(), scope (), " ", OutputPurpose.ToolFolder) |> wait
 
                 let missingSnapshot =
-                    outputs.Preview(Guid.NewGuid(), [ select tool.Id "result.txt" ], OutputAction.Keep)
+                    outputs.Preview(
+                        Guid.NewGuid(),
+                        [ select tool.Id "result.txt" ],
+                        OutputAction.Keep
+                    )
                     |> wait
 
                 let emptySelection =
-                    outputs.Apply(Guid.NewGuid(), stale.Id, [], OutputAction.Keep, token)
-                    |> wait
+                    outputs.Apply(Guid.NewGuid(), stale.Id, [], OutputAction.Keep, token) |> wait
 
                 let invalidCursor =
-                    outputs.Page(stale.Id, OutputView.ToolOutputs, Some "not a cursor", "")
-                    |> wait
+                    outputs.Page(stale.Id, OutputView.ToolOutputs, Some "not a cursor", "") |> wait
 
                 let invalidFilter =
-                    outputs.Page(stale.Id, OutputView.ToolOutputs, None, String('x', 1025))
-                    |> wait
+                    outputs.Page(stale.Id, OutputView.ToolOutputs, None, String('x', 1025)) |> wait
 
                 check
                     "invalidOutputRequestsReturnErrorsWithoutChangingFiles"
@@ -304,7 +309,13 @@ module GeneratedOutputFixtures =
                 let promoted = outputs.Resume(actionId, token) |> wait |> result
 
                 let replay =
-                    outputs.Apply(actionId, changed.Id, [ select tool.Id "result.txt" ], action, token)
+                    outputs.Apply(
+                        actionId,
+                        changed.Id,
+                        [ select tool.Id "result.txt" ],
+                        action,
+                        token
+                    )
                     |> wait
                     |> result
 
@@ -347,7 +358,8 @@ module GeneratedOutputFixtures =
                 check
                     "ownedOutputFolderIsNotAnUnmanagedMod"
                     (scan.Unmanaged
-                     |> List.forall (fun row -> row.Path <> path (Path.GetFileName(tool.PhysicalPath))))
+                     |> List.forall (fun row ->
+                         row.Path <> path (Path.GetFileName(tool.PhysicalPath))))
 
                 (store.ModSelection :> IModSelection)
                     .Change(profile, first.SelectionRevision, [ modId ], SelectionEdit.Enable true)
@@ -393,11 +405,19 @@ module GeneratedOutputFixtures =
 
                 let promotion =
                     OutputAction.MoveToMod(
-                        OutputDestination.ExistingMod(sourceMod, publishedSource.Revision, "promoted")
+                        OutputDestination.ExistingMod(
+                            sourceMod,
+                            publishedSource.Revision,
+                            "promoted"
+                        )
                     )
 
                 let preview =
-                    outputs.Preview(promotionSnapshot.Id, [ select tool.Id "result.txt" ], promotion)
+                    outputs.Preview(
+                        promotionSnapshot.Id,
+                        [ select tool.Id "result.txt" ],
+                        promotion
+                    )
                     |> wait
                     |> result
 
@@ -451,7 +471,8 @@ module GeneratedOutputFixtures =
                          |> List.map (fun entry ->
                              entry.Path, entry.Payload.Length, entry.Payload.Sha256)) = (oldSource.Entries
                                                                                          |> List.map
-                                                                                             (fun entry ->
+                                                                                             (fun
+                                                                                                 entry ->
                                                                                                  entry.Path,
                                                                                                  entry.Payload.Length,
                                                                                                  entry.Payload.Sha256))

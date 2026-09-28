@@ -88,10 +88,19 @@ module SkseCoordinatorFixtures =
 
     let private createWorkspace (store: OperationStore) area =
         let workspace, profile, game, proton, saved =
-            SkyrimFixtureWorkspace.create store area "SKSE coordinator" "workspace" "installation" true
+            SkyrimFixtureWorkspace.create
+                store
+                area
+                "SKSE coordinator"
+                "workspace"
+                "installation"
+                true
 
         saved |> result |> ignore
-        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
+        let context =
+            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
         workspace, profile, game, proton, context
 
     let private configure
@@ -104,7 +113,10 @@ module SkseCoordinatorFixtures =
         server.Payload <- bytes
 
         server.SkseFiles <-
-            [ id, "skse-" + string id + ".zip", version, "Current game version " + runtime + " from Steam" ]
+            [ id,
+              "skse-" + string id + ".zip",
+              version,
+              "Current game version " + runtime + " from Steam" ]
 
     let private nxm id user expiry =
         "nxm://skyrimspecialedition/mods/30379/files/"
@@ -519,7 +531,9 @@ module SkseCoordinatorFixtures =
             )
 
         let staleContext =
-            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile)
+            |> wait
+            |> result
 
         (restarted.GameContexts :> IGameContexts)
             .Save(
@@ -552,7 +566,10 @@ module SkseCoordinatorFixtures =
         let beforeLocal = metadataRequests ()
         let cold = coordinator.Read(workspace, profile) |> wait
         let absentCheck = coordinator.CheckUpdate(workspace, profile) |> wait
-        let beforeChoice = restarted.SkseLoaders.ReadStored(workspace, profile, None) |> wait
+
+        let beforeChoice =
+            restarted.SkseLoaders.ReadStored(workspace, profile, None) |> wait
+
         let started = coordinator.Start(workspace, profile) |> wait
         let afterLocal = metadataRequests ()
         let ready = waitForStatus restarted workspace profile "current"
@@ -577,10 +594,19 @@ module SkseCoordinatorFixtures =
             |> Option.get
 
         let wrongWorkspace = Guid.NewGuid()
-        let statusBeforeRefusal = restarted.SkseLoaders.ReadStatus(workspace, profile) |> wait
-        let refusedRemoval = coordinator.Remove(wrongWorkspace, profile, CancellationToken.None) |> wait
-        let statusAfterRefusal = restarted.SkseLoaders.ReadStatus(workspace, profile) |> wait
-        let wrongWorkspaceStatus = restarted.SkseLoaders.ReadStatus(wrongWorkspace, profile) |> wait
+
+        let statusBeforeRefusal =
+            restarted.SkseLoaders.ReadStatus(workspace, profile) |> wait
+
+        let refusedRemoval =
+            coordinator.Remove(wrongWorkspace, profile, CancellationToken.None) |> wait
+
+        let statusAfterRefusal =
+            restarted.SkseLoaders.ReadStatus(workspace, profile) |> wait
+
+        let wrongWorkspaceStatus =
+            restarted.SkseLoaders.ReadStatus(wrongWorkspace, profile) |> wait
+
         let deploymentAfterRefusal = restarted.Deployments.Read profile |> wait |> result
 
         check
@@ -592,7 +618,10 @@ module SkseCoordinatorFixtures =
              && deploymentAfterRefusal.ActiveGeneration = deployed.ActiveGeneration)
 
         let beforeRemove = metadataRequests ()
-        let removed = coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result
+
+        let removed =
+            coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result
+
         let afterRemove = metadataRequests ()
         let restartedSetup = coordinator.Start(workspace, profile) |> wait
         waitForStatus restarted workspace profile "current" |> ignore
@@ -615,13 +644,24 @@ module SkseCoordinatorFixtures =
              && firstLoader.VersionId = secondLoader.VersionId)
 
     let private restoredLaunchEvidence
-        writer statePath workspace profile restoredGeneration targetModId activeModId runtime =
+        writer
+        statePath
+        workspace
+        profile
+        restoredGeneration
+        targetModId
+        activeModId
+        runtime
+        =
         use restarted = new OperationStore(statePath)
 
         let restartedContext =
-            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile)
+            |> wait
+            |> result
 
-        (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, restartedContext.Revision)
+        (restarted.GameContexts :> IGameContexts)
+            .Refresh(workspace, profile, restartedContext.Revision)
         |> wait
         |> result
         |> ignore
@@ -706,7 +746,9 @@ module SkseCoordinatorFixtures =
 
     let private saveGameVersion (store: OperationStore) workspace profile game proton version =
         GameContextFixtures.create game version
-        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
+        let context =
+            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         (store.GameContexts :> IGameContexts)
             .Save(
@@ -772,6 +814,7 @@ module SkseCoordinatorFixtures =
               "/api/games/skyrimspecialedition/mods/30379.json"
               "/api/games/skyrimspecialedition/mods/30379/files.json" ]
             |> List.sumBy server.Count
+
         let mutable localRequests = true
         let before = requests ()
         let current = coordinator.Read(workspace, profile) |> wait
@@ -841,13 +884,20 @@ module SkseCoordinatorFixtures =
             let before = server.Count endpoint
             server.HoldMetadata() |> ignore
             let pending = coordinator.CheckUpdate(workspace, profile)
+
             until label (fun () -> server.Count endpoint) (fun count -> count > before)
             |> ignore
+
             pending
 
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
         let failedCheck = holdUpdate "held update check before failed SKSE setup"
-        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
+
+        coordinator.Remove(workspace, profile, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
         failurePoint <- "install-intent"
         coordinator.Start(workspace, profile) |> wait |> ignore
         waitForStatus store workspace profile "failed" |> ignore
@@ -866,7 +916,12 @@ module SkseCoordinatorFixtures =
         waitForStatus store workspace profile "current" |> ignore
 
         let cancelledCheck = holdUpdate "held update check before cancelled SKSE setup"
-        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
+
+        coordinator.Remove(workspace, profile, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
         coordinator.Cancel(workspace, profile) |> wait |> ignore
         server.ReleaseMetadata()
         cancelledCheck |> wait |> ignore
@@ -882,7 +937,9 @@ module SkseCoordinatorFixtures =
         coordinator.Start(workspace, profile) |> wait |> ignore
         waitForStatus store workspace profile "current" |> ignore
 
-        let beforeReplacementGeneration = (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+        let beforeReplacementGeneration =
+            (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+
         let beforeReplacementLoader =
             store.SkseLoaders.ReadStored(workspace, profile, Some beforeReplacementGeneration)
             |> wait
@@ -890,19 +947,26 @@ module SkseCoordinatorFixtures =
 
         let concurrentCheck = holdUpdate "held update check before SKSE reinstall"
 
-        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
+        coordinator.Remove(workspace, profile, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
         coordinator.Start(workspace, profile) |> wait |> ignore
         waitForStatus store workspace profile "current" |> ignore
         server.ReleaseMetadata()
         let afterConcurrent = concurrentCheck |> wait
         let installedAfterConcurrent = coordinator.Read(workspace, profile) |> wait
         let currentStatus = store.SkseLoaders.ReadStatus(workspace, profile) |> wait
+
         let staleGenerationPublished =
             store.SkseLoaders.SaveCheckedUpdateStatus(
                 beforeReplacementGeneration,
                 beforeReplacementLoader.VersionId,
                 currentStatus,
-                { currentStatus.Value with Phase = "update"; ComponentVersion = "2.3.0" }
+                { currentStatus.Value with
+                    Phase = "update"
+                    ComponentVersion = "2.3.0" }
             )
             |> wait
 
@@ -939,7 +1003,10 @@ module SkseCoordinatorFixtures =
             operation,
             selectionRevision,
             Some activeLoader.ModId,
-            { targetLoader with Loader = { targetLoader.Loader with GenerationId = operation } },
+            { targetLoader with
+                Loader =
+                    { targetLoader.Loader with
+                        GenerationId = operation } },
             workspace,
             profile
         )
@@ -957,7 +1024,12 @@ module SkseCoordinatorFixtures =
             |> result
 
         let restored =
-            store.Deployments.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
+            store.Deployments.Activate(
+                prepared.Id,
+                prepared.Sources,
+                ignore,
+                CancellationToken.None
+            )
             |> wait
             |> result
 
@@ -1024,7 +1096,10 @@ module SkseCoordinatorFixtures =
             && preserved
 
         let beforeFailureStatus = store.SkseLoaders.ReadStatus(workspace, profile) |> wait
-        let beforeFailureGeneration = (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+
+        let beforeFailureGeneration =
+            (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+
         let beforeFailureLoader =
             store.SkseLoaders.ReadStored(workspace, profile, Some beforeFailureGeneration)
             |> wait
@@ -1085,7 +1160,9 @@ module SkseCoordinatorFixtures =
                 beforeFailureGeneration,
                 beforeFailureLoader.VersionId,
                 beforeFailureStatus,
-                { beforeFailureStatus.Value with Phase = "update"; ComponentVersion = "3.0.0" }
+                { beforeFailureStatus.Value with
+                    Phase = "update"
+                    ComponentVersion = "3.0.0" }
             )
             |> wait
 
@@ -1110,11 +1187,20 @@ module SkseCoordinatorFixtures =
 
         (coordinator :> IDisposable).Dispose()
         (store :> IDisposable).Dispose()
+
         restoredLaunchEvidence
-            writer statePath workspace profile restored.Proposed targetLoader.ModId activeLoader.ModId runtime
+            writer
+            statePath
+            workspace
+            profile
+            restored.Proposed
+            targetLoader.ModId
+            activeLoader.ModId
+            runtime
 
     let private interruptedReviewEvidence writer area fallback =
         let name = if fallback then "fallback" else "exact"
+
         let scenario =
             Directory.CreateDirectory(Path.Combine(area, "interrupted-" + name)).FullName
 
@@ -1187,7 +1273,13 @@ module SkseCoordinatorFixtures =
             configure server candidateRuntime 402L "2.4.0" bytes
 
             use original =
-                new SkseCoordinator(session, store.Downloads, store.GameContexts, store, server.Handoff)
+                new SkseCoordinator(
+                    session,
+                    store.Downloads,
+                    store.GameContexts,
+                    store,
+                    server.Handoff
+                )
 
             if fallback then
                 let review = original.Review(workspace, profile) |> wait |> result
@@ -1211,7 +1303,9 @@ module SkseCoordinatorFixtures =
             store.SkyrimSetups.Save
                 { WorkspaceId = workspace
                   ProfileId = profile
-                  Selection = { SetupSelection.none with Skse = SetupAction.Install }
+                  Selection =
+                    { SetupSelection.none with
+                        Skse = SetupAction.Install }
                   Cancelled = false
                   Completed = false
                   Stage = "skse-start"
@@ -1267,8 +1361,7 @@ module SkseCoordinatorFixtures =
             |> wait
             |> result
 
-        (restarted.GameContexts :> IGameContexts)
-            .Refresh(workspace, profile, staleGame.Revision)
+        (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, staleGame.Revision)
         |> wait
         |> result
         |> ignore
@@ -1276,7 +1369,8 @@ module SkseCoordinatorFixtures =
         let reviewed =
             resumed.Review(workspace, profile)
             |> wait
-            |> Result.defaultWith (fun problem -> failwith ("Re-review after restart: " + SkseProblem.message problem))
+            |> Result.defaultWith (fun problem ->
+                failwith ("Re-review after restart: " + SkseProblem.message problem))
 
         resumed.Prepare(
             workspace,
@@ -1289,7 +1383,8 @@ module SkseCoordinatorFixtures =
                   AllowIncompatible = fallback }
         )
         |> wait
-        |> Result.defaultWith (fun problem -> failwith ("Fresh Apply after restart: " + SkseProblem.message problem))
+        |> Result.defaultWith (fun problem ->
+            failwith ("Fresh Apply after restart: " + SkseProblem.message problem))
         |> ignore
 
         let reapplied = resumed.StartPrepared(workspace, profile) |> wait

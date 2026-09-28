@@ -49,7 +49,10 @@ module internal GameInventory =
 
                 if next > Limits.snapshotBytes then
                     failure <-
-                        Some(FilePlanError.LimitExceeded "The game file inventory exceeds the metadata limit.")
+                        Some(
+                            FilePlanError.LimitExceeded
+                                "The game file inventory exceeds the metadata limit."
+                        )
                 else
                     metadata <- next
 
@@ -137,9 +140,15 @@ module internal GameInventory =
                         + 128L
 
                     if nextMetadata > Limits.snapshotBytes then
-                        Error(FilePlanError.LimitExceeded "The game file inventory exceeds the metadata limit.")
+                        Error(
+                            FilePlanError.LimitExceeded
+                                "The game file inventory exceeds the metadata limit."
+                        )
                     elif bytes + entry.Length > Limits.contentBytes then
-                        Error(FilePlanError.LimitExceeded "The game files exceed the 64 GiB content limit.")
+                        Error(
+                            FilePlanError.LimitExceeded
+                                "The game files exceed the 64 GiB content limit."
+                        )
                     else
                         metadata <- nextMetadata
                         bytes <- bytes + entry.Length

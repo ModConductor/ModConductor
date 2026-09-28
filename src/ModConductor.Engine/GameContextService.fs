@@ -83,6 +83,7 @@ module private GameContextWire =
             |> Seq.map (fun supported ->
                 let context =
                     GameCapabilityContext(DefinitionId = GameId.value supported.DefinitionId)
+
                 context.Platforms.AddRange(supported.Platforms |> Seq.map platform)
                 context)
         )
@@ -144,8 +145,7 @@ module private GameContextWire =
             let code, detail =
                 match error with
                 | ContextError.NotFound ->
-                    GameContextFaultCode.GameContextFaultNotFound,
-                    "The profile was not found."
+                    GameContextFaultCode.GameContextFaultNotFound, "The profile was not found."
                 | ContextError.StaleRevision ->
                     GameContextFaultCode.GameContextFaultStaleRevision,
                     "The profile installation changed. The folder was not saved."
@@ -180,6 +180,7 @@ type GameContextService(contexts: IGameContexts) =
                     ModLibraryWire.id request.WorkspaceId,
                     ModLibraryWire.id request.ProfileId
                 )
+
             return GameContextWire.reply result
         }
 

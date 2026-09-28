@@ -8,13 +8,18 @@ module internal Descriptor =
     let private inside root candidate =
         String.Equals(root, candidate, StringComparison.OrdinalIgnoreCase)
         || candidate.StartsWith(
-            (if IO.Path.EndsInDirectorySeparator root then root else root + string IO.Path.DirectorySeparatorChar),
+            (if IO.Path.EndsInDirectorySeparator root then
+                 root
+             else
+                 root + string IO.Path.DirectorySeparatorChar),
             StringComparison.OrdinalIgnoreCase
         )
 
     let private toolPath sourceRoot runnableRoot (relative: string) =
         let normalized =
-            relative.Replace('/', IO.Path.DirectorySeparatorChar).Replace('\\', IO.Path.DirectorySeparatorChar)
+            relative
+                .Replace('/', IO.Path.DirectorySeparatorChar)
+                .Replace('\\', IO.Path.DirectorySeparatorChar)
 
         let candidate =
             if IO.Path.IsPathFullyQualified normalized then
@@ -32,7 +37,11 @@ module internal Descriptor =
         let directory = IO.Path.GetDirectoryName candidate
 
         if
-            String.Equals(directory, IO.Path.GetFullPath sourceRoot, StringComparison.OrdinalIgnoreCase)
+            String.Equals(
+                directory,
+                IO.Path.GetFullPath sourceRoot,
+                StringComparison.OrdinalIgnoreCase
+            )
             && String.Equals(
                 IO.Path.GetFileName candidate,
                 "skse64_loader.exe",
@@ -62,7 +71,13 @@ module internal Descriptor =
 
             let selected =
                 match loader with
-                | None -> Ok(IO.Path.Combine(runnableRoot, IO.Path.GetFileName evidence.Executable.Value.Path))
+                | None ->
+                    Ok(
+                        IO.Path.Combine(
+                            runnableRoot,
+                            IO.Path.GetFileName evidence.Executable.Value.Path
+                        )
+                    )
                 | Some loader when loader.GameSha256 <> evidence.Executable.Value.Sha256 ->
                     Error "Skyrim changed after SKSE was installed. Check SKSE before Play."
                 | Some loader -> loaderPath evidence.RootPath runnableRoot loader
@@ -120,7 +135,8 @@ module internal Descriptor =
             loader
             configuration
 
-    let create state runnableRoot loader = createWith state runnableRoot loader None
+    let create state runnableRoot loader =
+        createWith state runnableRoot loader None
 
     let projectTool platform (tool: string) (arguments: string list) (launch: NativeLaunch) =
         match platform with
@@ -146,7 +162,10 @@ module internal Descriptor =
         executable
         arguments
         =
-        match createWithHost hostWindows hostLinux state runnableRoot loader configuration, state.Binding with
+        match
+            createWithHost hostWindows hostLinux state runnableRoot loader configuration,
+            state.Binding
+        with
         | Ok(context, runtime, launch), Some binding ->
             match toolPath binding.Evidence.RootPath runnableRoot executable with
             | Error problem -> Error problem

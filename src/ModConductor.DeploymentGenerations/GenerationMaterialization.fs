@@ -143,13 +143,11 @@ module internal GenerationMaterialization =
                     | None -> use child = parent.CreateDirectory name in ()
                     | Some entry when entry.Kind = EntryKind.Directory -> ()
                     | _ ->
-                        RecoveryFiles.fail
-                            "A declared output directory is not a real directory.")
+                        RecoveryFiles.fail "A declared output directory is not a real directory.")
 
             for _, root, path, pin in
                 seedCopies
-                |> List.filter (fun (declaration, _, _, _) ->
-                    declaration = binding.Declaration) do
+                |> List.filter (fun (declaration, _, _, _) -> declaration = binding.Declaration) do
                 seed token pin (source sources pin) root path |> ignore
 
             let identity =

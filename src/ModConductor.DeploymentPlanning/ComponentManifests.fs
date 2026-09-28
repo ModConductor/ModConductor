@@ -164,9 +164,11 @@ module ComponentManifests =
                                 ) }
                     | ComponentFileUse.WritableContainingDirectory ->
                         let parts = LogicalPath.components file.Destination
+
                         let parent =
                             LogicalPath.create (List.take (parts.Length - 1) parts)
-                            |> Result.defaultWith (fun _ -> invalidOp "Invalid component destination.")
+                            |> Result.defaultWith (fun _ ->
+                                invalidOp "Invalid component destination.")
 
                         Some
                             { Id = writableId manifest.Version.Id file

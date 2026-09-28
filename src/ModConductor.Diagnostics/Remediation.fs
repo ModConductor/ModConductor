@@ -44,8 +44,10 @@ module internal Remediation =
 
         let identifiers: RemediationIdentifier list =
             [ { Label = "Mod ID"; Value = copy.ModId }
-              { Label = "Version ID"; Value = copy.VersionId }
-              { Label = "Profile ID"; Value = profileId } ]
+              { Label = "Version ID"
+                Value = copy.VersionId }
+              { Label = "Profile ID"
+                Value = profileId } ]
 
         let view =
             { Id = Guid.NewGuid()

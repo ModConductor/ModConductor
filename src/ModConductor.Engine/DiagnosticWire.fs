@@ -18,16 +18,23 @@ module DiagnosticWire =
 
     let severity (value: ModConductor.Diagnostics.DiagnosticSeverity) =
         match value with
-        | ModConductor.Diagnostics.DiagnosticSeverity.Information -> ModConductor.Protocol.V1.DiagnosticSeverity.Information
-        | ModConductor.Diagnostics.DiagnosticSeverity.Warning -> ModConductor.Protocol.V1.DiagnosticSeverity.Warning
-        | ModConductor.Diagnostics.DiagnosticSeverity.Error -> ModConductor.Protocol.V1.DiagnosticSeverity.Error
+        | ModConductor.Diagnostics.DiagnosticSeverity.Information ->
+            ModConductor.Protocol.V1.DiagnosticSeverity.Information
+        | ModConductor.Diagnostics.DiagnosticSeverity.Warning ->
+            ModConductor.Protocol.V1.DiagnosticSeverity.Warning
+        | ModConductor.Diagnostics.DiagnosticSeverity.Error ->
+            ModConductor.Protocol.V1.DiagnosticSeverity.Error
 
     let fixability (value: ModConductor.Diagnostics.Fixability) =
         match value with
-        | ModConductor.Diagnostics.Fixability.NotFixable -> ModConductor.Protocol.V1.DiagnosticFixability.NotFixable
-        | ModConductor.Diagnostics.Fixability.PreviewAvailable -> ModConductor.Protocol.V1.DiagnosticFixability.PreviewAvailable
-        | ModConductor.Diagnostics.Fixability.Ready -> ModConductor.Protocol.V1.DiagnosticFixability.Ready
-        | ModConductor.Diagnostics.Fixability.Refused -> ModConductor.Protocol.V1.DiagnosticFixability.Refused
+        | ModConductor.Diagnostics.Fixability.NotFixable ->
+            ModConductor.Protocol.V1.DiagnosticFixability.NotFixable
+        | ModConductor.Diagnostics.Fixability.PreviewAvailable ->
+            ModConductor.Protocol.V1.DiagnosticFixability.PreviewAvailable
+        | ModConductor.Diagnostics.Fixability.Ready ->
+            ModConductor.Protocol.V1.DiagnosticFixability.Ready
+        | ModConductor.Diagnostics.Fixability.Refused ->
+            ModConductor.Protocol.V1.DiagnosticFixability.Refused
 
     let correlationKind (value: ModConductor.Diagnostics.CorrelationKind) =
         match value with
@@ -60,7 +67,8 @@ module DiagnosticWire =
 
         result.Evidence.AddRange(
             value.Evidence
-            |> Seq.map (fun item -> ModConductor.Protocol.V1.DiagnosticEvidence(Label = item.Label, Value = item.Value))
+            |> Seq.map (fun item ->
+                ModConductor.Protocol.V1.DiagnosticEvidence(Label = item.Label, Value = item.Value))
         )
 
         result.Correlations.AddRange(
@@ -72,13 +80,17 @@ module DiagnosticWire =
                         Id = item.Id.ToString "N"
                     )
 
-                item.Revision |> Option.iter (fun revision -> result.Revision <- uint64 revision)
+                item.Revision
+                |> Option.iter (fun revision -> result.Revision <- uint64 revision)
+
                 result)
         )
 
         result
 
-    let snapshotReply (result: Result<ModConductor.Diagnostics.DiagnosticSnapshot, DiagnosticError>) =
+    let snapshotReply
+        (result: Result<ModConductor.Diagnostics.DiagnosticSnapshot, DiagnosticError>)
+        =
         match result with
         | Error error -> ModConductor.Protocol.V1.DiagnosticSnapshotReply(Fault = fault error)
         | Ok value ->
@@ -93,7 +105,9 @@ module DiagnosticWire =
             snapshot.Findings.AddRange(value.Findings |> Seq.map finding)
             ModConductor.Protocol.V1.DiagnosticSnapshotReply(Snapshot = snapshot)
 
-    let previewReply (result: Result<ModConductor.Diagnostics.RemediationPreview, DiagnosticError>) =
+    let previewReply
+        (result: Result<ModConductor.Diagnostics.RemediationPreview, DiagnosticError>)
+        =
         match result with
         | Error error -> ModConductor.Protocol.V1.DiagnosticPreviewReply(Fault = fault error)
         | Ok value ->
@@ -123,6 +137,7 @@ module DiagnosticWire =
                         Value = item.Value.ToString "N"
                     ))
             )
+
             ModConductor.Protocol.V1.DiagnosticPreviewReply(Preview = preview)
 
     let applyReply (result: Result<ModConductor.Diagnostics.RemediationResult, DiagnosticError>) =

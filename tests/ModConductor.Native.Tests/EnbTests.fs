@@ -70,6 +70,8 @@ type EnbTests() =
         flag "runtimeOnlySelectionAvoidsPresetAcquisition" |> should equal true
 
     [<Test>]
-    member _.``ENB should initialize fresh local settings without changing saves and retain them on removal``() =
+    member _.``ENB should initialize fresh local settings without changing saves and retain them on removal``
+        ()
+        =
         flag "freshProfileSettingsInitializedBeforeEnbInstall" |> should equal true
         flag "enbRemovalRetainsInitializedProfileSettings" |> should equal true

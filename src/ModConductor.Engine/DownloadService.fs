@@ -54,6 +54,7 @@ type DownloadService(downloads: DownloadSession, artifacts: IArtifactLibrary) =
             let workspace = ModLibraryWire.id request.WorkspaceId
             let ids = request.Ids |> Seq.map ModLibraryWire.id |> Seq.distinct |> Seq.toArray
             let revisions = Dictionary<Guid, int64>()
+
             for id in ids do
                 revisions[id] <- -1L
 

@@ -134,7 +134,8 @@ type OutputPromotionPreview =
 
 type IGeneratedOutputs =
     abstract Read:
-        workspace: Guid * profile: Guid * context: Guid option -> Task<Result<OutputScope, OutputError>>
+        workspace: Guid * profile: Guid * context: Guid option ->
+            Task<Result<OutputScope, OutputError>>
 
     abstract Add:
         id: Guid * expected: OutputScope * name: string * purpose: OutputPurpose ->

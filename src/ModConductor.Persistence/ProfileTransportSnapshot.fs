@@ -77,8 +77,7 @@ module internal ProfileTransportSnapshot =
                     connection
                     transaction
                     "SELECT version_id,archive_name,source_digest,root,previous_version FROM archive_installations WHERE mod_id=$mod AND artifact_id=$artifact AND state=2 ORDER BY version_id"
-                    [ "$mod", box (string entry.Id)
-                      "$artifact", box (string artifact) ]
+                    [ "$mod", box (string entry.Id); "$artifact", box (string artifact) ]
 
             use reader = query.ExecuteReader()
 
@@ -156,20 +155,21 @@ module internal ProfileTransportSnapshot =
                     connection
                     transaction
                     "SELECT name,selection_revision FROM profiles WHERE id=$profile AND workspace_id=$workspace"
-                    [ "$profile", box (string profile)
-                      "$workspace", box (string workspace) ]
+                    [ "$profile", box (string profile); "$workspace", box (string workspace) ]
 
             use reader = query.ExecuteReader()
 
-            if reader.Read() then Some(reader.GetString 0, reader.GetInt64 1) else None
+            if reader.Read() then
+                Some(reader.GetString 0, reader.GetInt64 1)
+            else
+                None
 
         let game =
             queryOne
                 connection
                 transaction
                 "SELECT game_id FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile"
-                [ "$workspace", box (string workspace)
-                  "$profile", box (string profile) ]
+                [ "$workspace", box (string workspace); "$profile", box (string profile) ]
 
         let privateData =
             use query =
@@ -177,8 +177,7 @@ module internal ProfileTransportSnapshot =
                     connection
                     transaction
                     "SELECT p.body FROM profile_data_profiles p JOIN profile_data_contexts c ON c.id=p.context_id WHERE c.workspace_id=$workspace AND p.profile_id=$profile"
-                    [ "$workspace", box (string workspace)
-                      "$profile", box (string profile) ]
+                    [ "$workspace", box (string workspace); "$profile", box (string profile) ]
 
             use reader = query.ExecuteReader()
 
@@ -207,9 +206,14 @@ module internal ProfileTransportSnapshot =
                             |> Option.map (fun id ->
                                 LibraryRows.version connection transaction id 0 100001
                                 |> Option.defaultWith (fun () ->
-                                    raise (InvalidDataException "A selected mod version is unavailable.")))
+                                    raise (
+                                        InvalidDataException
+                                            "A selected mod version is unavailable."
+                                    )))
 
-                        if version |> Option.exists (fun value -> value.Entries.Length > 100000) then
+                        if
+                            version |> Option.exists (fun value -> value.Entries.Length > 100000)
+                        then
                             raise (InvalidDataException "A selected mod exceeds the file limit.")
 
                         let baseVersion =
@@ -235,10 +239,13 @@ module internal ProfileTransportSnapshot =
                 let id = FnisRunRows.outputId profile
 
                 match LibraryRows.find connection transaction id with
-                | Some row when row.Entry.WorkspaceId = workspace && row.Entry.Kind = ModKind.GeneratedOutput ->
+                | Some row when
+                    row.Entry.WorkspaceId = workspace && row.Entry.Kind = ModKind.GeneratedOutput
+                    ->
                     let version =
                         row.Entry.CurrentVersion
-                        |> Option.bind (fun id -> LibraryRows.version connection transaction id 0 100001)
+                        |> Option.bind (fun id ->
+                            LibraryRows.version connection transaction id 0 100001)
 
                     version
                     |> Option.map (fun version ->

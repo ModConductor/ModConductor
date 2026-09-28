@@ -123,14 +123,11 @@ type NexusServer() =
                         200
                         (("{"
                           + "\"access_token\":\"synthetic-access-secret-"
-                          + (tokenCount)
-                              .ToString(System.Globalization.CultureInfo.InvariantCulture)
+                          + (tokenCount).ToString(System.Globalization.CultureInfo.InvariantCulture)
                           + "\",\"refresh_token\":\"synthetic-refresh-secret-"
-                          + (tokenCount)
-                              .ToString(System.Globalization.CultureInfo.InvariantCulture)
+                          + (tokenCount).ToString(System.Globalization.CultureInfo.InvariantCulture)
                           + "\",\"token_type\":\"Bearer\",\"expires_in\":"
-                          + (expires)
-                              .ToString(System.Globalization.CultureInfo.InvariantCulture)
+                          + (expires).ToString(System.Globalization.CultureInfo.InvariantCulture)
                           + ",\"created_at\":1789257600,\"scope\":\"public\"}"))
 
                 expires <- 600
@@ -140,9 +137,7 @@ type NexusServer() =
         task {
             if
                 not (
-                    (request.Headers["Authorization"]
-                     |> Option.ofObj
-                     |> Option.defaultValue "")
+                    (request.Headers["Authorization"] |> Option.ofObj |> Option.defaultValue "")
                         .StartsWith
                         "Bearer synthetic-access-secret-"
                 )
@@ -170,10 +165,7 @@ type NexusServer() =
             if request.QueryString["key"] = "synthetic-nxm-private-grant" then
                 nxmRequests <- nxmRequests + 1
 
-            if
-                mode = "nxm"
-                && request.QueryString["key"] <> "synthetic-nxm-private-grant"
-            then
+            if mode = "nxm" && request.QueryString["key"] <> "synthetic-nxm-private-grant" then
                 do! write 403 "{\"error\":\"synthetic-nxm-private-grant\"}"
             elif mode = "entitlement" then
                 do! write 403 "{\"error\":\"synthetic-signed-secret\"}"
@@ -292,8 +284,7 @@ type NexusServer() =
                 enbFiles
                 |> Map.toSeq
                 |> Seq.map fst
-                |> Seq.tryFind (fun modId ->
-                    path.Contains("/mods/" + string modId + "/"))
+                |> Seq.tryFind (fun modId -> path.Contains("/mods/" + string modId + "/"))
 
             if enbMod.IsSome && path.EndsWith "/files.json" then
                 let fileId, fileName, version, bytes = enbFiles[enbMod.Value]
@@ -326,9 +317,7 @@ type NexusServer() =
                          + string bytes.Length
                          + "}")
             elif path.Contains "/mods/30379/" && path.EndsWith "/files.json" then
-                let entry
-                    (id: int64, name: string, version: string, description: string)
-                    =
+                let entry (id: int64, name: string, version: string, description: string) =
                     "{\"file_id\":"
                     + id.ToString(Globalization.CultureInfo.InvariantCulture)
                     + ",\"file_name\":\""
@@ -338,9 +327,7 @@ type NexusServer() =
                     + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\""
                     + description
                     + "\",\"size_in_bytes\":"
-                    + payload.Length.ToString(
-                        Globalization.CultureInfo.InvariantCulture
-                    )
+                    + payload.Length.ToString(Globalization.CultureInfo.InvariantCulture)
                     + "}"
 
                 do!
@@ -357,18 +344,13 @@ type NexusServer() =
                 else
                     match Int64.TryParse name with
                     | true, id ->
-                        match
-                            skseFiles
-                            |> List.tryFind (fun (value, _, _, _) -> value = id)
-                        with
+                        match skseFiles |> List.tryFind (fun (value, _, _, _) -> value = id) with
                         | Some(id, fileName, version, description) ->
                             do!
                                 write
                                     200
                                     ("{\"file_id\":"
-                                     + id.ToString(
-                                         Globalization.CultureInfo.InvariantCulture
-                                     )
+                                     + id.ToString(Globalization.CultureInfo.InvariantCulture)
                                      + ",\"file_name\":\""
                                      + fileName
                                      + "\",\"version\":\""
@@ -383,9 +365,7 @@ type NexusServer() =
                         | None -> do! write 404 "{}"
                     | _ -> do! write 404 "{}"
             elif path.Contains "/mods/3038/" && path.EndsWith "/files.json" then
-                let entry
-                    (id: int64, name: string, version: string, description: string)
-                    =
+                let entry (id: int64, name: string, version: string, description: string) =
                     "{\"file_id\":"
                     + string id
                     + ",\"file_name\":\""
@@ -415,10 +395,7 @@ type NexusServer() =
                 else
                     match Int64.TryParse name with
                     | true, id ->
-                        match
-                            fnisFiles
-                            |> List.tryFind (fun (value, _, _, _) -> value = id)
-                        with
+                        match fnisFiles |> List.tryFind (fun (value, _, _, _) -> value = id) with
                         | Some(id, fileName, version, description) ->
                             do!
                                 write
@@ -451,9 +428,7 @@ type NexusServer() =
                     + "\",\"category_id\":"
                     + category.ToString(Globalization.CultureInfo.InvariantCulture)
                     + ",\"uploaded_timestamp\":1789238400,\"description\":\"Water textures\",\"size_in_bytes\":"
-                    + payload.Length.ToString(
-                        Globalization.CultureInfo.InvariantCulture
-                    )
+                    + payload.Length.ToString(Globalization.CultureInfo.InvariantCulture)
                     + "}"
 
                 do!
@@ -492,7 +467,12 @@ type NexusServer() =
                 do! write 404 "{}"
         }
 
-    let sendApi (request: HttpListenerRequest) (path: string) (response: HttpListenerResponse) write =
+    let sendApi
+        (request: HttpListenerRequest)
+        (path: string)
+        (response: HttpListenerResponse)
+        write
+        =
         task {
             let apiKey = request.Headers["APIKEY"]
             let bearer = request.Headers["Authorization"]
@@ -503,8 +483,7 @@ type NexusServer() =
             let keyRevoked =
                 mode = "invalid-key"
                 || (mode = "invalid-tracking-key" && path.EndsWith "/user/tracked_mods.json")
-                || (mode = "invalid-endorsement-key"
-                    && path.EndsWith "/user/endorsements.json")
+                || (mode = "invalid-endorsement-key" && path.EndsWith "/user/endorsements.json")
 
             if path.EndsWith "/users/validate.json" then
                 if apiKey <> "synthetic-personal-key" || mode = "invalid-key" then
@@ -526,8 +505,7 @@ type NexusServer() =
             elif
                 (not (isNull apiKey) && (apiKey <> "synthetic-personal-key" || keyRevoked))
                 || (isNull apiKey
-                    && (isNull bearer
-                        || not (bearer.StartsWith "Bearer synthetic-access-secret-")))
+                    && (isNull bearer || not (bearer.StartsWith "Bearer synthetic-access-secret-")))
             then
                 do! write 401 "{}"
             elif mode = "rate" then
@@ -560,15 +538,13 @@ type NexusServer() =
                         """{"id":1704,"domain_name":"skyrimspecialedition","categories":[{"category_id":29,"name":"Visuals and Graphics"}]}"""
             elif
                 enbFiles
-                |> Map.exists (fun modId _ ->
-                    path.EndsWith("/mods/" + string modId + ".json"))
+                |> Map.exists (fun modId _ -> path.EndsWith("/mods/" + string modId + ".json"))
             then
                 let modId =
                     enbFiles
                     |> Map.toSeq
                     |> Seq.map fst
-                    |> Seq.find (fun modId ->
-                        path.EndsWith("/mods/" + string modId + ".json"))
+                    |> Seq.find (fun modId -> path.EndsWith("/mods/" + string modId + ".json"))
 
                 do!
                     write
@@ -628,8 +604,7 @@ type NexusServer() =
 
                 response.StatusCode <- 302
 
-                response.RedirectLocation <-
-                    payloadRedirect.Value + "payload" + request.Url.Query
+                response.RedirectLocation <- payloadRedirect.Value + "payload" + request.Url.Query
             elif mode = "link-refused" then
                 do! write 403 "{\"error\":\"synthetic-signed-key-expired\"}"
             else

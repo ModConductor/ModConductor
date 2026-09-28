@@ -43,9 +43,11 @@ module internal DeploymentContextId =
             identity evidence.DataIdentity)
         |> Convert.ToHexStringLower
 
-    let fingerprint evidence = fingerprintFor "mc-profile-game-view-v2" evidence
+    let fingerprint evidence =
+        fingerprintFor "mc-profile-game-view-v2" evidence
 
-    let legacyFingerprint evidence = fingerprintFor "mc-data-target-v1" evidence
+    let legacyFingerprint evidence =
+        fingerprintFor "mc-data-target-v1" evidence
 
     let create (workspace: Guid) (profile: Guid) (fingerprint: string) =
         let digest =

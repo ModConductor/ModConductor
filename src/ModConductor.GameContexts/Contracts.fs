@@ -10,8 +10,7 @@ type ContextPlatform =
     | Proton
 
 [<Struct; RequireQualifiedAccess>]
-type GameId =
-    | SkyrimSpecialEditionSteam
+type GameId = | SkyrimSpecialEditionSteam
 
 module GameId =
     let value =

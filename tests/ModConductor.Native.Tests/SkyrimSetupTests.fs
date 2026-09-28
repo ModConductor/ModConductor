@@ -29,7 +29,9 @@ type SkyrimSetupTests() =
 
     [<Test>]
     member _.``refused SKSE removal should fail setup without stopping the engine``() =
-        flag "skseRemovalRefusalShowsFailedStatusWithoutStoppingEngine" |> should equal true
+        flag "skseRemovalRefusalShowsFailedStatusWithoutStoppingEngine"
+        |> should equal true
+
         flag "explicitApplyRetriesRefusedSkseRemovalOnce" |> should equal true
 
     [<Test>]
@@ -45,9 +47,14 @@ type SkyrimSetupTests() =
         flag "combinedChoicesExecuteOnceEach" |> should equal true
 
     [<Test>]
-    member _.``cancelling an active setup should allow a fresh explicit attempt from installed state``() =
+    member _.``cancelling an active setup should allow a fresh explicit attempt from installed state``
+        ()
+        =
         flag "concurrentContinueObservesActorWithoutDuplicateWork" |> should equal true
-        flag "activeCancellationShowsInstalledComponentsWithoutRetry" |> should equal true
+
+        flag "activeCancellationShowsInstalledComponentsWithoutRetry"
+        |> should equal true
+
         flag "cancelRecoveryContinuesAfterRestart" |> should equal true
         flag "cancelledSetupAcceptsNewSelection" |> should equal true
         flag "explicitNewAttemptRunsOnlyChosenComponent" |> should equal true

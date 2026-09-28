@@ -21,15 +21,24 @@ module DeploymentBackendFixtures =
 
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "backend")).FullName
-        let workspacePath = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
+        let workspacePath =
+            Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
         let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
         let original = Path.Combine(game, "Data", "Mixed", "Original.TXT")
         Directory.CreateDirectory(Path.GetDirectoryName original) |> ignore
         File.WriteAllText(original, "original game bytes")
-        let source = Directory.CreateDirectory(Path.Combine(workspacePath, "Managed")).FullName
+
+        let source =
+            Directory.CreateDirectory(Path.Combine(workspacePath, "Managed")).FullName
+
         let mixedSource = Directory.CreateDirectory(Path.Combine(source, "mixed")).FullName
         File.WriteAllText(Path.Combine(mixedSource, "original.txt"), "managed winner")
-        let nestedSource = Directory.CreateDirectory(Path.Combine(mixedSource, "New")).FullName
+
+        let nestedSource =
+            Directory.CreateDirectory(Path.Combine(mixedSource, "New")).FullName
+
         File.WriteAllText(Path.Combine(nestedSource, "child.txt"), "managed child")
 
         let workspace, profile, modId, version =
@@ -37,18 +46,23 @@ module DeploymentBackendFixtures =
 
         use store = new OperationStore(Path.Combine(area, "state"))
         let workspaces = store.Workspaces :> IWorkspaceState
+
         let created =
             workspaces.Create(workspace, "Deployment backend", StorageWorker.select workspacePath)
-            |> wait |> result
+            |> wait
+            |> result
 
         workspaces.Edit(
             workspace,
             created.Workspace.Revision,
             ProfileEdit.Create { Id = profile; Name = "Selected" }
         )
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let library = store.ModLibrary :> IModLibrary
+
         let registered =
             library.Register(
                 workspace,
@@ -61,23 +75,29 @@ module DeploymentBackendFixtures =
                   Categories = [] },
                 Registration.Directory(ModKind.Regular, path "Managed")
             )
-            |> wait |> result
+            |> wait
+            |> result
 
         library.Publish(modId, registered.Revision, version) |> wait |> result |> ignore
         let selected = InventoryObservations.read store profile
 
         (store.ModSelection :> IModSelection)
             .Change(profile, selected.SelectionRevision, [ modId ], SelectionEdit.Enable true)
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let contexts = store.GameContexts :> IGameContexts
+
         let selection source runtime =
             { GameId = GameId.SkyrimSpecialEditionSteam
               Path = source
               Proton = if OperatingSystem.IsLinux() then Some runtime else None }
 
         contexts.Save(workspace, profile, 0L, selection game proton)
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let backend = store.Deployments
         let state = backend.Read profile |> wait |> result
@@ -88,6 +108,7 @@ module DeploymentBackendFixtures =
         use cancelled = new CancellationTokenSource()
         cancelled.Cancel()
         let cancelledId = Guid.NewGuid()
+
         let cancelledResult =
             backend.Prepare(cancelledId, state.Sources, ignore, cancelled.Token) |> wait
 
@@ -98,12 +119,16 @@ module DeploymentBackendFixtures =
 
         let stalePlan =
             backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
-            |> wait |> result
+            |> wait
+            |> result
 
         let oldSelection = InventoryObservations.read store profile
+
         (store.ModSelection :> IModSelection)
             .Change(profile, oldSelection.SelectionRevision, [ modId ], SelectionEdit.Enable false)
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let stale =
             backend.Activate(stalePlan.Id, stalePlan.Sources, ignore, CancellationToken.None)
@@ -112,27 +137,34 @@ module DeploymentBackendFixtures =
         let staleSafe =
             stale = Error DeploymentError.Stale
             && File.ReadAllText original = "original game bytes"
-            && not (Directory.Exists(
-                Path.Combine(
-                    workspacePath,
-                    ".mc-generation-" + stalePlan.Id.ToString("N")
+            && not (
+                Directory.Exists(
+                    Path.Combine(workspacePath, ".mc-generation-" + stalePlan.Id.ToString("N"))
                 )
-            ))
+            )
 
         let oldSelection = InventoryObservations.read store profile
+
         (store.ModSelection :> IModSelection)
             .Change(profile, oldSelection.SelectionRevision, [ modId ], SelectionEdit.Enable true)
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let deploy () =
             let state = backend.Read profile |> wait |> result
+
             let prepared =
                 backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
-                |> wait |> result
+                |> wait
+                |> result
+
             backend.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
-            |> wait |> result
+            |> wait
+            |> result
 
         let active = deploy ()
+
         let viewHasManaged =
             active.Phase = DeploymentPhase.Complete
             && File.ReadAllText(viewOriginal) = "managed winner"
@@ -140,12 +172,16 @@ module DeploymentBackendFixtures =
             && File.ReadAllText original = "original game bytes"
 
         let plans = store.FilePlans :> IFilePlans
-        let loaded = plans.Acquire(profile, false, ignore, CancellationToken.None) |> wait |> result
-        let inspected = plans.Inspect(loaded.Id, path "mixed/original.txt", None) |> wait |> result
+
+        let loaded =
+            plans.Acquire(profile, false, ignore, CancellationToken.None) |> wait |> result
+
+        let inspected =
+            plans.Inspect(loaded.Id, path "mixed/original.txt", None) |> wait |> result
+
         let sourceInventoryUnaffected = inspected.Copies.Length = 2
 
-        let generation =
-            (backend.Read profile |> wait |> result).ActiveGeneration.Value
+        let generation = (backend.Read profile |> wait |> result).ActiveGeneration.Value
 
         let evidence =
             (contexts.Read(workspace, profile) |> wait |> result).Binding.Value.Evidence
@@ -159,15 +195,24 @@ module DeploymentBackendFixtures =
 
         let retained target =
             let current = backend.Read profile |> wait |> result
+
             let prepared =
                 backend.PrepareRetained(
-                    Guid.NewGuid(), current.Sources, target, ignore, CancellationToken.None
+                    Guid.NewGuid(),
+                    current.Sources,
+                    target,
+                    ignore,
+                    CancellationToken.None
                 )
-                |> wait |> result
+                |> wait
+                |> result
+
             backend.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
-            |> wait |> result
+            |> wait
+            |> result
 
         let baseline = retained None
+
         let baselineRestored =
             baseline.Phase = DeploymentPhase.Complete
             && File.ReadAllText viewOriginal = "original game bytes"
@@ -176,6 +221,7 @@ module DeploymentBackendFixtures =
             && not (Directory.Exists originalTree)
 
         let rollback = retained (Some generation)
+
         let retainedReactivated =
             rollback.Phase = DeploymentPhase.Complete
             && File.ReadAllText viewOriginal = "managed winner"
@@ -188,19 +234,16 @@ module DeploymentBackendFixtures =
         Directory.CreateDirectory(Path.GetDirectoryName replacementOriginal) |> ignore
         File.WriteAllText(replacementOriginal, "replacement game bytes")
         let current = contexts.Read(workspace, profile) |> wait |> result
+
         contexts.Save(workspace, profile, current.Revision, selection replacement replacementProton)
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let oldReceipt = store.Deployment.Read rollback.Id |> wait
 
         let reboundRecovery =
-            backend.Recover(
-                rollback.Id,
-                rollback.Revision,
-                true,
-                ignore,
-                CancellationToken.None
-            )
+            backend.Recover(rollback.Id, rollback.Revision, true, ignore, CancellationToken.None)
             |> wait
 
         let reboundRefusedWithoutEffects =
@@ -211,6 +254,7 @@ module DeploymentBackendFixtures =
             && File.ReadAllText original = "original game bytes"
 
         let changed = deploy ()
+
         let sourceChangeRetiresPriorView =
             changed.Phase = DeploymentPhase.Complete
             && File.ReadAllText viewOriginal = "managed winner"
@@ -223,6 +267,7 @@ module DeploymentBackendFixtures =
         let firstLease = admission.TryAcquireWorkspace first |> Option.get
         let secondLease = admission.TryAcquireWorkspace second |> Option.get
         let pending = admission.Drain()
+
         let rejectsOverlap =
             admission.TryAcquireWorkspace first |> Option.isNone
             && admission.TryAcquireWorkspace third |> Option.isNone
@@ -232,6 +277,7 @@ module DeploymentBackendFixtures =
         firstLease.Dispose()
         let stillActive = not pending.IsCompleted
         secondLease.Dispose()
+
         let backendLeaseDrainsBeforeClose =
             initiallyDrained
             && rejectsOverlap
@@ -285,7 +331,12 @@ module DeploymentBackendFixtures =
         writer.WriteBoolean("retiredLinkTreeReclaimed", not (Directory.Exists originalTree))
         writer.WriteBoolean("retainedGenerationReactivated", retainedReactivated)
         writer.WriteBoolean("sourceChangeRetiresPriorView", sourceChangeRetiresPriorView)
-        writer.WriteBoolean("reboundRecoveryRefusedWithoutEffects", reboundRefusedWithoutEffects && changed.Phase = DeploymentPhase.Complete)
+
+        writer.WriteBoolean(
+            "reboundRecoveryRefusedWithoutEffects",
+            reboundRefusedWithoutEffects && changed.Phase = DeploymentPhase.Complete
+        )
+
         writer.WriteBoolean("backendLeaseDrainsBeforeClose", backendLeaseDrainsBeforeClose)
         writer.WriteBoolean("deletingActiveModUndeploysAffectedProfile", affectedProfileUndeployed)
         writer.WriteEndObject()

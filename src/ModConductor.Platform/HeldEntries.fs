@@ -272,9 +272,8 @@ module internal HeldEntries =
         nameCheck destinationName
 
         match inspect directory sourceName with
-        | Some source when
-            source.Kind = EntryKind.RegularFile && source.Identity = sourceIdentity
-            -> ()
+        | Some source when source.Kind = EntryKind.RegularFile && source.Identity = sourceIdentity ->
+            ()
         | _ -> raise (IOException "The staged file changed.")
 
         if inspect directory destinationName <> destination then
@@ -296,10 +295,6 @@ module internal HeldEntries =
             then
                 raise (IOException "The staged file could not replace the destination.")
         elif OperatingSystem.IsWindows() then
-            File.Move(
-                path directory sourceName,
-                path directory destinationName,
-                destination.IsSome
-            )
+            File.Move(path directory sourceName, path directory destinationName, destination.IsSome)
         else
             raise (PlatformNotSupportedException())

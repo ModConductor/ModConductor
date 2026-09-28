@@ -42,18 +42,32 @@ module FnisFixtures =
         override _.RequestHeadersCore = Metadata()
         override _.CancellationTokenCore = CancellationToken.None
         override _.ResponseTrailersCore = Metadata()
-        override _.StatusCore with get () = status and set value = status <- value
-        override _.WriteOptionsCore with get () = options and set value = options <- value
+
+        override _.StatusCore
+            with get () = status
+            and set value = status <- value
+
+        override _.WriteOptionsCore
+            with get () = options
+            and set value = options <- value
+
         override _.AuthContextCore = Unchecked.defaultof<AuthContext>
-        override _.CreatePropagationTokenCore _ = Unchecked.defaultof<ContextPropagationToken>
+
+        override _.CreatePropagationTokenCore _ =
+            Unchecked.defaultof<ContextPropagationToken>
+
         override _.WriteResponseHeadersAsyncCore _ = Task.CompletedTask
 
     type private StateStream() =
         let states = ConcurrentQueue<FnisState>()
         let mutable options = null
         member _.States = states.ToArray() |> Array.toList
+
         interface IServerStreamWriter<FnisState> with
-            member _.WriteOptions with get () = options and set value = options <- value
+            member _.WriteOptions
+                with get () = options
+                and set value = options <- value
+
             member _.WriteAsync(value) =
                 states.Enqueue value
                 Task.CompletedTask
@@ -100,8 +114,13 @@ module FnisFixtures =
 
         check writer "effectiveInputFilterIncludesSkeletons" (FnisFreshness.relevant skeleton.Path)
 
-        let scripts: TargetFile = { Root = Guid.NewGuid(); Path = path "Scripts" }
-        let fnisScript = { scripts with Path = path "scripts/FNISVersion.pex" }
+        let scripts: TargetFile =
+            { Root = Guid.NewGuid()
+              Path = path "Scripts" }
+
+        let fnisScript =
+            { scripts with
+                Path = path "scripts/FNISVersion.pex" }
 
         check
             writer
@@ -116,11 +135,13 @@ module FnisFixtures =
         check
             writer
             "ownedScriptsDoNotCoverSibling"
-            (not
-                (DeploymentPreparation.ownedLinkCovers
+            (not (
+                DeploymentPreparation.ownedLinkCovers
                     TargetPolicy.windows
                     scripts
-                    { scripts with Path = path "ScriptsExtra/FNISVersion.pex" }))
+                    { scripts with
+                        Path = path "ScriptsExtra/FNISVersion.pex" }
+            ))
 
         let native =
             PhysicalTargets.map
@@ -225,7 +246,10 @@ module FnisFixtures =
 
         if includeDocs then
             write (root + "FNIS_Readme_7.6 SE.txt") (Encoding.UTF8.GetBytes "readme")
-            write (root + "FNISACweaponScript_EXAMPLE_SCRIPT.psc") (Encoding.UTF8.GetBytes "example")
+
+            write
+                (root + "FNISACweaponScript_EXAMPLE_SCRIPT.psc")
+                (Encoding.UTF8.GetBytes "example")
 
         if padding > 0 then
             write
@@ -276,7 +300,8 @@ module FnisFixtures =
             match row.Entry.Selection with
             | SelectionState.Managed(_, true) -> Some row.Entry.Mod.Id
             | SelectionState.Locked SelectionRestriction.Automatic when
-                row.Entry.Mod.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput ->
+                row.Entry.Mod.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput
+                ->
                 Some row.Entry.Mod.Id
             | _ -> None)
         |> Set.ofList
@@ -326,6 +351,7 @@ module FnisFixtures =
 
         let valid = FnisArchiveLayout.review (archive "valid" true 0 |> draft)
         let incomplete = FnisArchiveLayout.review (archive "invalid" false 0 |> draft)
+
         let withDocs =
             archiveAtRoot "Mirror/Extras/FNIS Behavior SE/" true false "docs" true 0
             |> draft
@@ -363,11 +389,10 @@ module FnisFixtures =
                  && plan.ComponentFiles
                     |> List.forall (fun file ->
                         file.Root = ModConductor.DeploymentPlanning.ComponentRoot.Data
-                        && file.Use =
-                           (if LogicalPath.display file.Source = plan.Generator then
-                                ModConductor.DeploymentPlanning.ComponentFileUse.WritableContainingDirectory
-                            else
-                                ModConductor.DeploymentPlanning.ComponentFileUse.Immutable))))
+                        && file.Use = (if LogicalPath.display file.Source = plan.Generator then
+                                           ModConductor.DeploymentPlanning.ComponentFileUse.WritableContainingDirectory
+                                       else
+                                           ModConductor.DeploymentPlanning.ComponentFileUse.Immutable))))
 
         check writer "incompleteArchiveIsRefused" (Result.isError incomplete)
 
@@ -382,8 +407,7 @@ module FnisFixtures =
                  && (plan.ComponentFiles
                      |> List.forall (fun file ->
                          file.Root = ModConductor.DeploymentPlanning.ComponentRoot.Data
-                         && LogicalPath.display file.Destination
-                            = "tools/GenerateFNIS_for_Users/GenerateFNISforUsers.exe"))))
+                         && LogicalPath.display file.Destination = "tools/GenerateFNIS_for_Users/GenerateFNISforUsers.exe"))))
 
         check
             writer
@@ -434,7 +458,11 @@ module FnisFixtures =
         let workspace, profile, game = createWorkspace store scenario
         let foreign = Path.Combine(game, "foreign-user-file.txt")
         File.WriteAllText(foreign, "keep")
-        configure server 701L (archiveAtRoot "Mirror/Extras/FNIS Behavior SE/" true true "initial" true 0)
+
+        configure
+            server
+            701L
+            (archiveAtRoot "Mirror/Extras/FNIS Behavior SE/" true true "initial" true 0)
 
         let coordinator =
             new FnisCoordinator(session, store.Downloads, store, server.Handoff)
@@ -447,7 +475,10 @@ module FnisFixtures =
 
         let generator = initialGenerator.Value
         let runnable = store.Deployments.Read profile |> wait |> result
-        let expectedExecutable = Path.Combine(runnable.RunnableRoot, FnisCatalogue.GeneratorPath)
+
+        let expectedExecutable =
+            Path.Combine(runnable.RunnableRoot, FnisCatalogue.GeneratorPath)
+
         let registeredExecutable = Path.Combine(game, FnisCatalogue.GeneratorPath)
 
         check
@@ -459,8 +490,18 @@ module FnisFixtures =
              && initialEnabled.Contains generator.ModId
              && generator.Executable = registeredExecutable
              && File.Exists expectedExecutable
-             && not (File.Exists(Path.Combine(runnable.RunnableRoot, "Data", "FNIS_Readme_7.6 SE.txt")))
-             && not (File.Exists(Path.Combine(runnable.RunnableRoot, "Data", "FNISACweaponScript_EXAMPLE_SCRIPT.psc")))
+             && not (
+                 File.Exists(Path.Combine(runnable.RunnableRoot, "Data", "FNIS_Readme_7.6 SE.txt"))
+             )
+             && not (
+                 File.Exists(
+                     Path.Combine(
+                         runnable.RunnableRoot,
+                         "Data",
+                         "FNISACweaponScript_EXAMPLE_SCRIPT.psc"
+                     )
+                 )
+             )
              && not (File.Exists registeredExecutable)
              && generator.ArchiveSha256.Length = 64
              && generator.Provider = FnisCatalogue.Provider
@@ -481,7 +522,12 @@ module FnisFixtures =
         let current = store.Deployments.Read profile |> wait |> result
 
         let rebuilt =
-            store.Deployments.Prepare(Guid.NewGuid(), current.Sources, ignore, CancellationToken.None)
+            store.Deployments.Prepare(
+                Guid.NewGuid(),
+                current.Sources,
+                ignore,
+                CancellationToken.None
+            )
             |> wait
             |> result
 
@@ -492,20 +538,26 @@ module FnisFixtures =
 
         let rebuiltRoot = (store.Deployments.Read profile |> wait |> result).RunnableRoot
         let rebuiltGenerator = Path.Combine(rebuiltRoot, FnisCatalogue.GeneratorPath)
-        let rebuiltSidecar = Path.Combine(Path.GetDirectoryName rebuiltGenerator, sidecarName)
+
+        let rebuiltSidecar =
+            Path.Combine(Path.GetDirectoryName rebuiltGenerator, sidecarName)
 
         check
             writer
             "generatorWritesUseOwnedWorkingDirectoryAcrossRebuild"
             (workingDirectory <> null
-             && workingDirectory.FullName.Contains(".mc-component-working", StringComparison.Ordinal)
+             && workingDirectory.FullName.Contains(
+                 ".mc-component-working",
+                 StringComparison.Ordinal
+             )
              && File.ReadAllText rebuiltGenerator = "generator-initial"
              && File.ReadAllText rebuiltSidecar = "generated"
              && File.ReadAllText(Path.Combine(workingDirectory.FullName, sidecarName)) = "generated"
              && not (File.Exists(Path.Combine(game, FnisCatalogue.GeneratorPath)))
              && File.ReadAllText foreign = "keep")
 
-        let initialGeneration, initialEnabled, initialGenerator = active store workspace profile
+        let initialGeneration, initialEnabled, initialGenerator =
+            active store workspace profile
 
         configure server 702L (archive "cancelled" true (2 * 1024 * 1024))
         server.Slow <- true
@@ -602,12 +654,18 @@ module FnisFixtures =
                     value.NexusFileId = 702L
                     && value.ArchiveSha256 = updatedGenerator.Value.ArchiveSha256))
 
-    let private logEvidence writer (mode: string) (projectedGenerator: string) (execution: IFnisExecution) workspace profile =
+    let private logEvidence
+        writer
+        (mode: string)
+        (projectedGenerator: string)
+        (execution: IFnisExecution)
+        workspace
+        profile
+        =
         let generatorDirectory = Path.GetDirectoryName projectedGenerator
         let temporaryLogs = Path.Combine(generatorDirectory, "temporary_logs")
 
-        let generatorBeforeLogs =
-            SHA256.HashData(File.ReadAllBytes projectedGenerator)
+        let generatorBeforeLogs = SHA256.HashData(File.ReadAllBytes projectedGenerator)
 
         if OperatingSystem.IsLinux() then
             let mode = File.GetUnixFileMode generatorDirectory
@@ -710,7 +768,8 @@ module FnisFixtures =
              && sameParentMetadata restoredParentMetadata expectedParentMetadata
              && restoredDirectoryMetadata = expectedDirectoryMetadata
              && restoredFileMetadata = expectedFileMetadata
-             && File.GetUnixFileMode generatorDirectory = (UnixFileMode.UserRead ||| UnixFileMode.UserExecute))
+             && File.GetUnixFileMode generatorDirectory = (UnixFileMode.UserRead
+                                                           ||| UnixFileMode.UserExecute))
 
         check
             writer
@@ -775,7 +834,15 @@ module FnisFixtures =
              && sameParentMetadata restoredNewParentMetadata expectedNewParentMetadata
              && SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
 
-    let private failureEvidence writer (scenario: string) (mode: string) (launcher: string) (execution: IFnisExecution) workspace profile =
+    let private failureEvidence
+        writer
+        (scenario: string)
+        (mode: string)
+        (launcher: string)
+        (execution: IFnisExecution)
+        workspace
+        profile
+        =
         let waitForRun id expected =
             until
                 ("FNIS run " + string id)
@@ -841,7 +908,17 @@ module FnisFixtures =
                  )
              ))
 
-    let private cancellationEvidence writer (scenario: string) (mode: string) (store: OperationStore) (execution: IFnisExecution) (runService: FnisService) workspace profile afterCompleted =
+    let private cancellationEvidence
+        writer
+        (scenario: string)
+        (mode: string)
+        (store: OperationStore)
+        (execution: IFnisExecution)
+        (runService: FnisService)
+        workspace
+        profile
+        afterCompleted
+        =
         let waitForRun id expected =
             until
                 ("FNIS run " + string id)
@@ -855,7 +932,9 @@ module FnisFixtures =
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
-              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
+              Selection =
+                { SetupSelection.none with
+                    Fnis = SetupAction.Install }
               Cancelled = false
               Completed = false
               Stage = "fnis-run"
@@ -878,30 +957,35 @@ module FnisFixtures =
         |> ignore
 
         let runningStream = StateStream()
+
         let runningReference =
             ModConductor.Protocol.V1.FnisRunRequest(
                 Id = cancelledId.ToString("N"),
                 WorkspaceId = workspace.ToString("N"),
                 ProfileId = profile.ToString("N")
             )
+
         let observedRun =
             runService.ObserveFnisRun(runningReference, runningStream, StreamContext())
 
-        until
-            "FNIS run stream started"
-            (fun () -> runningStream.States.Length)
-            (fun count -> count > 0)
+        until "FNIS run stream started" (fun () -> runningStream.States.Length) (fun count ->
+            count > 0)
         |> ignore
 
         let directCancellation = execution.Cancel(workspace, profile)
-        let combinedCancellation = combined.Cancel(workspace, profile, CancellationToken.None)
+
+        let combinedCancellation =
+            combined.Cancel(workspace, profile, CancellationToken.None)
+
         let directCancelled = directCancellation |> wait |> result
+
         let stageDrained =
             not (
                 Directory.Exists(
                     Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
                 )
             )
+
         let combinedCancelled = combinedCancellation |> wait
         let lateCancelled = execution.Cancel(workspace, profile) |> wait |> result
 
@@ -939,10 +1023,8 @@ module FnisFixtures =
             writer
             "runningFnisStreamFinishesAfterCancellation"
             (runningStream.States.Length = 2
-             && runningStream.States.Head.OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Running
-             && runningStream.States[1].OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
+             && runningStream.States.Head.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Running
+             && runningStream.States[1].OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
 
         check
             writer
@@ -991,8 +1073,16 @@ module FnisFixtures =
              ))
 
     let private restartAndOwnershipEvidence
-        writer scenario (session: NexusSession) (store: OperationStore) (execution: IFnisExecution)
-        workspace profile (outputEntry: unit -> ModConductor.ModLibrary.ModEntry option) otherProfile =
+        writer
+        scenario
+        (session: NexusSession)
+        (store: OperationStore)
+        (execution: IFnisExecution)
+        workspace
+        profile
+        (outputEntry: unit -> ModConductor.ModLibrary.ModEntry option)
+        otherProfile
+        =
         let beforeRestart = outputEntry () |> Option.get
 
         let inspected =
@@ -1022,7 +1112,9 @@ module FnisFixtures =
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
-              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
+              Selection =
+                { SetupSelection.none with
+                    Fnis = SetupAction.Install }
               Cancelled = false
               Completed = false
               Stage = "fnis-run"
@@ -1042,9 +1134,12 @@ module FnisFixtures =
             )
 
         let reopenedContext =
-            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile)
+            |> wait
+            |> result
 
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, reopenedContext.Revision)
+        (reopened.GameContexts :> IGameContexts)
+            .Refresh(workspace, profile, reopenedContext.Revision)
         |> wait
         |> result
         |> ignore
@@ -1056,10 +1151,19 @@ module FnisFixtures =
             new SkyrimSetupCoordinator(reopened, combinedFnisDependencies restarted)
 
         let combinedAfterRestart =
-            restartedCombined.Read(workspace, profile, { SetupSelection.none with Fnis = SetupAction.Install }, CancellationToken.None) |> wait
+            restartedCombined.Read(
+                workspace,
+                profile,
+                { SetupSelection.none with
+                    Fnis = SetupAction.Install },
+                CancellationToken.None
+            )
+            |> wait
 
         let combinedCancellationCompleted =
-            restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+            restartedCombined.Continue(workspace, profile, CancellationToken.None)
+            |> wait
+            |> result
 
         let abandoned =
             restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
@@ -1101,6 +1205,7 @@ module FnisFixtures =
                 )
 
             connection.Open()
+
             use query =
                 Sqlite.command
                     connection
@@ -1109,11 +1214,19 @@ module FnisFixtures =
                     [ "$mod", box (string afterRestart.Id) ]
 
             use reader = query.ExecuteReader()
+
             [ while reader.Read() do
-                  yield Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload") ]
+                  yield
+                      Path.Combine(
+                          scenario,
+                          "workspace",
+                          reader.GetString 0,
+                          reader.GetString 1 + ".payload"
+                      ) ]
 
         let reopenedWorkspaces = reopened.Workspaces :> IWorkspaceState
         let beforeDelete = reopenedWorkspaces.Read(workspace, None) |> wait |> result
+
         let selectedOther =
             reopenedWorkspaces.Edit(
                 workspace,
@@ -1139,12 +1252,12 @@ module FnisFixtures =
                 )
 
             connection.Open()
+
             Sqlite.number
                 connection
                 null
                 "SELECT (SELECT count(*) FROM mods WHERE id=$mod)+(SELECT count(*) FROM mod_versions WHERE mod_id=$mod)+(SELECT count(*) FROM fnis_outputs WHERE profile_id=$profile)"
-                [ "$mod", box (string afterRestart.Id)
-                  "$profile", box (string profile) ]
+                [ "$mod", box (string afterRestart.Id); "$profile", box (string profile) ]
 
         check
             writer
@@ -1181,7 +1294,15 @@ module FnisFixtures =
 
         launcher
 
-    let private skseOnlySetupPreservesFnisWarning writer (store: OperationStore) execution workspace profile rebuiltGeneration previousGeneration =
+    let private skseOnlySetupPreservesFnisWarning
+        writer
+        (store: OperationStore)
+        execution
+        workspace
+        profile
+        rebuiltGeneration
+        previousGeneration
+        =
         let mutable skseState =
             { Phase = SksePhase.Available
               GameVersion = "1.6.1170.0"
@@ -1198,6 +1319,7 @@ module FnisFixtures =
                 StartSkse =
                     fun _ _ ->
                         skseStarts <- skseStarts + 1
+
                         skseState <-
                             { skseState with
                                 Phase = SksePhase.Ready
@@ -1220,23 +1342,38 @@ module FnisFixtures =
                 PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
 
         let setup = new SkyrimSetupCoordinator(store, setupDependencies)
-        let skseOnly = { SetupSelection.none with Skse = SetupAction.Install }
-        let startedSetup = setup.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait |> result
+
+        let skseOnly =
+            { SetupSelection.none with
+                Skse = SetupAction.Install }
+
+        let startedSetup =
+            setup.Start(workspace, profile, skseOnly, CancellationToken.None)
+            |> wait
+            |> result
 
         let afterSkse =
             until
                 "SKSE-only setup after nonzero FNIS output"
                 (fun () ->
-                    let current = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
+                    let current =
+                        setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None)
+                        |> wait
 
                     if current.CanContinue then
-                        setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+                        setup.Continue(workspace, profile, CancellationToken.None)
+                        |> wait
+                        |> result
                     else
                         current)
                 (fun current -> current.Ready && skseStarts = 1)
 
-        let completedSetup = setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
-        let reopenedSetup = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
+        let completedSetup =
+            setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+
+        let reopenedSetup =
+            setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None)
+            |> wait
 
         check
             writer
@@ -1251,7 +1388,16 @@ module FnisFixtures =
 
         setup
 
-    let private shutdownProcessEvidence writer scenario mode (runner: FnisRunner) (execution: IFnisExecution) (runService: FnisService) workspace profile =
+    let private shutdownProcessEvidence
+        writer
+        scenario
+        mode
+        (runner: FnisRunner)
+        (execution: IFnisExecution)
+        (runService: FnisService)
+        workspace
+        profile
+        =
         let childPidFile = mode + ".childpid"
         File.WriteAllText(mode, "shutdownchild")
         let shutdownId = Guid.NewGuid()
@@ -1276,19 +1422,19 @@ module FnisFixtures =
 
         let childPid = File.ReadAllText(childPidFile).Trim() |> Int32.Parse
         let shutdownStream = StateStream()
+
         let shutdownReference =
             ModConductor.Protocol.V1.FnisRunRequest(
                 Id = shutdownId.ToString("N"),
                 WorkspaceId = workspace.ToString("N"),
                 ProfileId = profile.ToString("N")
             )
+
         let shutdownObservation =
             runService.ObserveFnisRun(shutdownReference, shutdownStream, StreamContext())
 
-        until
-            "FNIS shutdown stream started"
-            (fun () -> shutdownStream.States.Length)
-            (fun count -> count > 0)
+        until "FNIS shutdown stream started" (fun () -> shutdownStream.States.Length) (fun count ->
+            count > 0)
         |> ignore
 
         runner.Stop() |> wait
@@ -1313,8 +1459,7 @@ module FnisFixtures =
             writer
             "engineShutdownCompletesFnisRunStream"
             (shutdownStream.States.Length = 2
-             && shutdownStream.States[1].OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
+             && shutdownStream.States[1].OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
 
     let private unavailableInputEvidence
         writer
@@ -1423,6 +1568,7 @@ module FnisFixtures =
         unavailableInputEvidence writer scenario store workspace profile installedGenerator
 
         let runnable = store.Deployments.Read profile |> wait |> result
+
         let projectedGenerator =
             Path.Combine(
                 runnable.RunnableRoot,
@@ -1614,8 +1760,10 @@ module FnisFixtures =
         select false inputMod
 
         let beforeCompleted = enabled store profile
+
         let savedBeforeRun =
             store.Deployments.Saved(profile, None) |> wait |> result |> _.Entries.Length
+
         let completedId = Guid.NewGuid()
 
         let started =
@@ -1631,6 +1779,7 @@ module FnisFixtures =
         let completed = waitForRun completedId ModConductor.Fnis.FnisOutputPhase.Current
         let runService = FnisService(coordinator, execution)
         let completedStream = StateStream()
+
         let completedReference =
             ModConductor.Protocol.V1.FnisRunRequest(
                 Id = completedId.ToString("N"),
@@ -1638,30 +1787,40 @@ module FnisFixtures =
                 ProfileId = profile.ToString("N")
             )
 
-        runService.ObserveFnisRun(completedReference, completedStream, StreamContext()).GetAwaiter().GetResult()
+        runService
+            .ObserveFnisRun(completedReference, completedStream, StreamContext())
+            .GetAwaiter()
+            .GetResult()
 
         check
             writer
             "completedFnisRunStreamsTerminalStateWithoutWaiting"
             (completedStream.States.Length = 1
-             && completedStream.States.Head.OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Current)
+             && completedStream.States.Head.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Current)
 
         let unknownReference = completedReference.Clone()
         unknownReference.Id <- Guid.NewGuid().ToString("N")
+
         let unknownRunRejected =
             try
-                runService.ObserveFnisRun(unknownReference, StateStream(), StreamContext()).GetAwaiter().GetResult()
+                runService
+                    .ObserveFnisRun(unknownReference, StateStream(), StreamContext())
+                    .GetAwaiter()
+                    .GetResult()
+
                 false
             with :? RpcException as error ->
                 error.StatusCode = StatusCode.NotFound
 
         check writer "unknownFnisRunStreamReturnsNotFound" unknownRunRejected
         let afterCompleted = enabled store profile
+
         let firstTransientGeneration =
             (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+
         let firstOutput = outputEntry () |> Option.get
         let firstVersion = firstOutput.CurrentVersion
+
         let gameOutput =
             Path.Combine(
                 runnable.RunnableRoot,
@@ -1680,6 +1839,7 @@ module FnisFixtures =
                 )
 
             connection.Open()
+
             use query =
                 Sqlite.command
                     connection
@@ -1704,7 +1864,9 @@ module FnisFixtures =
         workspaces.Edit(
             workspace,
             workspaceState.Workspace.Revision,
-            ProfileEdit.Create { Id = otherProfile; Name = "Other profile" }
+            ProfileEdit.Create
+                { Id = otherProfile
+                  Name = "Other profile" }
         )
         |> wait
         |> result
@@ -1718,8 +1880,16 @@ module FnisFixtures =
                 |> List.forall (fun row -> row.Entry.Mod.Id <> firstOutput.Id))
 
         let transported = Path.Combine(scenario, "fnis.mcprof")
-        store.ProfileTransport.Export(workspace, profile, transported, false, CancellationToken.None)
-        |> wait |> result
+
+        store.ProfileTransport.Export(
+            workspace,
+            profile,
+            transported,
+            false,
+            CancellationToken.None
+        )
+        |> wait
+        |> result
 
         use transportedBundle = new ProfileTransportZip.Bundle(transported)
         let provider = transportedBundle.Profile.Mods.Head.Source
@@ -1735,9 +1905,12 @@ module FnisFixtures =
                  && source.FileVersion = FnisCatalogue.SupportedVersion))
 
         let sourceRequirements = store.ProfileTransport.Inspect transported
+
         let available =
             (store.Artifacts.List(workspace, None, false, CancellationToken.None)
-             |> wait |> result).Entries
+             |> wait
+             |> result)
+                .Entries
 
         let sourceMap =
             sourceRequirements.Sources
@@ -1745,8 +1918,7 @@ module FnisFixtures =
                 let artifact =
                     available
                     |> List.find (fun item ->
-                        item.Sha256 = Some source.Sha256
-                        && item.Length = Some source.Length)
+                        item.Sha256 = Some source.Sha256 && item.Length = Some source.Length)
 
                 source.ModIndex, artifact.Id)
             |> Map.ofList
@@ -1760,9 +1932,11 @@ module FnisFixtures =
                 sourceMap,
                 CancellationToken.None
             )
-            |> wait |> result
+            |> wait
+            |> result
 
         let importedOutputId = FnisRunRows.outputId imported
+
         let importedOutput =
             (InventoryObservations.read store imported).Entries
             |> List.map _.Entry.Mod
@@ -1777,12 +1951,21 @@ module FnisFixtures =
                 |> List.forall (fun row -> row.Entry.Mod.Id <> importedOutputId))
 
         let transportedAgain = Path.Combine(scenario, "imported-fnis.mcprof")
-        store.ProfileTransport.Export(workspace, imported, transportedAgain, false, CancellationToken.None)
-        |> wait |> result
+
+        store.ProfileTransport.Export(
+            workspace,
+            imported,
+            transportedAgain,
+            false,
+            CancellationToken.None
+        )
+        |> wait
+        |> result
 
         use importedBundle = new ProfileTransportZip.Bundle(transportedAgain)
         let originalPortable = transportedBundle.Profile
         let importedPortable = importedBundle.Profile
+
         check
             writer
             "importedFnisOutputKeepsTransportRepresentation"
@@ -1792,20 +1975,24 @@ module FnisFixtures =
         waitForPhase coordinator workspace imported FnisPhase.Ready |> ignore
 
         let importedRunId = Guid.NewGuid()
+
         execution.Run(
             { Id = importedRunId
               WorkspaceId = workspace
               ProfileId = imported },
             CancellationToken.None
         )
-        |> wait |> result |> ignore
+        |> wait
+        |> result
+        |> ignore
 
         let importedCurrent =
             until
                 "imported FNIS rerun"
                 (fun () ->
                     execution.Inspect(workspace, imported, CancellationToken.None)
-                    |> wait |> result)
+                    |> wait
+                    |> result)
                 (fun value ->
                     value.LatestRunId = Some importedRunId
                     && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current)
@@ -1879,6 +2066,7 @@ module FnisFixtures =
                 )
 
             connection.Open()
+
             Sqlite.number
                 connection
                 null
@@ -1906,6 +2094,7 @@ module FnisFixtures =
                 )
 
             connection.Open()
+
             Sqlite.number
                 connection
                 null
@@ -1977,8 +2166,10 @@ module FnisFixtures =
         let beforeCandidateInterrupt = warningOutput.CurrentVersion
         let beforeCandidateBytes = File.ReadAllText gameOutput
         let candidateInterruptId = Guid.NewGuid()
+
         use candidateInterruptedRunner =
             new FnisRunner(store, candidateCheckpoint = (fun _ -> failwith "candidate interrupt"))
+
         let candidateInterrupted = candidateInterruptedRunner :> IFnisExecution
 
         candidateInterrupted.Run(
@@ -1994,8 +2185,13 @@ module FnisFixtures =
         let abandonedCandidate =
             until
                 "interrupted FNIS candidate"
-                (fun () -> candidateInterrupted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
-                (fun value -> value.LatestRunId = Some candidateInterruptId && value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned)
+                (fun () ->
+                    candidateInterrupted.Inspect(workspace, profile, CancellationToken.None)
+                    |> wait
+                    |> result)
+                (fun value ->
+                    value.LatestRunId = Some candidateInterruptId
+                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned)
 
         check
             writer
@@ -2005,8 +2201,10 @@ module FnisFixtures =
              && (outputEntry () |> Option.get).CurrentVersion = beforeCandidateInterrupt)
 
         let activationInterruptId = Guid.NewGuid()
+
         use activationInterruptedRunner =
             new FnisRunner(store, activationCheckpoint = (fun _ -> failwith "activation interrupt"))
+
         let activationInterrupted = activationInterruptedRunner :> IFnisExecution
 
         activationInterrupted.Run(
@@ -2022,8 +2220,13 @@ module FnisFixtures =
         let recoveredActivation =
             until
                 "interrupted FNIS activation"
-                (fun () -> activationInterrupted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
-                (fun value -> value.LatestRunId = Some activationInterruptId && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current)
+                (fun () ->
+                    activationInterrupted.Inspect(workspace, profile, CancellationToken.None)
+                    |> wait
+                    |> result)
+                (fun value ->
+                    value.LatestRunId = Some activationInterruptId
+                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current)
 
         check
             writer
@@ -2055,6 +2258,7 @@ module FnisFixtures =
         |> ignore
 
         let savedFnisVersion = (outputEntry () |> Option.get).CurrentVersion
+
         let savedFnisGeneration =
             (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
 
@@ -2086,17 +2290,13 @@ module FnisFixtures =
             |> wait
             |> result
 
-        store.Deployments.Activate(
-            restoring.Id,
-            restoring.Sources,
-            ignore,
-            CancellationToken.None
-        )
+        store.Deployments.Activate(restoring.Id, restoring.Sources, ignore, CancellationToken.None)
         |> wait
         |> result
         |> ignore
 
-        let restoredFnis = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        let restoredFnis =
+            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
 
         check
             writer
@@ -2127,10 +2327,26 @@ module FnisFixtures =
 
         use setup =
             skseOnlySetupPreservesFnisWarning
-                writer store execution workspace profile rebuiltGeneration beforeRebuild.ActiveGeneration
+                writer
+                store
+                execution
+                workspace
+                profile
+                rebuiltGeneration
+                beforeRebuild.ActiveGeneration
 
         failureEvidence writer scenario mode launcher execution workspace profile
-        cancellationEvidence writer scenario mode store execution runService workspace profile afterCompleted
+
+        cancellationEvidence
+            writer
+            scenario
+            mode
+            store
+            execution
+            runService
+            workspace
+            profile
+            afterCompleted
 
         logEvidence writer mode projectedGenerator execution workspace profile
 
@@ -2201,7 +2417,15 @@ module FnisFixtures =
         shutdownProcessEvidence writer scenario mode runner execution runService workspace profile
 
         restartAndOwnershipEvidence
-            writer scenario session store execution workspace profile outputEntry otherProfile
+            writer
+            scenario
+            session
+            store
+            execution
+            workspace
+            profile
+            outputEntry
+            otherProfile
 
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName
@@ -2342,7 +2566,9 @@ module FnisFixtures =
             )
 
         let context =
-            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile)
+            |> wait
+            |> result
 
         (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, context.Revision)
         |> wait
@@ -2371,10 +2597,12 @@ module FnisFixtures =
         server.Slow <- true
         let downloading = coordinator.Update(workspace, profile) |> wait
         let artifactId = downloading.ArtifactId.Value
+
         restarted.Downloads.Control(workspace, artifactId, DownloadAction.Pause)
         |> wait
         |> result
         |> ignore
+
         let paused = waitForPhase coordinator workspace profile FnisPhase.Failed
 
         check
@@ -2388,8 +2616,10 @@ module FnisFixtures =
         freshnessEvidence writer
         layoutEvidence writer
         lifecycleEvidence writer area
+
         if OperatingSystem.IsLinux() then
             executionEvidence writer area
+
         nxmEvidence writer area
         restartEvidence writer area
         GenerationCleanup.normalize area

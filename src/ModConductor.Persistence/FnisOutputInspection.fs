@@ -45,8 +45,10 @@ module internal FnisOutputInspection =
             | :? string as id -> Some(Guid.Parse id)
             | _ ->
                 selected.Dispose()
+
                 LibraryRows.find connection null output
-                |> Option.filter (fun row -> row.Entry.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput)
+                |> Option.filter (fun row ->
+                    row.Entry.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput)
                 |> Option.bind _.Entry.CurrentVersion
 
         activeVersion = selectedVersion

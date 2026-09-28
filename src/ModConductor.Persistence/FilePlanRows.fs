@@ -39,7 +39,10 @@ module internal FilePlanRows =
                 [ "$workspace", box (string workspace)
                   "$profile", box (string profile)
                   "$output", box (string (FnisRunRows.outputId profile))
-                  "$candidate", candidate |> Option.map (fst >> string >> box) |> Option.defaultValue (box DBNull.Value)
+                  "$candidate",
+                  candidate
+                  |> Option.map (fst >> string >> box)
+                  |> Option.defaultValue (box DBNull.Value)
                   "$limit", box (Limits.entries + 1) ]
 
         use reader = command.ExecuteReader()
@@ -48,7 +51,8 @@ module internal FilePlanRows =
               yield
                   Guid.Parse(reader.GetString 0),
                   (match candidate with
-                   | Some(modId, version) when modId = Guid.Parse(reader.GetString 0) -> Some version
+                   | Some(modId, version) when modId = Guid.Parse(reader.GetString 0) ->
+                       Some version
                    | _ when reader.IsDBNull 1 -> None
                    | _ -> Some(Guid.Parse(reader.GetString 1))) ]
 
@@ -150,8 +154,11 @@ module internal FilePlanRows =
                             let imported = FnisRunRows.outputId profile
 
                             match LibraryRows.find connection transaction imported with
-                            | Some row when row.Entry.Kind = ModKind.GeneratedOutput
-                                            && row.Entry.CurrentVersion.IsSome -> Some imported
+                            | Some row when
+                                row.Entry.Kind = ModKind.GeneratedOutput
+                                && row.Entry.CurrentVersion.IsSome
+                                ->
+                                Some imported
                             | _ -> None
 
                 let mutable remaining = Limits.entries
@@ -241,11 +248,15 @@ module internal FilePlanRows =
                             selected.Add
                                 { ModId = id
                                   Priority =
-                                    if selectedGenerated then selection.Count else
+                                    if selectedGenerated then
+                                        selection.Count
+                                    else
                                         position |> Option.map _.Priority |> Option.defaultValue 0
                                   Enabled =
                                     selectedGenerated
-                                    || (position |> Option.bind _.Enabled |> Option.defaultValue false)
+                                    || (position
+                                        |> Option.bind _.Enabled
+                                        |> Option.defaultValue false)
                                   Version = version
                                   Mappings =
                                     [ { SourcePrefix = PlanPath.Root
@@ -274,10 +285,7 @@ module internal FilePlanRows =
                             | None -> []
                             | Some _ ->
                                 let id =
-                                    OutputRows.contextId
-                                        stamp.WorkspaceId
-                                        stamp.ProfileId
-                                        context
+                                    OutputRows.contextId stamp.WorkspaceId stamp.ProfileId context
 
                                 use query =
                                     Sqlite.command

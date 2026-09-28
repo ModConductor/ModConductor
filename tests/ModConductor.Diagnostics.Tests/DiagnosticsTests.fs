@@ -73,7 +73,9 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
 
     let mutable stale = false
     let mutable changes = 0
-    let unused () = Task.FromResult(Error(FilePlanError.Unsupported "Unused by this fixture."))
+
+    let unused () =
+        Task.FromResult(Error(FilePlanError.Unsupported "Unused by this fixture."))
 
     member _.SnapshotId = snapshotId
     member _.Changes = changes
@@ -85,22 +87,37 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
         member _.AcquireFnisCandidate(_, _, _, _) = unused ()
 
         member _.Read id =
-            if id <> snapshotId then Task.FromResult(Error FilePlanError.NotFound)
-            elif stale then Task.FromResult(Error FilePlanError.Stale)
-            else Task.FromResult(Ok summary)
+            if id <> snapshotId then
+                Task.FromResult(Error FilePlanError.NotFound)
+            elif stale then
+                Task.FromResult(Error FilePlanError.Stale)
+            else
+                Task.FromResult(Ok summary)
 
         member _.Children(_, _, _, _) = unused ()
         member _.Problems(_, _) = unused ()
 
         member _.DiagnosticProblems id =
-            if id <> snapshotId then Task.FromResult(Error FilePlanError.NotFound)
-            elif stale then Task.FromResult(Error FilePlanError.Stale)
-            else Task.FromResult(Ok [ problem ])
+            if id <> snapshotId then
+                Task.FromResult(Error FilePlanError.NotFound)
+            elif stale then
+                Task.FromResult(Error FilePlanError.Stale)
+            else
+                Task.FromResult(Ok [ problem ])
 
         member _.Inspect(id, requested, _) =
-            if id <> snapshotId then Task.FromResult(Error FilePlanError.NotFound)
+            if id <> snapshotId then
+                Task.FromResult(Error FilePlanError.NotFound)
             elif requested <> dllTarget then
-                Task.FromResult(Ok { Writable = false; Snapshot = summary; Target = requested; Copies = []; FocusedCopy = None; Next = None })
+                Task.FromResult(
+                    Ok
+                        { Writable = false
+                          Snapshot = summary
+                          Target = requested
+                          Copies = []
+                          FocusedCopy = None
+                          Next = None }
+                )
             else
                 let source =
                     FilePreviewSource.ManagedCopy
@@ -129,7 +146,15 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
                       CanHide = false
                       CanUnhide = false }
 
-                Task.FromResult(Ok { Writable = false; Snapshot = summary; Target = requested; Copies = [ copy ]; FocusedCopy = None; Next = None })
+                Task.FromResult(
+                    Ok
+                        { Writable = false
+                          Snapshot = summary
+                          Target = requested
+                          Copies = [ copy ]
+                          FocusedCopy = None
+                          Next = None }
+                )
 
         member _.InspectCopy(_, _) = unused ()
 
@@ -148,13 +173,14 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
         member _.SaveManagedText(_, _, _, _, _) = unused ()
         member _.AbandonManagedText _ = unused ()
 
-type private FixtureLaunch(
-    workspaceId: Guid,
-    profileId: Guid,
-    phase: RunPhase,
-    contextId: Guid,
-    latestContextRevision: int64
-) =
+type private FixtureLaunch
+    (
+        workspaceId: Guid,
+        profileId: Guid,
+        phase: RunPhase,
+        contextId: Guid,
+        latestContextRevision: int64
+    ) =
     let runId = Guid.NewGuid()
 
     let run =
@@ -166,7 +192,8 @@ type private FixtureLaunch(
                       WorkspaceRevision = 2L
                       ProfileId = profileId
                       ContextRevision = latestContextRevision
-                      SourceToken = "https://token.example/access=secret /home/private ; run-command" }
+                      SourceToken =
+                        "https://token.example/access=secret /home/private ; run-command" }
                   ContextId = contextId
                   Name = "Skyrim Special Edition"
                   GameDirectory = "redacted"
@@ -202,7 +229,8 @@ type private FixtureLaunch(
                         { WorkspaceId = workspaceId
                           ProfileId = profileId
                           ContextRevision = 4L
-                          SourceToken = "https://token.example/access=secret /home/private ; run-command"
+                          SourceToken =
+                            "https://token.example/access=secret /home/private ; run-command"
                           Name = "Skyrim Special Edition"
                           Runtime = "Fixture"
                           Problem = run.Problem
@@ -211,8 +239,11 @@ type private FixtureLaunch(
             else
                 Task.FromResult(Error ExecutableError.NotFound)
 
-        member _.Begin _ = Task.FromResult(Error ExecutableError.NotFound)
-        member _.Cancel(_, _) = Task.FromResult(Error ExecutableError.NotFound)
+        member _.Begin _ =
+            Task.FromResult(Error ExecutableError.NotFound)
+
+        member _.Cancel(_, _) =
+            Task.FromResult(Error ExecutableError.NotFound)
 
 type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot: string) =
     let receiptId = Guid.NewGuid()
@@ -261,11 +292,20 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot
                           Sources = stamp statusProfile }
                 )
 
-        member _.Saved(_, _) = Task.FromResult(Error DeploymentError.NotFound)
-        member _.Prepare(_, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
-        member _.PrepareRetained(_, _, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
-        member _.RefreshFnis(_, _, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
-        member _.Activate(_, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
+        member _.Saved(_, _) =
+            Task.FromResult(Error DeploymentError.NotFound)
+
+        member _.Prepare(_, _, _, _) =
+            Task.FromResult(Error DeploymentError.NotFound)
+
+        member _.PrepareRetained(_, _, _, _, _) =
+            Task.FromResult(Error DeploymentError.NotFound)
+
+        member _.RefreshFnis(_, _, _, _, _) =
+            Task.FromResult(Error DeploymentError.NotFound)
+
+        member _.Activate(_, _, _, _) =
+            Task.FromResult(Error DeploymentError.NotFound)
 
         member _.Recover(id, revision, restore, _, _) =
             if id = receiptId && revision = receipt.Revision && restore then
@@ -275,8 +315,10 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot
                 Task.FromResult(Error DeploymentError.Stale)
 
         member _.Receipt id =
-            if id = receiptId then Task.FromResult(Ok receipt)
-            else Task.FromResult(Error DeploymentError.NotFound)
+            if id = receiptId then
+                Task.FromResult(Ok receipt)
+            else
+                Task.FromResult(Error DeploymentError.NotFound)
 
         member _.PreviewRecovery(id, revision) =
             if id = receiptId && revision = receipt.Revision then
@@ -290,12 +332,8 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot
             else
                 Task.FromResult(Error DeploymentError.Stale)
 
-type private FixtureGameContexts(
-    workspaceId: Guid,
-    profileId: Guid,
-    root: string,
-    documents: Location
-) =
+type private FixtureGameContexts
+    (workspaceId: Guid, profileId: Guid, root: string, documents: Location) =
     let identity =
         { Device = DeviceIdentity.LinuxDevice(1u, 1u)
           Low = 1UL
@@ -358,14 +396,15 @@ type private FixtureGameContexts(
             Task.FromResult(Error ContextError.NotFound)
 
 
-type private DiagnosticFixtureEnvironment(
-    ?launchPhase: RunPhase,
-    ?useFixtureDeployment: bool,
-    ?documents: string,
-    ?unavailableDocuments: string,
-    ?latestContextRevision: int64,
-    ?components: SkyrimComponentDiagnosticState
-) =
+type private DiagnosticFixtureEnvironment
+    (
+        ?launchPhase: RunPhase,
+        ?useFixtureDeployment: bool,
+        ?documents: string,
+        ?unavailableDocuments: string,
+        ?latestContextRevision: int64,
+        ?components: SkyrimComponentDiagnosticState
+    ) =
     let directory =
         Path.Combine(Path.GetTempPath(), "mod-conductor-diagnostics-" + Guid.NewGuid().ToString "N")
 
@@ -382,8 +421,14 @@ type private DiagnosticFixtureEnvironment(
         |> Result.defaultWith (fun _ -> invalidOp "The fixture root is invalid.")
 
     let wait (value: Task<'value>) = value.GetAwaiter().GetResult()
-    let result value = value |> Result.defaultWith (fun _ -> invalidOp "The fixture request failed.")
-    let created = workspaces.Create(workspaceId, "Workspace /home/private secret-value", selectedRoot) |> wait |> result
+
+    let result value =
+        value |> Result.defaultWith (fun _ -> invalidOp "The fixture request failed.")
+
+    let created =
+        workspaces.Create(workspaceId, "Workspace /home/private secret-value", selectedRoot)
+        |> wait
+        |> result
 
     do
         workspaces.Edit(
@@ -397,9 +442,12 @@ type private DiagnosticFixtureEnvironment(
 
     let plans = FixturePlans(workspaceId, profileId)
     let fixtureDeployments = FixtureDeployments(workspaceId, profileId, root)
+
     let deploymentBackend =
-        if defaultArg useFixtureDeployment false then fixtureDeployments :> IDeploymentBackend
-        else store.Deployments
+        if defaultArg useFixtureDeployment false then
+            fixtureDeployments :> IDeploymentBackend
+        else
+            store.Deployments
 
     let fixtureGameContexts =
         match documents, unavailableDocuments with
@@ -482,6 +530,7 @@ type private DiagnosticFixtureEnvironment(
         |> ignore
 
         other
+
     member _.Wait(value: Task<'value>) = wait value
     member _.Result value = result value
 
@@ -493,19 +542,33 @@ type private DiagnosticFixtureEnvironment(
 [<TestFixture>]
 type DiagnosticsTests() =
     [<Test>]
-    member _.``failed launch and conflict should retain exact context and require explicit apply``() =
+    member _.``failed launch and conflict should retain exact context and require explicit apply``
+        ()
+        =
         use environment = new DiagnosticFixtureEnvironment()
         let diagnostics = environment.Diagnostics
-        let snapshot = diagnostics.Check(environment.Request, CancellationToken.None) |> environment.Wait |> environment.Result
-        let launch = snapshot.Findings |> List.find (fun finding -> finding.Code = "launch-failed")
-        let conflict = snapshot.Findings |> List.find (fun finding -> finding.Code = "priority-tie")
+
+        let snapshot =
+            diagnostics.Check(environment.Request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        let launch =
+            snapshot.Findings |> List.find (fun finding -> finding.Code = "launch-failed")
+
+        let conflict =
+            snapshot.Findings |> List.find (fun finding -> finding.Code = "priority-tie")
 
         Assert.That(launch.WorkspaceId, Is.EqualTo environment.WorkspaceId)
         Assert.That(launch.ProfileId, Is.EqualTo environment.ProfileId)
         Assert.That(launch.Evidence.Length, Is.GreaterThanOrEqualTo 4)
         Assert.That(conflict.Fixability, Is.EqualTo Fixability.PreviewAvailable)
 
-        let preview = diagnostics.Preview(snapshot.Id, conflict.Id, CancellationToken.None) |> environment.Wait |> environment.Result
+        let preview =
+            diagnostics.Preview(snapshot.Id, conflict.Id, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
         Assert.That(environment.Plans.Changes, Is.Zero)
         Assert.That(preview.Items.Length, Is.EqualTo 3)
         Assert.That(preview.Items[0].Label, Is.EqualTo "Target file")
@@ -514,20 +577,29 @@ type DiagnosticsTests() =
         Assert.That(preview.Items[1].Value, Is.EqualTo "First mod · 1.0")
         Assert.That(preview.Items[2].Label, Is.EqualTo "Profile setting")
         Assert.That(preview.Items[2].Value, Is.EqualTo "Hide this copy for Main")
+
         Assert.That(
             preview.Identifiers |> List.map _.Label = [ "Mod ID"; "Version ID"; "Profile ID" ],
             Is.True
         )
 
-        let applied = diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait |> environment.Result
+        let applied =
+            diagnostics.Apply(preview.Id, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
         Assert.That(applied.Complete, Is.True)
+
         Assert.That(
             applied.Detail = Some "Second mod now supplies this file in the saved mod files.",
             Is.True
         )
+
         Assert.That(environment.Plans.Changes, Is.EqualTo 1)
 
-        let repeated = diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait
+        let repeated =
+            diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait
+
         let repeatedRefused =
             match repeated with
             | Error DiagnosticError.Expired -> true
@@ -540,11 +612,21 @@ type DiagnosticsTests() =
     member _.``stale and foreign targets should refuse without a write``() =
         use environment = new DiagnosticFixtureEnvironment()
         let diagnostics = environment.Diagnostics
-        let snapshot = diagnostics.Check(environment.Request, CancellationToken.None) |> environment.Wait |> environment.Result
-        let conflict = snapshot.Findings |> List.find (fun finding -> finding.Code = "priority-tie")
+
+        let snapshot =
+            diagnostics.Check(environment.Request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        let conflict =
+            snapshot.Findings |> List.find (fun finding -> finding.Code = "priority-tie")
+
         environment.Plans.MakeStale()
 
-        let stale = diagnostics.Preview(snapshot.Id, conflict.Id, CancellationToken.None) |> environment.Wait
+        let stale =
+            diagnostics.Preview(snapshot.Id, conflict.Id, CancellationToken.None)
+            |> environment.Wait
+
         let staleRefused =
             match stale with
             | Error DiagnosticError.Stale -> true
@@ -558,7 +640,9 @@ type DiagnosticsTests() =
                 FileSnapshotId = None
                 PluginSnapshotId = None }
 
-        let foreign = diagnostics.Check(foreignRequest, CancellationToken.None) |> environment.Wait
+        let foreign =
+            diagnostics.Check(foreignRequest, CancellationToken.None) |> environment.Wait
+
         let foreignRefused =
             match foreign with
             | Error DiagnosticError.Foreign -> true
@@ -571,8 +655,17 @@ type DiagnosticsTests() =
     member _.``support report should correlate safe identifiers without disclosed input``() =
         use environment = new DiagnosticFixtureEnvironment()
         let diagnostics = environment.Diagnostics
-        let snapshot = diagnostics.Check(environment.Request, CancellationToken.None) |> environment.Wait |> environment.Result
-        let report = diagnostics.Export(snapshot.Id, CancellationToken.None) |> environment.Wait |> environment.Result
+
+        let snapshot =
+            diagnostics.Check(environment.Request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        let report =
+            diagnostics.Export(snapshot.Id, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
         let text = Encoding.UTF8.GetString report.Content
         use json = JsonDocument.Parse report.Content
 
@@ -583,6 +676,7 @@ type DiagnosticsTests() =
             |> Seq.toArray
 
         Assert.That(ids.Length, Is.GreaterThanOrEqualTo 3)
+
         Assert.That(
             ids
             |> Array.forall (fun item ->
@@ -591,12 +685,17 @@ type DiagnosticsTests() =
                 | _ -> false),
             Is.True
         )
+
         Assert.That(text, Does.Not.Contain "secret-value")
         Assert.That(text, Does.Not.Contain "/home/")
         Assert.That(text, Does.Not.Contain "token=")
         Assert.That(text, Does.Not.Contain "token.example")
         Assert.That(text, Does.Not.Contain "run-command")
-        Assert.That(report.Content.Length, Is.LessThanOrEqualTo ModConductor.Diagnostics.Limits.exportBytes)
+
+        Assert.That(
+            report.Content.Length,
+            Is.LessThanOrEqualTo ModConductor.Diagnostics.Limits.exportBytes
+        )
 
     [<Test>]
     member _.``process cache should expire the oldest diagnostic snapshot at its exact bound``() =
@@ -609,10 +708,14 @@ type DiagnosticsTests() =
                   |> environment.Wait
                   |> environment.Result ]
 
-        let oldest = diagnostics.Export(snapshots.Head.Id, CancellationToken.None) |> environment.Wait
+        let oldest =
+            diagnostics.Export(snapshots.Head.Id, CancellationToken.None)
+            |> environment.Wait
+
         let newest =
             diagnostics.Export((snapshots |> List.last).Id, CancellationToken.None)
             |> environment.Wait
+
         let oldestExpired =
             match oldest with
             | Error DiagnosticError.Expired -> true
@@ -622,23 +725,40 @@ type DiagnosticsTests() =
         Assert.That(Result.isOk newest, Is.True)
 
     [<Test>]
-    member _.``deployment receipt should require the selected profile owner at check preview and apply``() =
+    member _.``deployment receipt should require the selected profile owner at check preview and apply``
+        ()
+        =
         use environment = new DiagnosticFixtureEnvironment(useFixtureDeployment = true)
         let diagnostics = environment.Diagnostics
         let deployment = environment.Deployments
+
         let request =
             { environment.Request with
                 FileSnapshotId = None
                 PluginSnapshotId = None
                 DeploymentReceipt = Some(deployment.ReceiptId, deployment.Revision) }
 
-        let snapshot = diagnostics.Check(request, CancellationToken.None) |> environment.Wait |> environment.Result
-        let finding = snapshot.Findings |> List.find (fun value -> value.Code = "deployment-incomplete")
-        let preview = diagnostics.Preview(snapshot.Id, finding.Id, CancellationToken.None) |> environment.Wait |> environment.Result
+        let snapshot =
+            diagnostics.Check(request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        let finding =
+            snapshot.Findings
+            |> List.find (fun value -> value.Code = "deployment-incomplete")
+
+        let preview =
+            diagnostics.Preview(snapshot.Id, finding.Id, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
         Assert.That(preview.Items, Has.Length.EqualTo 1)
 
         deployment.SetStatusProfile(Guid.NewGuid())
-        let apply = diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait
+
+        let apply =
+            diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait
+
         let applyRefused =
             match apply with
             | Error DiagnosticError.Foreign -> true
@@ -648,6 +768,7 @@ type DiagnosticsTests() =
         Assert.That(deployment.Recoveries = 0, Is.True)
 
         let refused = diagnostics.Check(request, CancellationToken.None) |> environment.Wait
+
         let checkRefused =
             match refused with
             | Error DiagnosticError.Foreign -> true
@@ -658,12 +779,15 @@ type DiagnosticsTests() =
     [<Test>]
     member _.``cancelled launch should produce one bounded finding``() =
         use environment = new DiagnosticFixtureEnvironment(launchPhase = RunPhase.Cancelled)
+
         let snapshot =
             environment.Diagnostics.Check(environment.Request, CancellationToken.None)
             |> environment.Wait
             |> environment.Result
 
-        let finding = snapshot.Findings |> List.find (fun value -> value.Code = "launch-cancelled")
+        let finding =
+            snapshot.Findings |> List.find (fun value -> value.Code = "launch-cancelled")
+
         let launchFindings =
             snapshot.Findings
             |> List.filter (fun value -> value.Code.StartsWith("launch-", StringComparison.Ordinal))
@@ -708,10 +832,7 @@ type SkyrimDiagnosticSessionTests() =
         )
 
         Assert.That(
-            DiagnosticAdmission.tryBinding
-                workspaceId
-                CapabilityId.LegacyExtensionAbi
-                context.State
+            DiagnosticAdmission.tryBinding workspaceId CapabilityId.LegacyExtensionAbi context.State
             |> Option.isNone,
             Is.True
         )
@@ -719,9 +840,14 @@ type SkyrimDiagnosticSessionTests() =
     [<Test>]
     member _.``skse log checks should follow the selected profile installation state``() =
         let documents =
-            Directory.CreateDirectory(
-                Path.Combine(Path.GetTempPath(), "mod-conductor-skse-gate-" + Guid.NewGuid().ToString "N")
-            ).FullName
+            Directory
+                .CreateDirectory(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "mod-conductor-skse-gate-" + Guid.NewGuid().ToString "N"
+                    )
+                )
+                .FullName
 
         try
             use environment = new DiagnosticFixtureEnvironment(documents = documents)
@@ -733,7 +859,8 @@ type SkyrimDiagnosticSessionTests() =
 
             let skseFindings (snapshot: DiagnosticSnapshot) =
                 snapshot.Findings
-                |> List.filter (fun finding -> finding.Code.StartsWith("skse-", StringComparison.Ordinal))
+                |> List.filter (fun finding ->
+                    finding.Code.StartsWith("skse-", StringComparison.Ordinal))
 
             Assert.That(skseFindings (check ()), Is.Empty)
 
@@ -759,11 +886,18 @@ type SkyrimDiagnosticSessionTests() =
     [<Test>]
     member _.``installed skse should report a stale log with a rerun action``() =
         let documents =
-            Directory.CreateDirectory(
-                Path.Combine(Path.GetTempPath(), "mod-conductor-skse-stale-" + Guid.NewGuid().ToString "N")
-            ).FullName
+            Directory
+                .CreateDirectory(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "mod-conductor-skse-stale-" + Guid.NewGuid().ToString "N"
+                    )
+                )
+                .FullName
 
-        let logDirectory = Directory.CreateDirectory(Path.Combine(documents, "SKSE")).FullName
+        let logDirectory =
+            Directory.CreateDirectory(Path.Combine(documents, "SKSE")).FullName
+
         let log = Path.Combine(logDirectory, "skse64.log")
         File.WriteAllText(log, "SKSE started")
         File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddHours -1.)
@@ -783,8 +917,7 @@ type SkyrimDiagnosticSessionTests() =
                 |> environment.Result
 
             let stale =
-                snapshot.Findings
-                |> List.find (fun finding -> finding.Code = "skse-log-stale")
+                snapshot.Findings |> List.find (fun finding -> finding.Code = "skse-log-stale")
 
             Assert.That(stale.Action, Is.EqualTo DiagnosticAction.CheckAgain)
             Assert.That(stale.Fixability, Is.EqualTo Fixability.NotFixable)
@@ -794,11 +927,18 @@ type SkyrimDiagnosticSessionTests() =
             Directory.Delete(documents, true)
 
     [<Test>]
-    member _.``fnis output findings should require its selected component and never apply a fix``() =
+    member _.``fnis output findings should require its selected component and never apply a fix``
+        ()
+        =
         let documents =
-            Directory.CreateDirectory(
-                Path.Combine(Path.GetTempPath(), "mod-conductor-fnis-gate-" + Guid.NewGuid().ToString "N")
-            ).FullName
+            Directory
+                .CreateDirectory(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "mod-conductor-fnis-gate-" + Guid.NewGuid().ToString "N"
+                    )
+                )
+                .FullName
 
         try
             use environment = new DiagnosticFixtureEnvironment(documents = documents)
@@ -841,7 +981,10 @@ type SkyrimDiagnosticSessionTests() =
 
             environment.SetComponents
                 { Applicable = Set.singleton SkyrimComponent.Fnis
-                  FnisOutput = Some { state "FNIS output is current" with Stale = false } }
+                  FnisOutput =
+                    Some
+                        { state "FNIS output is current" with
+                            Stale = false } }
 
             Assert.That(check (), Is.Empty)
 
@@ -899,13 +1042,19 @@ type SkyrimDiagnosticSessionTests() =
             |> environment.Result
 
         Assert.That(selected |> Option.isNone, Is.True)
+
         let missingOutput =
             match output with
             | Error ModConductor.Fnis.FnisExecutionError.NotFound -> true
             | _ -> false
 
         Assert.That(missingOutput, Is.True)
-        Assert.That(snapshot.Findings |> List.exists (fun value -> value.Code = "fnis-output-stale"), Is.False)
+
+        Assert.That(
+            snapshot.Findings |> List.exists (fun value -> value.Code = "fnis-output-stale"),
+            Is.False
+        )
+
         Assert.That(deployment (), Is.EqualTo beforeDeployment)
         Assert.That(fnisStatus (), Is.EqualTo beforeStatus)
         Assert.That(interrupted (), Is.EqualTo beforeInterrupted)
@@ -914,9 +1063,14 @@ type SkyrimDiagnosticSessionTests() =
     [<Test>]
     member _.``unbound and other profiles should not inherit skyrim component findings``() =
         let documents =
-            Directory.CreateDirectory(
-                Path.Combine(Path.GetTempPath(), "mod-conductor-component-profile-" + Guid.NewGuid().ToString "N")
-            ).FullName
+            Directory
+                .CreateDirectory(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "mod-conductor-component-profile-" + Guid.NewGuid().ToString "N"
+                    )
+                )
+                .FullName
 
         let installed =
             { Applicable = Set.ofList [ SkyrimComponent.Skse; SkyrimComponent.Fnis ]
@@ -954,6 +1108,7 @@ type SkyrimDiagnosticSessionTests() =
             Assert.That(optionalFindings selected |> List.length, Is.EqualTo 2)
 
             let other = environment.SelectOtherProfile()
+
             let otherRequest =
                 { environment.Request with
                     ProfileId = other
@@ -995,6 +1150,7 @@ type SkyrimDiagnosticSessionTests() =
                         { Applicable = Set.singleton SkyrimComponent.Skse
                           FnisOutput = None }
                 )
+
             File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddMinutes 1.)
 
             let snapshot =
@@ -1084,13 +1240,9 @@ type SkyrimDiagnosticSessionTests() =
             |> environment.Result
 
         let finding =
-            snapshot.Findings
-            |> List.find (fun value -> value.Code = "skse-log-malformed")
+            snapshot.Findings |> List.find (fun value -> value.Code = "skse-log-malformed")
 
-        Assert.That(
-            finding.Detail,
-            Is.EqualTo(Some "The SKSE log folder is unavailable.")
-        )
+        Assert.That(finding.Detail, Is.EqualTo(Some "The SKSE log folder is unavailable."))
 
         let report =
             environment.Diagnostics.Export(snapshot.Id, CancellationToken.None)
@@ -1195,7 +1347,10 @@ type SkyrimCheckTests() =
     [<Test>]
     member _.``unreadable skse log should use fixed user text``() =
         let root =
-            Path.Combine(Path.GetTempPath(), "mod-conductor-skse-read-" + Guid.NewGuid().ToString "N")
+            Path.Combine(
+                Path.GetTempPath(),
+                "mod-conductor-skse-read-" + Guid.NewGuid().ToString "N"
+            )
 
         let directory = Directory.CreateDirectory(Path.Combine(root, "SKSE")).FullName
         let log = Path.Combine(directory, "skse64.log")

@@ -214,8 +214,14 @@ module SaveFixtures =
 
         let context =
             (store.GameContexts :> IGameContexts)
-                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                Path = game; Proton = Some proton })
+                .Save(
+                    workspace,
+                    profile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = Some proton }
+                )
             |> wait
             |> result
 
@@ -448,7 +454,12 @@ module SaveFixtures =
         api <- store.ProfileGameData
         let contexts = store.GameContexts :> IGameContexts
         let currentContext = contexts.Read(workspace, profile) |> wait |> result
-        contexts.Refresh(workspace, profile, currentContext.Revision) |> wait |> result |> ignore
+
+        contexts.Refresh(workspace, profile, currentContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
         let resumed = api.Resume(workspace, interruptedId, token) |> wait |> result
 
         check

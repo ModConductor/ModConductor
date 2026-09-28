@@ -13,6 +13,7 @@ open ModConductor.Persistence
 
 module PluginOrderFixtures =
     let private wait = StorageWorker.wait
+
     let private result value =
         value
         |> Result.defaultWith (fun error ->
@@ -25,6 +26,7 @@ module PluginOrderFixtures =
                 | _ -> string error
 
             invalidOp ("Plugin order fixture request: " + detail))
+
     let private token = CancellationToken.None
 
     let observe (writer: Utf8JsonWriter) primary =
@@ -93,8 +95,14 @@ module PluginOrderFixtures =
             [ first; second ]
             |> List.map (fun profile ->
                 (store.GameContexts :> IGameContexts)
-                    .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                    Path = game; Proton = Some proton })
+                    .Save(
+                        workspace,
+                        profile,
+                        0L,
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
+                          Proton = Some proton }
+                    )
                 |> wait
                 |> result)
             |> List.head
@@ -242,6 +250,7 @@ module PluginOrderFixtures =
              && File.ReadAllBytes(file) <> retainedOriginal)
 
         view <- read first view.Headers
+
         view <-
             store.PluginOrders.UseGameOrder(view.Reference, view.Headers.Id)
             |> wait
@@ -297,9 +306,18 @@ module PluginOrderFixtures =
         let contexts = store.GameContexts :> IGameContexts
         let reloaded = contexts.Read(workspace, first) |> wait |> result
 
-        contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
+        contexts.Refresh(workspace, first, reloaded.Revision)
+        |> wait
+        |> result
+        |> ignore
+
         let reloadedOther = contexts.Read(workspace, second) |> wait |> result
-        contexts.Refresh(workspace, second, reloadedOther.Revision) |> wait |> result |> ignore
+
+        contexts.Refresh(workspace, second, reloadedOther.Revision)
+        |> wait
+        |> result
+        |> ignore
+
         let pending = store.ProfileGameData.Read(workspace, first) |> wait |> result
 
         let resumed =
@@ -371,6 +389,7 @@ module PluginOrderFixtures =
         headers <- scan first
         view <- read first headers
         change view (PluginOrderChange.Enable([ "B.esp" ], false)) |> ignore
+
         let staleFacts =
             match
                 store.Installations.Fomod.Next(

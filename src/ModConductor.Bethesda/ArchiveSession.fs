@@ -92,6 +92,7 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                     |> List.filter (fun row -> SkyrimArchives.isCandidate row.Target.Path) do
                     token.ThrowIfCancellationRequested()
                     let name = LogicalPath.display file.Target.Path
+
                     let! archiveFormat, problem =
                         format sources.Stamp.WorkspaceId file.Winner.Source token
 
@@ -128,7 +129,9 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                         active <- true
 
                         idle <-
-                            TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                            TaskCompletionSource(
+                                TaskCreationOptions.RunContinuationsAsynchronously
+                            )
 
                         true)
 
@@ -144,11 +147,19 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                         match result with
                         | Ok value when retain ->
                             lock gate (fun () ->
-                                if observed |> Option.exists (fun (profile, _) -> profile <> value.Stamp.ProfileId) then
+                                if
+                                    observed
+                                    |> Option.exists (fun (profile, _) ->
+                                        profile <> value.Stamp.ProfileId)
+                                then
                                     observed <- None
 
                                 if observed.IsNone then
-                                    observed <- Some(value.Stamp.ProfileId, ParsedNames value.ExplicitNames)
+                                    observed <-
+                                        Some(
+                                            value.Stamp.ProfileId,
+                                            ParsedNames value.ExplicitNames
+                                        )
 
                                 saved <- Some value)
                         | _ -> ()
@@ -161,8 +172,7 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                     | :? UnauthorizedAccessException ->
                         return
                             Error(
-                                FilePlanError.FileUnavailable
-                                    "The archive sources cannot be read."
+                                FilePlanError.FileUnavailable "The archive sources cannot be read."
                             )
                 finally
                     lock gate (fun () ->
@@ -170,15 +180,15 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                         idle.TrySetResult() |> ignore)
         }
 
-    member this.Scan(profile, input, token) = this.ObserveCore(profile, input, token, true)
+    member this.Scan(profile, input, token) =
+        this.ObserveCore(profile, input, token, true)
 
-    member this.Observe(profile, input, token) = this.ObserveCore(profile, input, token, false)
+    member this.Observe(profile, input, token) =
+        this.ObserveCore(profile, input, token, false)
 
     member internal _.ObservedBaseline(profile) =
         lock gate (fun () ->
-            observed
-            |> Option.filter (fun (value, _) -> value = profile)
-            |> Option.map snd)
+            observed |> Option.filter (fun (value, _) -> value = profile) |> Option.map snd)
 
     member internal _.NoteSettingsEdit(profile, before: byte array) =
         lock gate (fun () ->
@@ -199,7 +209,8 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
         lock gate (fun () ->
             saved
             |> Option.filter (fun value -> value.Id = id)
-            |> Option.iter (fun value -> observed <- Some(value.Stamp.ProfileId, ParsedNames value.ExplicitNames)))
+            |> Option.iter (fun value ->
+                observed <- Some(value.Stamp.ProfileId, ParsedNames value.ExplicitNames)))
 
     member _.ForgetObserved(profile) =
         lock gate (fun () ->

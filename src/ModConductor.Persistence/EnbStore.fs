@@ -132,7 +132,8 @@ type internal EnbStore(database: StateDatabase) =
                   "$runtime", box runtime
                   "$preset", preset |> Option.map box |> Option.defaultValue (box DBNull.Value)
                   "$runtimeHash", box runtimeHash
-                  "$presetHash", presetHash |> Option.map box |> Option.defaultValue (box DBNull.Value)
+                  "$presetHash",
+                  presetHash |> Option.map box |> Option.defaultValue (box DBNull.Value)
                   "$companions", box companions
                   "$overrides", box overrides
                   "$selectedRuntime", box selectedRuntime

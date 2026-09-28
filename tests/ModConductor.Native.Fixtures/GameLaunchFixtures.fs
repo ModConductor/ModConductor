@@ -138,8 +138,14 @@ module GameLaunchFixtures =
                 |> ignore
 
                 (store.GameContexts :> IGameContexts)
-                    .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                    Path = game; Proton = Some proton })
+                    .Save(
+                        workspace,
+                        profile,
+                        0L,
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
+                          Proton = Some proton }
+                    )
                 |> wait
                 |> result
                 |> ignore
@@ -159,7 +165,9 @@ module GameLaunchFixtures =
 
                 let request profile =
                     let current = ws.Read(workspace, None) |> wait |> result
-                    let launch = api.Read(workspace, profile) |> wait |> launchResult "Game launch read"
+
+                    let launch =
+                        api.Read(workspace, profile) |> wait |> launchResult "Game launch read"
 
                     { Id = Guid.NewGuid()
                       WorkspaceId = workspace
@@ -168,7 +176,8 @@ module GameLaunchFixtures =
                       ContextRevision = launch.ContextRevision
                       SourceToken = launch.SourceToken }
 
-                let play request = api.Begin request |> wait |> launchResult "Game launch begin"
+                let play request =
+                    api.Begin request |> wait |> launchResult "Game launch begin"
 
                 let finished id =
                     until store.Executables workspace id (fun value ->
@@ -361,7 +370,8 @@ module GameLaunchFixtures =
 
                 check
                     "detachLeavesFilesAndChild"
-                    (detached.Phase = RunPhase.Detached && File.ReadAllText emptyTarget = "original base")
+                    (detached.Phase = RunPhase.Detached
+                     && File.ReadAllText emptyTarget = "original base")
 
                 File.WriteAllText(Path.Combine(controls, "finish"), "finish")
                 store.CloseExecutables() |> wait
@@ -383,7 +393,8 @@ module GameLaunchFixtures =
 
                 check "newOwnerRequiresStartupCheck" oldContext.Binding.Value.NeedsCheck
 
-                (store.GameContexts :> IGameContexts).Refresh(workspace, profile, oldContext.Revision)
+                (store.GameContexts :> IGameContexts)
+                    .Refresh(workspace, profile, oldContext.Revision)
                 |> wait
                 |> result
                 |> ignore

@@ -18,7 +18,8 @@ module SelectionPolicy =
         | ModKind.Separator, Some row -> SelectionState.Separator row.Priority
         | ModKind.Backup, _ -> SelectionState.Locked SelectionRestriction.Backup
         | ModKind.Unmanaged, _ -> SelectionState.Locked SelectionRestriction.Unmanaged
-        | ModKind.GeneratedOutput, Some row -> SelectionState.Managed(row.Priority, row.Enabled.Value)
+        | ModKind.GeneratedOutput, Some row ->
+            SelectionState.Managed(row.Priority, row.Enabled.Value)
         | ModKind.GeneratedOutput, None -> SelectionState.Locked SelectionRestriction.Automatic
         | ModKind.Regular, None
         | ModKind.Separator, None -> invalidOp "The profile is missing an ordered mod."

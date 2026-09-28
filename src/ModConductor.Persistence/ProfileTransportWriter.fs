@@ -21,7 +21,14 @@ type ProfileTransportWriter
         images: ModConductor.Workspaces.IProfileImages,
         directory: string
     ) =
-    let codec = Path.Combine(AppContext.BaseDirectory, if OperatingSystem.IsWindows() then "xdelta3.exe" else "xdelta3")
+    let codec =
+        Path.Combine(
+            AppContext.BaseDirectory,
+            if OperatingSystem.IsWindows() then
+                "xdelta3.exe"
+            else
+                "xdelta3"
+        )
 
     let copiedPayload root workspace (payload: Payload) destination =
         task {
@@ -41,13 +48,23 @@ type ProfileTransportWriter
                 LibraryFiles.verify folder item
                 let source, _ = folder.Read(LibraryFiles.payloadName payload.Id, Some item.Identity)
                 use source = source
-                use target = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)
+
+                use target =
+                    new FileStream(
+                        destination,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None
+                    )
+
                 do! source.CopyToAsync(target)
                 do! target.FlushAsync()
                 return Ok()
         }
 
-    member _.Write(workspace, profile, destination: string, includeSaves: bool, token: CancellationToken) =
+    member _.Write
+        (workspace, profile, destination: string, includeSaves: bool, token: CancellationToken)
+        =
         task {
             let! root = access.Root workspace
 
@@ -57,14 +74,23 @@ type ProfileTransportWriter
                 let! observed =
                     database.Enqueue(fun () ->
                         use transaction = database.Connection.BeginTransaction(deferred = true)
-                        let result = ProfileTransportSnapshot.read database.Connection transaction workspace profile
+
+                        let result =
+                            ProfileTransportSnapshot.read
+                                database.Connection
+                                transaction
+                                workspace
+                                profile
+
                         transaction.Commit()
                         result)
 
                 match observed with
                 | Error problem -> return Error problem
                 | Ok observed ->
-                    let temporary = Path.Combine(directory, "profile-transport", Guid.NewGuid().ToString("N"))
+                    let temporary =
+                        Path.Combine(directory, "profile-transport", Guid.NewGuid().ToString("N"))
+
                     Directory.CreateDirectory temporary |> ignore
 
                     try
@@ -83,7 +109,10 @@ type ProfileTransportWriter
 
                             let rec walk (folder: HeldDirectory) prefix depth =
                                 if depth > 128 || files.Count > 100000 then
-                                    raise (InvalidDataException "The private profile folder exceeds the file limit.")
+                                    raise (
+                                        InvalidDataException
+                                            "The private profile folder exceeds the file limit."
+                                    )
 
                                 let names = folder.Names |> Seq.toList |> List.sort
 
@@ -98,16 +127,32 @@ type ProfileTransportWriter
                                         let source, _ = folder.Read(item, Some entry.Identity)
                                         use source = source
                                         let name, destination = memberFile ()
-                                        use output = new FileStream(destination, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)
+
+                                        use output =
+                                            new FileStream(
+                                                destination,
+                                                FileMode.CreateNew,
+                                                FileAccess.ReadWrite,
+                                                FileShare.None
+                                            )
+
                                         source.CopyTo output
                                         output.Flush(true)
                                         output.Position <- 0L
-                                        let sha = Security.Cryptography.SHA256.HashData output |> Convert.ToHexStringLower
+
+                                        let sha =
+                                            Security.Cryptography.SHA256.HashData output
+                                            |> Convert.ToHexStringLower
+
                                         files.Add
                                             { Path = prefix @ [ item ]
-                                              Content = PortableContent.Payload(name, sha, output.Length) }
+                                              Content =
+                                                PortableContent.Payload(name, sha, output.Length) }
                                     | _ ->
-                                        raise (InvalidDataException "The private profile folder contains an unsupported entry.")
+                                        raise (
+                                            InvalidDataException
+                                                "The private profile folder contains an unsupported entry."
+                                        )
 
                             match root with
                             | Some root ->
@@ -132,13 +177,19 @@ type ProfileTransportWriter
                                     let! baseMap =
                                         match modEntry.Base with
                                         | Some candidate ->
-                                            ProfileTransportBases.reconstruct inspection artifacts workspace candidate token
+                                            ProfileTransportBases.reconstruct
+                                                inspection
+                                                artifacts
+                                                workspace
+                                                candidate
+                                                token
                                         | None -> Task.FromResult None
 
                                     let baseFiles =
                                         if baseMap.IsSome then
                                             modEntry.Base.Value.Files
-                                            |> List.map (fun value -> LogicalPath.components value.Path, value)
+                                            |> List.map (fun value ->
+                                                LogicalPath.components value.Path, value)
                                             |> Map.ofList
                                         else
                                             Map.empty
@@ -147,7 +198,8 @@ type ProfileTransportWriter
                                         modEntry.Version
                                         |> Option.map _.Entries
                                         |> Option.defaultValue []
-                                        |> List.sortBy (fun value -> LogicalPath.components value.Path)
+                                        |> List.sortBy (fun value ->
+                                            LogicalPath.components value.Path)
 
                                     let files = ResizeArray<PortableFile>()
 
@@ -156,10 +208,16 @@ type ProfileTransportWriter
                                         let path = LogicalPath.components file.Path
 
                                         match baseFiles |> Map.tryFind path with
-                                        | Some original when original.Payload.Sha256 = file.Payload.Sha256 && original.Payload.Length = file.Payload.Length -> ()
+                                        | Some original when
+                                            original.Payload.Sha256 = file.Payload.Sha256
+                                            && original.Payload.Length = file.Payload.Length
+                                            ->
+                                            ()
                                         | previous ->
                                             let name, output = memberFile ()
-                                            let! copied = copiedPayload root workspace file.Payload output
+
+                                            let! copied =
+                                                copiedPayload root workspace file.Payload output
 
                                             match copied with
                                             | Error problem -> raise (InvalidDataException problem)
@@ -167,34 +225,70 @@ type ProfileTransportWriter
 
                                             match previous with
                                             | Some original ->
-                                                let source = Path.Combine(temporary, Guid.NewGuid().ToString("N") + ".base")
-                                                let! copied = copiedPayload root workspace original.Payload source
+                                                let source =
+                                                    Path.Combine(
+                                                        temporary,
+                                                        Guid.NewGuid().ToString("N") + ".base"
+                                                    )
+
+                                                let! copied =
+                                                    copiedPayload
+                                                        root
+                                                        workspace
+                                                        original.Payload
+                                                        source
 
                                                 match copied with
-                                                | Error problem -> raise (InvalidDataException problem)
+                                                | Error problem ->
+                                                    raise (InvalidDataException problem)
                                                 | Ok() -> ()
 
                                                 let patch = output + ".patch"
+
                                                 do!
-                                                    ProfileDelta.encode codec source original.Payload.Sha256 output file.Payload.Sha256 file.Payload.Length patch token
+                                                    ProfileDelta.encode
+                                                        codec
+                                                        source
+                                                        original.Payload.Sha256
+                                                        output
+                                                        file.Payload.Sha256
+                                                        file.Payload.Length
+                                                        patch
+                                                        token
 
                                                 File.Delete source
                                                 File.Delete output
                                                 members[name] <- patch
+
                                                 files.Add
                                                     { Path = path
-                                                      Content = PortableContent.Patch(name, original.Payload.Sha256, file.Payload.Sha256, file.Payload.Length) }
+                                                      Content =
+                                                        PortableContent.Patch(
+                                                            name,
+                                                            original.Payload.Sha256,
+                                                            file.Payload.Sha256,
+                                                            file.Payload.Length
+                                                        ) }
                                             | None ->
                                                 files.Add
                                                     { Path = path
-                                                      Content = PortableContent.Payload(name, file.Payload.Sha256, file.Payload.Length) }
+                                                      Content =
+                                                        PortableContent.Payload(
+                                                            name,
+                                                            file.Payload.Sha256,
+                                                            file.Payload.Length
+                                                        ) }
 
-                                    let currentPaths = current |> List.map (fun value -> LogicalPath.components value.Path) |> Set.ofList
+                                    let currentPaths =
+                                        current
+                                        |> List.map (fun value -> LogicalPath.components value.Path)
+                                        |> Set.ofList
 
                                     let deleted =
                                         baseFiles
                                         |> Map.keys
-                                        |> Seq.filter (fun path -> not (Set.contains path currentPaths))
+                                        |> Seq.filter (fun path ->
+                                            not (Set.contains path currentPaths))
                                         |> Seq.toList
 
                                     let metadata = modEntry.Entry.Metadata
@@ -203,14 +297,22 @@ type ProfileTransportWriter
                                         { Kind =
                                             match modEntry.Entry.Kind with
                                             | ModKind.Regular -> "regular"
-                                            | ModKind.GeneratedOutput when modEntry.Entry.Id = FnisRunRows.outputId profile -> "fnis-output"
+                                            | ModKind.GeneratedOutput when
+                                                modEntry.Entry.Id = FnisRunRows.outputId profile
+                                                ->
+                                                "fnis-output"
                                             | ModKind.GeneratedOutput -> "generated-output"
-                                            | _ -> raise (InvalidDataException "The profile contains an unsupported selected mod.")
+                                            | _ ->
+                                                raise (
+                                                    InvalidDataException
+                                                        "The profile contains an unsupported selected mod."
+                                                )
                                           Name = metadata.Name
                                           Version = metadata.Version
                                           Notes = metadata.Notes
                                           Comment = metadata.Comment
-                                          Categories = metadata.Categories |> List.map _.Label |> List.sort
+                                          Categories =
+                                            metadata.Categories |> List.map _.Label |> List.sort
                                           Source = modEntry.Nexus
                                           Base = baseMap
                                           Priority = portableMods.Count
@@ -224,7 +326,9 @@ type ProfileTransportWriter
 
                         let! outputBackings =
                             database.Enqueue(fun () ->
-                                use transaction = database.Connection.BeginTransaction(deferred = true)
+                                use transaction =
+                                    database.Connection.BeginTransaction(deferred = true)
+
                                 let result =
                                     OutputRows.scope
                                         database.Connection
@@ -241,15 +345,23 @@ type ProfileTransportWriter
                             match outputBackings with
                             | Ok(_, backings) ->
                                 backings
-                                |> List.filter (fun backing -> backing.Location.State = OutputLocationState.Ready)
-                                |> List.sortBy (fun backing -> backing.Location.Name, backing.Location.Id)
-                            | Error _ -> raise (InvalidDataException "The generated output locations are unavailable.")
+                                |> List.filter (fun backing ->
+                                    backing.Location.State = OutputLocationState.Ready)
+                                |> List.sortBy (fun backing ->
+                                    backing.Location.Name, backing.Location.Id)
+                            | Error _ ->
+                                raise (
+                                    InvalidDataException
+                                        "The generated output locations are unavailable."
+                                )
 
                         let observedOutputs =
                             OutputFiles.observe backings Map.empty None ignore token
                             |> Result.map fst
                             |> Result.defaultWith (fun _ ->
-                                raise (InvalidDataException "A generated output cannot be exported."))
+                                raise (
+                                    InvalidDataException "A generated output cannot be exported."
+                                ))
 
                         for backing in backings do
                             let files =
@@ -260,7 +372,9 @@ type ProfileTransportWriter
 
                             if not files.IsEmpty then
                                 let portableFiles = ResizeArray<PortableFile>()
-                                use sourceRoot = HeldDirectory.Open(backing.Root, backing.RootIdentity)
+
+                                use sourceRoot =
+                                    HeldDirectory.Open(backing.Root, backing.RootIdentity)
 
                                 for output in files do
                                     let input, _ =
@@ -271,18 +385,36 @@ type ProfileTransportWriter
 
                                     use input = input
                                     let name, target = memberFile ()
-                                    use destination = new FileStream(target, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)
+
+                                    use destination =
+                                        new FileStream(
+                                            target,
+                                            FileMode.CreateNew,
+                                            FileAccess.ReadWrite,
+                                            FileShare.None
+                                        )
+
                                     input.CopyTo destination
                                     destination.Flush(true)
                                     destination.Position <- 0L
-                                    let sha = Security.Cryptography.SHA256.HashData destination |> Convert.ToHexStringLower
 
-                                    if sha <> output.File.Sha256 || destination.Length <> output.File.Length then
-                                        raise (InvalidDataException "A generated output changed during export.")
+                                    let sha =
+                                        Security.Cryptography.SHA256.HashData destination
+                                        |> Convert.ToHexStringLower
+
+                                    if
+                                        sha <> output.File.Sha256
+                                        || destination.Length <> output.File.Length
+                                    then
+                                        raise (
+                                            InvalidDataException
+                                                "A generated output changed during export."
+                                        )
 
                                     portableFiles.Add
                                         { Path = LogicalPath.components output.File.Path
-                                          Content = PortableContent.Payload(name, sha, destination.Length) }
+                                          Content =
+                                            PortableContent.Payload(name, sha, destination.Length) }
 
                                 portableMods.Add
                                     { Kind = "generated-output"
@@ -310,8 +442,14 @@ type ProfileTransportWriter
                                 let name, target = memberFile ()
                                 File.Copy(source, target)
                                 use stream = File.OpenRead target
-                                let sha = Security.Cryptography.SHA256.HashData stream |> Convert.ToHexStringLower
-                                Some { Path = [ "image" ]; Content = PortableContent.Payload(name, sha, stream.Length) }
+
+                                let sha =
+                                    Security.Cryptography.SHA256.HashData stream
+                                    |> Convert.ToHexStringLower
+
+                                Some
+                                    { Path = [ "image" ]
+                                      Content = PortableContent.Payload(name, sha, stream.Length) }
                             | _ -> None
 
                         let portable =
@@ -327,15 +465,27 @@ type ProfileTransportWriter
 
                         let! unchanged =
                             database.Enqueue(fun () ->
-                                use transaction = database.Connection.BeginTransaction(deferred = true)
-                                let latest = ProfileTransportSnapshot.read database.Connection transaction workspace profile
+                                use transaction =
+                                    database.Connection.BeginTransaction(deferred = true)
+
+                                let latest =
+                                    ProfileTransportSnapshot.read
+                                        database.Connection
+                                        transaction
+                                        workspace
+                                        profile
+
                                 transaction.Commit()
                                 latest = Ok observed)
 
                         if not unchanged then
                             return Error "The profile changed during export. Try again."
                         else
-                            ProfileTransportZip.write destination portable (members |> Seq.map (fun pair -> pair.Key, pair.Value) |> Map.ofSeq)
+                            ProfileTransportZip.write
+                                destination
+                                portable
+                                (members |> Seq.map (fun pair -> pair.Key, pair.Value) |> Map.ofSeq)
+
                             return Ok()
                     finally
                         Directory.Delete(temporary, true)

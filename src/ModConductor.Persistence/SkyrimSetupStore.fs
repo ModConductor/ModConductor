@@ -94,7 +94,9 @@ type internal SkyrimSetupStore(database: StateDatabase) =
                   |> Option.map (string >> box)
                   |> Option.defaultValue (box DBNull.Value)
                   "$archive",
-                  value.Selection.EnbArchive |> Option.map box |> Option.defaultValue (box DBNull.Value)
+                  value.Selection.EnbArchive
+                  |> Option.map box
+                  |> Option.defaultValue (box DBNull.Value)
                   "$cancelRequested", box (if value.CancelRequested then 1 else 0)
                   "$cancelDetail", box value.CancelDetail ])
 

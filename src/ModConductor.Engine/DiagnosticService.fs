@@ -10,7 +10,11 @@ module private DiagnosticRequest =
 
         { WorkspaceId = ModLibraryWire.id value.WorkspaceId
           ProfileId = ModLibraryWire.id value.ProfileId
-          FileSnapshotId = if value.HasFileSnapshotId then Some(ModLibraryWire.id value.FileSnapshotId) else None
+          FileSnapshotId =
+            if value.HasFileSnapshotId then
+                Some(ModLibraryWire.id value.FileSnapshotId)
+            else
+                None
           PluginSnapshotId =
             if value.HasPluginSnapshotId then
                 Some(ModLibraryWire.id value.PluginSnapshotId)
@@ -18,7 +22,10 @@ module private DiagnosticRequest =
                 None
           DeploymentReceipt =
             if value.HasDeploymentId then
-                Some(ModLibraryWire.id value.DeploymentId, ModLibraryWire.number value.DeploymentRevision)
+                Some(
+                    ModLibraryWire.id value.DeploymentId,
+                    ModLibraryWire.number value.DeploymentRevision
+                )
             else
                 None }
 
@@ -27,7 +34,9 @@ type DiagnosticService(diagnostics: IDiagnostics) =
 
     override _.CheckDiagnostics(request, context) =
         task {
-            let! result = diagnostics.Check(DiagnosticRequest.read request, context.CancellationToken)
+            let! result =
+                diagnostics.Check(DiagnosticRequest.read request, context.CancellationToken)
+
             return DiagnosticWire.snapshotReply result
         }
 
@@ -46,10 +55,7 @@ type DiagnosticService(diagnostics: IDiagnostics) =
     override _.ApplyDiagnosticChange(request, context) =
         task {
             let! result =
-                diagnostics.Apply(
-                    ModLibraryWire.id request.PreviewId,
-                    context.CancellationToken
-                )
+                diagnostics.Apply(ModLibraryWire.id request.PreviewId, context.CancellationToken)
 
             return DiagnosticWire.applyReply result
         }
@@ -57,10 +63,7 @@ type DiagnosticService(diagnostics: IDiagnostics) =
     override _.ExportDiagnosticSupport(request, context) =
         task {
             let! result =
-                diagnostics.Export(
-                    ModLibraryWire.id request.SnapshotId,
-                    context.CancellationToken
-                )
+                diagnostics.Export(ModLibraryWire.id request.SnapshotId, context.CancellationToken)
 
             return DiagnosticWire.supportReply result
         }

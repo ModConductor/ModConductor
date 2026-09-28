@@ -34,7 +34,8 @@ module internal GameContextRows =
                             { Id = Guid.Parse(row.GetString 1)
                               GameId =
                                 GameId.tryParse (row.GetString 0)
-                                |> Option.defaultWith (fun () -> invalidOp "Invalid stored game ID.")
+                                |> Option.defaultWith (fun () ->
+                                    invalidOp "Invalid stored game ID.")
                               Path = row.GetString 2
                               Proton =
                                 if row.IsDBNull 7 then
@@ -85,7 +86,10 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                         false
                     else
                         active <- active + 1
-                        if change then activeChanges <- activeChanges + 1
+
+                        if change then
+                            activeChanges <- activeChanges + 1
+
                         true)
 
             if not admitted then
@@ -99,7 +103,9 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                 finally
                     lock gate (fun () ->
                         active <- active - 1
-                        if change then activeChanges <- activeChanges - 1)
+
+                        if change then
+                            activeChanges <- activeChanges - 1)
         }
 
     let read workspace profile =
@@ -139,7 +145,8 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
 
                             let! installation, evidence =
                                 Task.Run(fun () ->
-                                    let installation = InstallationValidation.inspect definition path
+                                    let installation =
+                                        InstallationValidation.inspect definition path
 
                                     let evidence =
                                         match selection.Proton with
@@ -265,7 +272,12 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
             // A transient Busy snapshot would leave a setup watch waiting for an unrelated change.
             run false (fun () ->
                 database.EnqueueInternal(fun () ->
-                    GameContextRows.read database.Connection null database.OwnerId workspace profile))
+                    GameContextRows.read
+                        database.Connection
+                        null
+                        database.OwnerId
+                        workspace
+                        profile))
 
         member _.Save(workspace, profile, expected, selection) =
             change workspace profile expected (Some selection)

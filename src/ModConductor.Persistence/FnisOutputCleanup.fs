@@ -11,7 +11,9 @@ module internal FnisOutputCleanup =
     let private ids connection transaction sql args =
         use query = Sqlite.command connection transaction sql args
         use reader = query.ExecuteReader()
-        [ while reader.Read() do yield Guid.Parse(reader.GetString 0) ]
+
+        [ while reader.Read() do
+              yield Guid.Parse(reader.GetString 0) ]
 
     let private pinned connection transaction modId version =
         let selected =
@@ -30,16 +32,22 @@ module internal FnisOutputCleanup =
                     []
 
             use reader = query.ExecuteReader()
+
             let generations =
                 [ while reader.Read() do
-                      yield Guid.Parse(reader.GetString 0), Guid.Parse(reader.GetString 1), reader.GetInt64 2 = 1L ]
+                      yield
+                          Guid.Parse(reader.GetString 0),
+                          Guid.Parse(reader.GetString 1),
+                          reader.GetInt64 2 = 1L ]
 
             reader.Close()
 
             generations
             |> List.exists (fun (contextId, generationId, saved) ->
                 let context = DeploymentRows.context connection transaction contextId
-                let active = context |> Option.exists (fun value -> value.Active = Some generationId)
+
+                let active =
+                    context |> Option.exists (fun value -> value.Active = Some generationId)
 
                 if not saved && not active then
                     false
@@ -100,6 +108,7 @@ module internal FnisOutputCleanup =
             | Some exclusive ->
                 if not exclusive.IsEmpty then
                     let! root = access.Root workspace
+
                     let root =
                         root
                         |> Result.defaultWith (fun _ ->
@@ -180,6 +189,7 @@ module internal FnisOutputCleanup =
                 database.Enqueue(fun () ->
                     let connection = database.Connection
                     use transaction = connection.BeginTransaction(deferred = true)
+
                     use command =
                         Sqlite.command
                             connection
@@ -211,13 +221,15 @@ module internal FnisOutputCleanup =
 
             if not payloads.IsEmpty then
                 let! root = access.Root workspace
+
                 let root =
                     root
                     |> Result.defaultWith (fun _ ->
                         raise (IOException "The FNIS output library is unavailable."))
 
                 let! library =
-                    database.Enqueue(fun () -> LibraryRows.library database.Connection null workspace)
+                    database.Enqueue(fun () ->
+                        LibraryRows.library database.Connection null workspace)
 
                 let library =
                     library
@@ -240,10 +252,15 @@ module internal FnisOutputCleanup =
 
     let removeProfileRows connection transaction modId =
         let args = [ "$mod", box (string modId) ]
+
         let versions =
             ids connection transaction "SELECT id FROM mod_versions WHERE mod_id=$mod" args
 
-        Sqlite.execute connection transaction "UPDATE mods SET current_version=NULL WHERE id=$mod" args
+        Sqlite.execute
+            connection
+            transaction
+            "UPDATE mods SET current_version=NULL WHERE id=$mod"
+            args
 
         for version in versions do
             Sqlite.execute

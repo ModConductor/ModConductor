@@ -161,4 +161,5 @@ module internal GenerationFiles =
     let seed token pin source destination path =
         seedAtCheckpoint token pin source destination path ignore
 
-    let removeOwned generation = GenerationRetirement.removeOwned generation
+    let removeOwned generation =
+        GenerationRetirement.removeOwned generation

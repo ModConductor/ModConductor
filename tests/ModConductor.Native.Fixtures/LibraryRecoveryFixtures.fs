@@ -113,10 +113,7 @@ module LibraryRecoveryFixtures =
             if mode = "cancel" then
                 let cancelled = library.CancelPublication version |> wait |> result
 
-                writer.WriteBoolean(
-                    "cancelDurable",
-                    cancelled.Phase = PublicationPhase.Cancelled
-                )
+                writer.WriteBoolean("cancelDurable", cancelled.Phase = PublicationPhase.Cancelled)
 
                 writer.WriteBoolean(
                     "retryWhileClosingRefused",
@@ -132,10 +129,7 @@ module LibraryRecoveryFixtures =
                 if OperatingSystem.IsWindows() then
                     File.SetAttributes(payload, FileAttributes.Normal)
                 else
-                    File.SetUnixFileMode(
-                        payload,
-                        UnixFileMode.UserRead ||| UnixFileMode.UserWrite
-                    )
+                    File.SetUnixFileMode(payload, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
 
                 File.WriteAllText(payload, "external payload")
 
@@ -151,8 +145,7 @@ module LibraryRecoveryFixtures =
 
                 writer.WriteBoolean(
                     "cancelledPayloadsRemoved",
-                    Directory.GetFiles(root, "*.payload", SearchOption.AllDirectories).Length =
-                        0
+                    Directory.GetFiles(root, "*.payload", SearchOption.AllDirectories).Length = 0
                 )
 
                 writer.WriteBoolean("committed", false)

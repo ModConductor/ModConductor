@@ -338,8 +338,16 @@ module ProtonFixtures =
                     saved.Binding.Value.Proton.Value.ToolId = selected.ToolId
                 )
 
-                let stale = contexts.Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                                    Path = game; Proton = None }) |> wait
+                let stale =
+                    contexts.Save(
+                        workspace,
+                        profile,
+                        0L,
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
+                          Proton = None }
+                    )
+                    |> wait
 
                 writer.WriteBoolean(
                     "staleDoesNotDropSelection",
@@ -363,7 +371,8 @@ module ProtonFixtures =
 
                 writer.WriteBoolean(
                     "invalidReplacementAtomic",
-                    Result.isError invalid && (contexts.Read(workspace, profile) |> wait |> result) = saved
+                    Result.isError invalid
+                    && (contexts.Read(workspace, profile) |> wait |> result) = saved
                 )
 
                 File.Move(

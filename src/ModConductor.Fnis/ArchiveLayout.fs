@@ -38,14 +38,15 @@ module FnisArchiveLayout =
                 FnisProblem.InvalidArchive
                     "The selected FNIS files do not contain GenerateFNISforUsers.exe. No files were installed."
             )
-        | Some (selectedGenerator, _, _) ->
+        | Some(selectedGenerator, _, _) ->
             Ok
                 { Files = mapped |> List.map (fun (selected, _, _) -> selected)
                   ComponentFiles =
                     mapped
                     |> List.map (fun (_, componentFile, _) ->
                         if componentFile.Source = selectedGenerator.Destination then
-                            { componentFile with Use = ComponentFileUse.WritableContainingDirectory }
+                            { componentFile with
+                                Use = ComponentFileUse.WritableContainingDirectory }
                         else
                             componentFile)
                   Generator = LogicalPath.display selectedGenerator.Destination }

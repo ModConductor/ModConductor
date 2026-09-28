@@ -31,9 +31,13 @@ module internal GenerationRetirement =
     let removeOwned (generation: Generation) =
         let path = HostPath.value generation.Directory.Path
         let name = generation.Id.ToString("N")
+
         let outer, nested =
-            if Path.GetFileName path = name then Path.GetDirectoryName path, true
-            else path, false
+            if Path.GetFileName path = name then
+                Path.GetDirectoryName path, true
+            else
+                path, false
+
         let workspace = Path.GetDirectoryName outer
 
         if
@@ -44,13 +48,17 @@ module internal GenerationRetirement =
 
         let openCanonical path =
             let host = HostPath.create path |> Result.defaultWith invalidOp
+
             let selected =
                 RootSelection.select host
-                |> Result.defaultWith (fun _ -> raise (IOException "The derived generation parent is unavailable."))
+                |> Result.defaultWith (fun _ ->
+                    raise (IOException "The derived generation parent is unavailable."))
+
             let identity =
                 match (RootSelection.facts selected).File with
                 | Known value -> value
                 | Unknown detail -> raise (IOException detail)
+
             HeldDirectory.Open(host, identity)
 
         let rec remove (location: Location) =
@@ -82,7 +90,10 @@ module internal GenerationRetirement =
 
                 match parent.InspectEntry name with
                 | None -> ()
-                | Some entry when entry.Kind = EntryKind.Directory && entry.Identity = generation.Directory.Identity ->
+                | Some entry when
+                    entry.Kind = EntryKind.Directory
+                    && entry.Identity = generation.Directory.Identity
+                    ->
                     remove generation.Directory
                     parent.RemoveDirectory(name, entry.Identity)
                 | Some _ -> raise (IOException "The derived generation changed.")
@@ -97,7 +108,10 @@ module internal GenerationRetirement =
             use workspaceRoot = openCanonical workspace
 
             match workspaceRoot.InspectEntry(Path.GetFileName outer) with
-            | Some entry when entry.Kind = EntryKind.Directory && entry.Identity = generation.Directory.Identity ->
+            | Some entry when
+                entry.Kind = EntryKind.Directory
+                && entry.Identity = generation.Directory.Identity
+                ->
                 remove generation.Directory
                 workspaceRoot.RemoveDirectory(Path.GetFileName outer, entry.Identity)
             | _ -> raise (IOException "The derived generation changed.")

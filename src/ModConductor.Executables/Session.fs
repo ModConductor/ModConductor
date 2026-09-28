@@ -25,7 +25,9 @@ type ExecutableSession(repository: IExecutableRepository) =
             match notifications.TryGetValue id with
             | true, current -> current.Task
             | _ ->
-                let current = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                let current =
+                    TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
                 notifications.Add(id, current)
                 current.Task)
 
@@ -204,6 +206,7 @@ type ExecutableSession(repository: IExecutableRepository) =
         member _.HasActive() =
             lock gate (fun () ->
                 roots.RemoveWhere(fun root -> root.IsCompleted) |> ignore
+
                 roots.Count <> 0
                 || (runs.Values
                     |> Seq.exists (fun owner ->
@@ -253,7 +256,8 @@ type ExecutableSession(repository: IExecutableRepository) =
                 match current with
                 | Ok value when value.Revision = revision -> do! pending.WaitAsync(token)
                 | _ -> ()
-            } :> Task
+            }
+            :> Task
 
         member _.Recent(workspace, after) =
             if lock gate (fun () -> state.Closing) then

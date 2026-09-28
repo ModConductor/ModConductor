@@ -83,7 +83,10 @@ type SettingsTests() =
 
                 owner.Read(SettingsScope.Workspace workspace.FullName)
                 |> value
-                |> should equal { scoped with CheckUpdatesOnStartup = true }
+                |> should
+                    equal
+                    { scoped with
+                        CheckUpdatesOnStartup = true }
 
                 let workspaceText =
                     File.ReadAllText(Path.Combine(workspace.FullName, "mod-conductor.toml"))

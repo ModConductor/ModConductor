@@ -256,7 +256,9 @@ module EnbFixtures =
         |> result
 
     let private freshProfileSettingsEvidence (writer: Utf8JsonWriter) area =
-        let scenario = Directory.CreateDirectory(Path.Combine(area, "fresh-profile-settings")).FullName
+        let scenario =
+            Directory.CreateDirectory(Path.Combine(area, "fresh-profile-settings")).FullName
+
         use store = new OperationStore(Path.Combine(scenario, "state"))
         let workspace, profile, game, _ = createWorkspace store scenario false
         let data = store.ProfileGameData
@@ -275,13 +277,17 @@ module EnbFixtures =
         |> ignore
 
         let gameContexts = store.GameContexts :> IGameContexts
-        let binding = (gameContexts.Read(workspace, profile) |> wait |> result).Binding.Value
+
+        let binding =
+            (gameContexts.Read(workspace, profile) |> wait |> result).Binding.Value
 
         gameContexts.Save(
             workspace,
             other,
             0L,
-            { GameId = binding.GameId; Path = game; Proton = binding.Proton }
+            { GameId = binding.GameId
+              Path = game
+              Proton = binding.Proton }
         )
         |> wait
         |> result
@@ -713,7 +719,10 @@ module EnbFixtures =
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
-              Selection = { SetupSelection.none with Enb = SetupAction.Install; EnbArchive = Some runtimePath }
+              Selection =
+                { SetupSelection.none with
+                    Enb = SetupAction.Install
+                    EnbArchive = Some runtimePath }
               Cancelled = false
               Completed = false
               Stage = "enb"
@@ -767,9 +776,12 @@ module EnbFixtures =
         use reopened = new OperationStore(statePath)
 
         let reopenedContext =
-            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile)
+            |> wait
+            |> result
 
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, reopenedContext.Revision)
+        (reopened.GameContexts :> IGameContexts)
+            .Refresh(workspace, profile, reopenedContext.Revision)
         |> wait
         |> result
         |> ignore
@@ -788,7 +800,14 @@ module EnbFixtures =
             new SkyrimSetupCoordinator(reopened, combinedEnbDependencies restartedOwner)
 
         let afterRestart =
-            restartedCombined.Read(workspace, profile, { SetupSelection.none with Enb = SetupAction.Install; EnbArchive = Some runtimePath }, CancellationToken.None)
+            restartedCombined.Read(
+                workspace,
+                profile,
+                { SetupSelection.none with
+                    Enb = SetupAction.Install
+                    EnbArchive = Some runtimePath },
+                CancellationToken.None
+            )
             |> wait
 
         check
@@ -1202,6 +1221,7 @@ module EnbFixtures =
 
         interrupt <- false
         let afterInterruption = store.Deployments.Read profile |> wait |> result
+
         let afterInterruptionComponents =
             store.EnbSetups.Components(workspace, profile, afterInterruption.ActiveGeneration)
             |> wait
@@ -1210,8 +1230,8 @@ module EnbFixtures =
             interrupted
             && afterInterruption.ActiveGeneration = Some installedGeneration
             && afterInterruption.PendingReceipt.IsNone
-            && (afterInterruptionComponents |> List.map _.ModId)
-               = (installedComponents |> List.map _.ModId)
+            && (afterInterruptionComponents |> List.map _.ModId) = (installedComponents
+                                                                    |> List.map _.ModId)
             && File.ReadAllText(prefs).Contains("bSAOEnable=0")
 
         let currentPrefs () =
@@ -1360,7 +1380,11 @@ module EnbFixtures =
             |> wait
             |> List.filter (fun item -> item.Kind <> "runtime")
 
-        let _ = store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true) |> wait |> result
+        let _ =
+            store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true)
+            |> wait
+            |> result
+
         let afterRuntimeRemoval = store.Deployments.Read profile |> wait |> result
 
         let retainedAfter =

@@ -12,10 +12,15 @@ type GeneratedOutputTests() =
     member _.``review should preserve changed outputs and continue complete pages without losing review state``
         ()
         =
-        flag "nonRegularWritableFileReturnsErrorAndReleasesObservation" |> should equal true
+        flag "nonRegularWritableFileReturnsErrorAndReleasesObservation"
+        |> should equal true
+
         flag "toolFolderStartsEmptyOutsideGame" |> should equal true
         flag "changedReviewedFileRemainsUntouched" |> should equal true
-        flag "invalidOutputRequestsReturnErrorsWithoutChangingFiles" |> should equal true
+
+        flag "invalidOutputRequestsReturnErrorsWithoutChangingFiles"
+        |> should equal true
+
         flag "keepAcknowledgesCurrentBytes" |> should equal true
         flag "laterOutputChangeNeedsReview" |> should equal true
         flag "outputPagingKeepsCompleteRowsAndViewIdentity" |> should equal true

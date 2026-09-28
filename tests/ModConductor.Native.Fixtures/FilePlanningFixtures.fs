@@ -185,7 +185,7 @@ module FilePlanningFixtures =
 
             let mutable nested = data
 
-            for _ in 0..Limits.depth do
+            for _ in 0 .. Limits.depth do
                 nested <- Path.Combine(nested, "d")
                 Directory.CreateDirectory nested |> ignore
 
@@ -194,10 +194,20 @@ module FilePlanningFixtures =
                     Directories = Map.ofList [ path "watched", expectedDirectory ] }
 
             let stale =
-                GameFiles.acquireProjected projection evidence (Guid.NewGuid()) ignore CancellationToken.None
+                GameFiles.acquireProjected
+                    projection
+                    evidence
+                    (Guid.NewGuid())
+                    ignore
+                    CancellationToken.None
 
             let bounded =
-                GameFiles.acquireProjected GameProjection.empty evidence (Guid.NewGuid()) ignore CancellationToken.None
+                GameFiles.acquireProjected
+                    GameProjection.empty
+                    evidence
+                    (Guid.NewGuid())
+                    ignore
+                    CancellationToken.None
 
             Directory.Delete(Path.Combine(data, "d"), true)
             Directory.Delete(watched, true)
@@ -213,17 +223,24 @@ module FilePlanningFixtures =
             writer.WriteBoolean(
                 "gameTreeDepthLimitReturnsTypedError",
                 match bounded with
-                | Error(FilePlanError.LimitExceeded "The game folder exceeds the depth limit.") -> true
+                | Error(FilePlanError.LimitExceeded "The game folder exceeds the depth limit.") ->
+                    true
                 | _ -> false
             )
 
             let limitedCandidates =
-                CandidateFiles.observe evidence GameProjection.empty (fun _ -> true) 1 CancellationToken.None
+                CandidateFiles.observe
+                    evidence
+                    GameProjection.empty
+                    (fun _ -> true)
+                    1
+                    CancellationToken.None
 
             writer.WriteBoolean(
                 "candidateLimitReturnsTypedError",
                 match limitedCandidates with
-                | Error(FilePlanError.LimitExceeded "The plugin scan exceeds its candidate limit.") -> true
+                | Error(FilePlanError.LimitExceeded "The plugin scan exceeds its candidate limit.") ->
+                    true
                 | _ -> false
             )
 

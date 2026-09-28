@@ -26,9 +26,12 @@ module internal FnisInputInspection =
             let imported = FnisRunRows.outputId profile
 
             match LibraryRows.find connection transaction imported with
-            | Some row when row.Entry.WorkspaceId = workspace
-                            && row.Entry.Kind = ModKind.GeneratedOutput
-                            && row.Entry.CurrentVersion.IsSome -> Some(imported, "")
+            | Some row when
+                row.Entry.WorkspaceId = workspace
+                && row.Entry.Kind = ModKind.GeneratedOutput
+                && row.Entry.CurrentVersion.IsSome
+                ->
+                Some(imported, "")
             | _ -> None
 
     let private withoutOutput (sources: PlanSources) activeOutput =

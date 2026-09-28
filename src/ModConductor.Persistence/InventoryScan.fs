@@ -73,10 +73,12 @@ module internal InventoryScan =
                 visited <- visited + 1
                 let name = names.Current
 
-                if name <> RootIdentityFile.name
-                   && not (known.Contains name)
-                   && not (outputRoots.Contains name)
-                   && not (library |> Option.exists (fun value -> value.Name = name)) then
+                if
+                    name <> RootIdentityFile.name
+                    && not (known.Contains name)
+                    && not (outputRoots.Contains name)
+                    && not (library |> Option.exists (fun value -> value.Name = name))
+                then
                     let kind =
                         try
                             directory.InspectEntry name |> Option.map _.Kind
@@ -109,7 +111,9 @@ module internal InventoryScan =
                 match root with
                 | Error error -> return Error error
                 | Ok root ->
-                    let! rows, known, library, outputRoots, moreMods = snapshot database workspace limit
+                    let! rows, known, library, outputRoots, moreMods =
+                        snapshot database workspace limit
+
                     let! unknown, moreUnknown = unmanaged root known library outputRoots limit
                     let entries = rows |> List.map _.Entry |> InventoryPolicy.inventoryWindow
 

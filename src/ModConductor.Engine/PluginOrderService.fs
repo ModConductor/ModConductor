@@ -40,7 +40,8 @@ module internal PluginOrderWire =
                             RequiredReason =
                                 (match OrderRules.requirement value.Facts entry.Name with
                                  | Some PluginRequirement.Engine -> PluginRequiredReason.Engine
-                                 | Some PluginRequirement.SkyrimIni -> PluginRequiredReason.SkyrimIni
+                                 | Some PluginRequirement.SkyrimIni ->
+                                     PluginRequiredReason.SkyrimIni
                                  | None -> PluginRequiredReason.Unspecified)
                         )
 

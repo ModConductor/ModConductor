@@ -12,18 +12,12 @@ type DeploymentBackendTests() =
             .GetBoolean()
 
     [<Test>]
-    member _.``cancelled or stale preparation should leave original game files unchanged``
-        ()
-        =
-        for name in
-            [ "cancelledPreparationNoReceipt"
-              "stalePreparationNoEffects" ] do
+    member _.``cancelled or stale preparation should leave original game files unchanged``() =
+        for name in [ "cancelledPreparationNoReceipt"; "stalePreparationNoEffects" ] do
             flag "deploymentBackend" name |> should equal true
 
     [<Test>]
-    member _.``profile view should switch between managed files and original game files``
-        ()
-        =
+    member _.``profile view should switch between managed files and original game files``() =
         for name in
             [ "profileViewContainsManagedWinner"
               "sourceInventoryUnaffected"
@@ -32,9 +26,7 @@ type DeploymentBackendTests() =
             flag "deploymentBackend" name |> should equal true
 
     [<Test>]
-    member _.``changing an installation should leave both game directories unchanged``
-        ()
-        =
+    member _.``changing an installation should leave both game directories unchanged``() =
         flag "deploymentBackend" "sourceChangeRetiresPriorView" |> should equal true
 
     [<Test>]
