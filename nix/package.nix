@@ -142,12 +142,12 @@ let
       cp ${lootHelper}/bin/modconductor-loot-helper "$out/app/modconductor/engine/"
       cp ${engine}/lib/modconductor-engine/xdelta3 "$out/app/modconductor/engine/"
       cp -r ${uiSource}/docs/third-party "$out/share/doc/modconductor/"
+      chmod u+w "$out/share/doc/modconductor/third-party"
       install -m644 ${uiSource}/third_party/xdelta3/LICENSE "$out/share/doc/modconductor/third-party/xdelta3-LICENSE.txt"
       install -m644 ${uiSource}/third_party/xdelta3/README.md "$out/share/doc/modconductor/third-party/xdelta3-README.md"
       mkdir -p "$out/share/mime/packages"
       cp ${uiSource}/packaging/modconductor-profile.xml "$out/share/mime/packages/modconductor-profile.xml"
       update-mime-database "$out/share/mime"
-      chmod u+w "$out/share/doc/modconductor/third-party"
       chmod u+w "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       cp ${liblootLicense} "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       ln -s libloot-LICENSE.txt \
