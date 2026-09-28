@@ -25,12 +25,17 @@ type NativeObservationSetup() =
         then
             invalidOp "Set MC_NATIVE_FIXTURE to the published native fixture executable."
 
-        primary <-
-            Path.Combine(
-                Environment.CurrentDirectory,
-                ".agent-workspace",
-                "platform-fixtures-" + Guid.NewGuid().ToString("N")
-            )
+        let fixtureRoot = Environment.GetEnvironmentVariable "MC_NATIVE_FIXTURE_ROOT"
+
+        let parent =
+            if String.IsNullOrWhiteSpace fixtureRoot then
+                Path.Combine(Environment.CurrentDirectory, ".agent-workspace")
+            elif Path.IsPathFullyQualified fixtureRoot then
+                fixtureRoot
+            else
+                invalidOp "MC_NATIVE_FIXTURE_ROOT must be an absolute path."
+
+        primary <- Path.Combine(parent, "platform-fixtures-" + Guid.NewGuid().ToString("N"))
 
         Directory.CreateDirectory primary |> ignore
 
@@ -43,6 +48,9 @@ type NativeObservationSetup() =
             )
 
         match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
+        | "platform" -> info.ArgumentList.Add "--platform"
+        | "workspaces" -> info.ArgumentList.Add "--workspaces"
+        | "library" -> info.ArgumentList.Add "--library"
         | "executables" -> info.ArgumentList.Add "--executables"
         | "generated-outputs" -> info.ArgumentList.Add "--generated-outputs"
         | "deployment-backend" -> info.ArgumentList.Add "--deployment-backend"

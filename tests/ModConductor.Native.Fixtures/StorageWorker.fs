@@ -10,7 +10,8 @@ open ModConductor.Workspaces
 module StorageWorker =
     let result value =
         value
-        |> Result.defaultWith (fun _ -> invalidOp "The storage fixture request failed.")
+        |> Result.defaultWith (fun error ->
+            invalidOp ("The storage fixture request failed: " + error.ToString()))
 
     let wait (value: System.Threading.Tasks.Task<'a>) = value.GetAwaiter().GetResult()
 

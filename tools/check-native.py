@@ -11,9 +11,14 @@ import sys
 import time
 
 SCOPES = (
-    'all', 'storage', 'selection', 'organization', 'planner', 'game-contexts',
+    'all', 'platform', 'storage', 'workspaces', 'library', 'selection',
+    'organization', 'planner', 'game-contexts',
     'steam-discovery', 'proton-contexts', 'file-plans', 'deployment-recovery',
-    'generations', 'deployment-backend', 'components', 'skse', 'enb', 'fnis', 'generated-outputs', 'executables', 'game-launch', 'profile-data', 'artifacts', 'downloads', 'archive-inspection', 'archive-installation', 'mod-maintenance', 'fomod', 'bain', 'bundles', 'credentials', 'migration',
+    'generations', 'deployment-backend', 'components', 'skse', 'skyrim-setup',
+    'enb', 'fnis', 'generated-outputs', 'executables', 'game-launch',
+    'profile-data', 'profile-transport', 'artifacts', 'downloads',
+    'archive-inspection', 'archive-installation', 'mod-maintenance', 'fomod',
+    'bain', 'bundles', 'credentials', 'migration',
 )
 
 

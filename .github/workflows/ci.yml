@@ -57,19 +57,38 @@ jobs:
         run: dotnet build ModConductor.slnx --configuration Release --no-restore
       - name: Publish native storage and filesystem fixtures
         run: dotnet publish tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj --configuration Release --runtime ${{ runner.os == 'Linux' && 'linux-x64' || 'win-x64' }} --no-restore --output .tools/publish/native-fixtures
-      - name: Check native Linux storage and path preflight
-        if: runner.os == 'Linux'
+      - name: Check scoped native fixtures
+        shell: pwsh
         env:
-          MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures
-          MC_SECOND_FIXTURE_ROOT: /dev/shm
-          MC_NATIVE_REPORT: ${{ github.workspace }}/.agent-workspace/native-observations.json
-        run: dotnet test tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=native-tests.trx" --results-directory .agent-workspace/test-results
-      - name: Check native Windows storage and path preflight
-        if: runner.os == 'Windows'
-        env:
-          MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe
-          MC_NATIVE_REPORT: ${{ github.workspace }}/.agent-workspace/native-observations.json
-        run: dotnet test tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=native-tests.trx" --results-directory .agent-workspace/test-results
+          MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/${{ runner.os == 'Windows' && 'ModConductor.Native.Fixtures.exe' || 'ModConductor.Native.Fixtures' }}
+          MC_NATIVE_FIXTURE_ROOT: ${{ github.workspace }}/.agent-workspace
+        run: |
+          $cases = @(
+            'platform:NativeTests', 'storage:StorageTests', 'workspaces:WorkspaceTests',
+            'library:LibraryTests', 'migration:MigrationTests', 'migration:VortexMigrationTests',
+            'selection:SelectionTests', 'organization:OrganizationTests', 'planner:PlanningTests',
+            'generations:GenerationTests', 'deployment-recovery:DeploymentTests',
+            'deployment-backend:DeploymentBackendTests', 'components:ComponentTests',
+            'skse:SkseTests', 'skyrim-setup:SkyrimSetupTests', 'enb:EnbTests', 'fnis:FnisTests',
+            'generated-outputs:GeneratedOutputTests', 'executables:ExecutableTests',
+            'file-plans:FilePlanningTests', 'game-contexts:GameContextTests',
+            'steam-discovery:SteamDiscoveryTests', 'proton-contexts:ProtonTests',
+            'profile-transport:ProfileTransportTests'
+          )
+          foreach ($case in $cases) {
+            $scope, $fixture = $case.Split(':')
+            $env:MC_NATIVE_SCOPE = $scope
+            $env:MC_SECOND_FIXTURE_ROOT = if ($scope -eq 'platform' -and $IsLinux) { '/dev/shm' } else { '' }
+            $env:MC_NATIVE_REPORT = Join-Path $env:MC_NATIVE_FIXTURE_ROOT "native-$fixture.json"
+            dotnet test tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj --configuration Release --no-build --no-restore --filter "FullyQualifiedName~ModConductor.Native.Tests.$fixture" --logger "trx;LogFileName=$fixture.trx" --results-directory .agent-workspace/test-results
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - uses: actions/upload-artifact@v7
+        if: failure() && runner.os == 'Windows'
+        with:
+          name: windows-native-fixture-${{ github.sha }}
+          path: .tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe
+          retention-days: 3
       - name: Restore locked desktop dependencies
         working-directory: ui/apps/mod_conductor
         run: flutter pub get --enforce-lockfile

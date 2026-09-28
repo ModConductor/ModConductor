@@ -8,6 +8,9 @@ open ModConductor.Native.Fixtures
 
 type private FixtureSet =
     | Full
+    | Platform
+    | Workspaces
+    | Library
     | FilePlans
     | ProtonContexts
     | SteamDiscovery
@@ -19,6 +22,14 @@ type private FixtureSet =
 
 let private select (args: string array) =
     match args with
+    | [| "--platform"; primary |] when Path.IsPathFullyQualified primary -> Platform, primary, None
+    | [| "--platform"; primary; secondary |] when
+        Path.IsPathFullyQualified primary && Path.IsPathFullyQualified secondary
+        ->
+        Platform, primary, Some secondary
+    | [| "--workspaces"; primary |] when Path.IsPathFullyQualified primary ->
+        Workspaces, primary, None
+    | [| "--library"; primary |] when Path.IsPathFullyQualified primary -> Library, primary, None
     | [| "--file-plans"; primary |] when Path.IsPathFullyQualified primary ->
         FilePlans, primary, None
     | [| "--proton-contexts"; primary |] when Path.IsPathFullyQualified primary ->
@@ -70,6 +81,12 @@ let run args =
 
     match fixtureSet with
     | Full -> observeFull writer primary secondary
+    | Platform -> Fixtures.observe writer primary secondary
+    | Workspaces -> WorkspaceFixtures.observe writer primary
+    | Library ->
+        LibraryFixtures.observe writer primary
+        LibraryRecoveryFixtures.observe writer primary
+        LibraryIdentityFixtures.observe writer primary
     | FilePlans ->
         FileVisibilityFixtures.observe writer
         ConcurrentRootFixtures.observe writer primary

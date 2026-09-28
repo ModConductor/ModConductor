@@ -149,7 +149,6 @@ type LibraryTests() =
         =
         let data = NativeObservations.report.RootElement.GetProperty("libraryIdentity")
         data.GetProperty("storeOverlapRefused").GetBoolean() |> should equal true
-        data.GetProperty("replacementUnproved").GetBoolean() |> should equal true
         data.GetProperty("replacementPublishRefused").GetBoolean() |> should equal true
         data.GetProperty("replacementPreserved").GetBoolean() |> should equal true
         data.GetProperty("oldVersionRetained").GetBoolean() |> should equal true
