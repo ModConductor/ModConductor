@@ -128,7 +128,8 @@ module internal RelativeFile =
                         &status,
                         0n,
                         (if directory then 0x10u else 0x80u),
-                        (if directory then 3u else 1u),
+                        // A held directory must permit its own checked rename on Windows.
+                        (if directory then 7u else 1u),
                         (if create then 2u else 1u),
                         (if directory then 0x200021u else 0x200060u),
                         0n,

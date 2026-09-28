@@ -142,7 +142,11 @@ void main() {
 
       test('restart interrupts abandoned work without interrupting another live owner', () async {
         final crashed = await start();
-        final live = await start();
+        final liveState = await Directory(
+          '${state.path}${Platform.pathSeparator}live',
+        ).create();
+        final live = await NativeChild.start(executable!, liveState);
+        children.add(live);
         final abandonedId = newOperationId();
         final liveId = newOperationId();
         await crashed.operations().begin(
@@ -163,10 +167,11 @@ void main() {
           OperationPhase.interrupted,
         );
         expect(
-          (await recovery.waitForResult(liveId)).phase,
+          (await live.operations().waitForResult(liveId)).phase,
           OperationPhase.completed,
         );
-        expect((await recovery.state()).revision, 1);
+        expect((await recovery.state()).revision, 0);
+        expect((await live.operations().state()).revision, 1);
       });
 
       test(

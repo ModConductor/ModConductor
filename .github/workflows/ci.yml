@@ -84,10 +84,10 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - uses: actions/upload-artifact@v7
-        if: failure() && runner.os == 'Windows'
+        if: runner.os == 'Windows' && (success() || failure())
         with:
           name: windows-native-fixture-${{ github.sha }}
-          path: .tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe
+          path: .tools/publish/native-fixtures/
           retention-days: 3
       - name: Restore locked desktop dependencies
         working-directory: ui/apps/mod_conductor
@@ -123,6 +123,8 @@ jobs:
         working-directory: ui/packages/mc_client
         env:
           MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/linux-x64/ModConductor.Engine
+          MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures
+          MC_NEXUS_OUTPUT: ${{ github.workspace }}/.agent-workspace/nexus-client
         run: flutter test --no-pub
       - name: Check native Flutter wire path on private display
         if: runner.os == 'Linux'

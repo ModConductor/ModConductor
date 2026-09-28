@@ -374,28 +374,28 @@ module VortexMigrationFixtures =
                 && artifacts.Entries[0].State = ArtifactState.Installed
             )
 
-            let stateText =
-                File.ReadAllBytes(Path.Combine(state, "state.db")) |> Encoding.Latin1.GetString
-
-            let ownedText =
-                Directory.EnumerateFiles(workspaceRoot, "*", SearchOption.AllDirectories)
-                |> Seq.map (File.ReadAllBytes >> Encoding.Latin1.GetString)
-                |> String.concat ""
-
-            writer.WriteBoolean(
-                "excluded",
-                not (stateText.Contains "do-not-migrate")
-                && not (stateText.Contains "private-extension")
-                && not (stateText.Contains "private-tool")
-                && not (ownedText.Contains "do-not-migrate")
-            )
-
             writer.WriteBoolean(
                 "targetGuard",
                 match migrate store workspace input CancellationToken.None ignore with
                 | Error Error.TargetNotEmpty -> true
                 | _ -> false
             )
+
+        let stateText =
+            File.ReadAllBytes(Path.Combine(state, "state.db")) |> Encoding.Latin1.GetString
+
+        let ownedText =
+            Directory.EnumerateFiles(workspaceRoot, "*", SearchOption.AllDirectories)
+            |> Seq.map (File.ReadAllBytes >> Encoding.Latin1.GetString)
+            |> String.concat ""
+
+        writer.WriteBoolean(
+            "excluded",
+            not (stateText.Contains "do-not-migrate")
+            && not (stateText.Contains "private-extension")
+            && not (stateText.Contains "private-tool")
+            && not (ownedText.Contains "do-not-migrate")
+        )
 
         do
             use restarted = new OperationStore(state)

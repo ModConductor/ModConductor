@@ -307,26 +307,26 @@ module MigrationFixtures =
                 && partial.Path.StartsWith(workspaceRoot, StringComparison.Ordinal)
             )
 
-            let stateText =
-                File.ReadAllBytes(Path.Combine(state, "state.db")) |> Encoding.Latin1.GetString
-
-            let ownedText =
-                Directory.EnumerateFiles(workspaceRoot, "*", SearchOption.AllDirectories)
-                |> Seq.map (File.ReadAllBytes >> Encoding.Latin1.GetString)
-                |> String.concat ""
-
-            writer.WriteBoolean(
-                "credentialsExcluded",
-                not (stateText.Contains "do-not-migrate")
-                && not (ownedText.Contains "do-not-migrate")
-            )
-
             writer.WriteBoolean(
                 "emptyTargetGuard",
                 match migrate store workspace sourceRoot CancellationToken.None ignore with
                 | Error Error.TargetNotEmpty -> true
                 | _ -> false
             )
+
+        let stateText =
+            File.ReadAllBytes(Path.Combine(state, "state.db")) |> Encoding.Latin1.GetString
+
+        let ownedText =
+            Directory.EnumerateFiles(workspaceRoot, "*", SearchOption.AllDirectories)
+            |> Seq.map (File.ReadAllBytes >> Encoding.Latin1.GetString)
+            |> String.concat ""
+
+        writer.WriteBoolean(
+            "credentialsExcluded",
+            not (stateText.Contains "do-not-migrate")
+            && not (ownedText.Contains "do-not-migrate")
+        )
 
         do
             use restarted = new OperationStore(state)

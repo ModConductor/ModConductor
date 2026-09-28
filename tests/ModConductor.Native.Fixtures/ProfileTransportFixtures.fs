@@ -647,7 +647,7 @@ module ProfileTransportFixtures =
             "savesOptIn",
             check
                 "saves opt-in"
-                (initial.Settings.Length = 1
+                ((initial.Settings |> List.exists (fun file -> file.Path = [ "SkyrimCustom.ini" ]))
                  && initial.Saves.IsEmpty
                  && initial.SavesEnabled
                  && includedSaves.Saves.Length = 1

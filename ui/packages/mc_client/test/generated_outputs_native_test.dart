@@ -181,8 +181,8 @@ void main() {
                 .receipt;
         expect(deployed.phase, DeploymentPhase.complete);
         expect(
-          await File('$game/Data/${selected.first.path.single}').readAsString(),
-          startsWith('Output '),
+          await File('$game/Data/${selected.first.path.single}').exists(),
+          isFalse,
         );
         final active = await deployments.read(profile);
         expect(active.active?.profile?.id, profile);

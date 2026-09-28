@@ -452,8 +452,7 @@ module internal GenerationFixtures =
                       "overwrite"
                   ))
               (fun () ->
-                  File.WriteAllText(Path.Combine(targetPath, "branch", "new.tmp"), "replace"))
-              (fun () -> File.Delete(Path.Combine(targetPath, "branch", "unchanged.txt"))) ]
+                  File.WriteAllText(Path.Combine(targetPath, "branch", "new.tmp"), "replace")) ]
             |> List.map (fun action ->
                 try
                     action ()

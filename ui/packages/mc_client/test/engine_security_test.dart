@@ -68,7 +68,10 @@ void main() {
 
       test('a substituted endpoint or authority cannot receive an authenticated RPC', () async {
         final original = await NativeChild.start(executable!, state);
-        final substitute = await NativeChild.start(executable, state);
+        final substituteState = await Directory(
+          '${state.path}${Platform.pathSeparator}substitute',
+        ).create();
+        final substitute = await NativeChild.start(executable, substituteState);
         addTearDown(original.close);
         addTearDown(substitute.close);
         // Even a capability valid at the substitute cannot cross the wrong TLS identity.

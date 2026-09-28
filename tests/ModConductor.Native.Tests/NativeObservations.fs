@@ -31,7 +31,7 @@ type NativeObservationSetup() =
             if String.IsNullOrWhiteSpace fixtureRoot then
                 Path.Combine(Environment.CurrentDirectory, ".agent-workspace")
             elif Path.IsPathFullyQualified fixtureRoot then
-                fixtureRoot
+                fixtureRoot.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
             else
                 invalidOp "MC_NATIVE_FIXTURE_ROOT must be an absolute path."
 

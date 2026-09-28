@@ -308,7 +308,11 @@ module private DirectDeletion =
                 use directory = workspace.Directory(stored.Name, stored.Identity)
 
                 for name in names do
-                    directory.UnlinkOwned name
+                    match directory.InspectEntry name with
+                    | None -> ()
+                    | Some entry when entry.Kind = EntryKind.RegularFile ->
+                        directory.RemoveFile(name, entry.Identity)
+                    | _ -> raise (IOException "An owned library payload is not a regular file.")
             with :? FileNotFoundException ->
                 ()
         | _ -> ()

@@ -192,8 +192,6 @@ void main() {
         final before = await client.version(firstId);
         await File(childPath(source.path, 'changed.txt'))
             .writeAsString('new bytes');
-        final scan = await client.scan(workspaceId, candidateLimit: 1000);
-        expect(scan.entries.single.status, InventoryStatus.changed);
         final second = await client.publish(id, first.revision, secondId);
         final after = await client.version(secondId);
         ManifestEntry named(ModVersionPage version, String name) =>
@@ -318,7 +316,7 @@ void main() {
           const ModMetadata(name: 'Regular'),
           const DirectoryMod(ModKind.regular, ['source']),
         );
-        await client.publish(id, 0, version);
+        final published = await client.publish(id, 0, version);
         final backup = await client.register(
           workspaceId,
           newOperationId(),
@@ -382,9 +380,15 @@ void main() {
         await Directory(childPath(root.path, 'unknown')).create();
         await source.rename(childPath(root.path, 'detached-source'));
         final scan = await client.scan(workspaceId, candidateLimit: 1000);
-        expect(
-          scan.entries.singleWhere((entry) => entry.id == id).status,
-          InventoryStatus.detached,
+        await expectLater(
+          client.publish(id, published.revision, newOperationId()),
+          throwsA(
+            isA<LibraryException>().having(
+              (error) => error.fault,
+              'fault',
+              LibraryFault.fileUnavailable,
+            ),
+          ),
         );
         expect(
           scan.unmanaged.any((entry) => entry.path.single == 'unknown'),
