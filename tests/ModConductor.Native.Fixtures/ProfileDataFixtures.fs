@@ -551,11 +551,52 @@ module ProfileDataFixtures =
                  && File.ReadAllText globalSave = "synthetic global save")
 
             let current = ws.Read(workspace, None) |> wait |> result
+            let imageSource = Path.Combine(area, "clone-image.png")
+            File.WriteAllBytes(imageSource, [| 1uy; 2uy; 3uy |])
 
-            ws.Edit(workspace, current.Workspace.Revision, ProfileEdit.Delete clone)
+            store.ProfileImages.Set(workspace, clone, Some imageSource)
             |> wait
             |> result
             |> ignore
+
+            let imagePath =
+                Path.Combine(
+                    area,
+                    "state",
+                    "profile-images",
+                    workspace.ToString("N"),
+                    clone.ToString("N") + ".image"
+                )
+
+            let deletionAction =
+                ProfileMutationSupport.actionId (read clone).ContextId clone 1uy
+
+            File.Delete imagePath
+            Directory.CreateDirectory imagePath |> ignore
+
+            let denied =
+                ws.Edit(workspace, current.Workspace.Revision, ProfileEdit.Delete clone) |> wait
+
+            let afterDenied = ws.Read(workspace, None) |> wait |> result
+
+            check
+                "privateDeleteImageFailureKeepsProfile"
+                (Result.isError denied
+                 && (afterDenied.Profiles |> List.exists (fun row -> row.Id = clone)))
+
+            Directory.Delete imagePath
+
+            store.ProfileImages.Set(workspace, clone, Some imageSource)
+            |> wait
+            |> result
+            |> ignore
+
+            let resumed =
+                ws.ResumeProfileEdit(workspace, deletionAction, ignore, token) |> wait |> result
+
+            check
+                "completedPrivateDeleteResumesAfterImageFailure"
+                (resumed.Deleted = Some clone && not (File.Exists imagePath))
 
             check
                 "profileDeletionRemovesItsPrivateCopy"

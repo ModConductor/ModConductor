@@ -24,6 +24,7 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
   }
 
   bool get _supportsSkyrim => _supports(GameCapabilityId.skyrimSpecialEdition);
+  bool get _hasSkyrimGame => _game.state?.definition?.id == 'skyrim-se-steam';
   bool get _supportsArchives => _supports(GameCapabilityId.archiveInspection);
   bool get _supportsInstallation =>
       _supports(GameCapabilityId.gameInstallationValidation);

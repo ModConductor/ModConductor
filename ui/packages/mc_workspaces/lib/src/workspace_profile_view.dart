@@ -75,6 +75,7 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
             empty: 'No profiles.',
             cardExtent: 336,
             compactCardExtent: 390,
+            compactCardWidth: 480,
             twoColumnWidth: 900,
             countLabel:
                 '${_profiles.length} ${_profiles.length == 1 ? 'profile' : 'profiles'}${incomplete ? ' loaded' : ''}',

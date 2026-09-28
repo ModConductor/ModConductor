@@ -280,6 +280,51 @@ class FakeGameContexts extends Fake implements GameContextsClient {
   }) async => boundGame(workspaceId, profileId);
 }
 
+class UncheckedSkyrimContexts extends Fake implements GameContextsClient {
+  @override
+  Future<GameContextState> read(String workspaceId, String profileId) async {
+    final known = boundGame(workspaceId, profileId);
+    final binding = known.binding!;
+    return GameContextState(
+      workspaceId: workspaceId,
+      profileId: profileId,
+      revision: known.revision,
+      definition: known.definition,
+      binding: GameBindingInfo(
+        id: binding.id,
+        path: binding.path,
+        evidence: binding.evidence,
+        needsCheck: true,
+      ),
+    );
+  }
+
+  @override
+  Future<GameContextState> refresh(
+    String workspaceId,
+    String profileId,
+    int revision,
+  ) => read(workspaceId, profileId);
+}
+
+class OtherGameContexts extends Fake implements GameContextsClient {
+  @override
+  Future<GameContextState> read(String workspaceId, String profileId) async =>
+      GameContextState(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        revision: 1,
+        definition: const GameDefinitionInfo(
+          id: 'other-game',
+          revision: 1,
+          name: 'Other game',
+          storefront: 'Steam',
+          declaredSteamAppId: 1,
+          capabilities: [],
+        ),
+      );
+}
+
 GameContextState unboundGame(String workspace, String profile) =>
     GameContextState(
       workspaceId: workspace,
@@ -549,6 +594,51 @@ class _DisplaySettings implements SettingsClient {
 }
 
 void main() {
+  testWidgets('known Skyrim art remains available when binding needs check', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await mountApp(
+      tester,
+      workspaces: RetryWorkspaces(),
+      diagnostics: FakeDiagnostics(),
+      gameContexts: UncheckedSkyrimContexts(),
+      size: const Size(1600, 900),
+    );
+    await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+    await tester.pumpAndSettle();
+
+    final browser = tester.widget<WorkspaceBrowser>(
+      find.byType(WorkspaceBrowser),
+    );
+    expect(browser.workbenchReady, isFalse);
+    expect(browser.gameName, 'Skyrim Special Edition');
+    expect(
+      browser.gameImage.toString(),
+      'https://cdn.cloudflare.steamstatic.com/steam/apps/489830/header.jpg',
+    );
+  });
+
+  testWidgets('another known game does not use Skyrim art', (tester) async {
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await mountApp(
+      tester,
+      workspaces: RetryWorkspaces(),
+      diagnostics: FakeDiagnostics(),
+      gameContexts: OtherGameContexts(),
+    );
+    await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+    await tester.pumpAndSettle();
+
+    final browser = tester.widget<WorkspaceBrowser>(
+      find.byType(WorkspaceBrowser),
+    );
+    expect(browser.gameName, isNull);
+    expect(browser.gameImage, isNull);
+  });
+
   testWidgets('a lost create response recovers one usable profile', (
     tester,
   ) async {

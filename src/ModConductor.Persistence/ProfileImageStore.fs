@@ -33,6 +33,12 @@ type ProfileImageStore internal (database: StateDatabase, directory: string) =
             if File.Exists temporary then
                 File.Delete temporary
 
+    let remove target =
+        try
+            File.Delete target
+        with :? DirectoryNotFoundException ->
+            ()
+
     member _.Clone(workspace, source, target) =
         task {
             let sourcePath = path workspace source
@@ -42,7 +48,7 @@ type ProfileImageStore internal (database: StateDatabase, directory: string) =
                 if File.Exists sourcePath then
                     replace targetPath sourcePath
                 else
-                    File.Delete targetPath
+                    remove targetPath
 
                 return Ok()
             with
@@ -53,10 +59,12 @@ type ProfileImageStore internal (database: StateDatabase, directory: string) =
 
     member _.Remove(workspace, profile) =
         try
-            File.Delete(path workspace profile)
+            remove (path workspace profile)
+            Ok()
         with
         | :? IOException
-        | :? UnauthorizedAccessException -> ()
+        | :? UnauthorizedAccessException ->
+            Error(WorkspaceError.ProfileData "The profile image could not be removed.")
 
     interface IProfileImages with
         member _.Read(workspace, profile) =
@@ -94,7 +102,7 @@ type ProfileImageStore internal (database: StateDatabase, directory: string) =
                         | Some value when Path.IsPathFullyQualified value ->
                             replace (path workspace profile) value
                         | Some _ -> invalidArg "source" "Choose an image from a local folder."
-                        | None -> File.Delete(path workspace profile)
+                        | None -> remove (path workspace profile)
 
                         Ok()
                     with

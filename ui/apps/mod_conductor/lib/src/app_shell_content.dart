@@ -11,8 +11,8 @@ mixin _ShellContent
     imageClient: widget.workspaces is ProfileImagesClient
         ? widget.workspaces as ProfileImagesClient
         : null,
-    gameName: _supportsSkyrim ? 'Skyrim Special Edition' : null,
-    gameImage: _supportsSkyrim ? _skyrimProfileImage : null,
+    gameName: _hasSkyrimGame ? 'Skyrim Special Edition' : null,
+    gameImage: _hasSkyrimGame ? _skyrimProfileImage : null,
     openFolder: widget.openWorkspaceFolder,
     profileCreator: _createProfile,
     profileSetupBuilder: _profileSetupGate,
@@ -37,7 +37,7 @@ mixin _ShellContent
                     ? widget.workspaces as ProfileImagesClient
                     : null,
                 onImageChanged: _workspaces.imageChanged,
-                gameImage: _supportsSkyrim ? _skyrimProfileImage : null,
+                gameImage: _hasSkyrimGame ? _skyrimProfileImage : null,
               ),
     executableBuilder: !_supportsSkyrim || widget.executables == null
         ? null

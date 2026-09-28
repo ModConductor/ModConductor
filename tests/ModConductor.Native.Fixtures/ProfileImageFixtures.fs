@@ -112,20 +112,50 @@ module ProfileImageFixtures =
                 |> wait
                 |> result
 
+            let ownedFolder = Path.Combine(state, "profile-images", workspace.ToString("N"))
+            let ownedImage = Path.Combine(ownedFolder, copy.ToString("N") + ".image")
+
+            let stale =
+                workspaces.Edit(workspace, current.Workspace.Revision, ProfileEdit.Delete copy)
+                |> wait
+
+            writer.WriteBoolean(
+                "staleDeleteKeepsImage",
+                Result.isError stale && File.Exists ownedImage
+            )
+
+            File.Delete ownedImage
+            Directory.CreateDirectory ownedImage |> ignore
+
+            let denied =
+                workspaces.Edit(workspace, selected.Workspace.Revision, ProfileEdit.Delete copy)
+                |> wait
+
+            let retained = workspaces.Read(workspace, None) |> wait |> result
+
+            writer.WriteBoolean(
+                "deleteFailureKeepsProfile",
+                (match denied with
+                 | Error(WorkspaceError.ProfileData message) ->
+                     message = "The profile image could not be removed."
+                 | _ -> false)
+                && (retained.Profiles |> List.exists (fun profile -> profile.Id = copy))
+            )
+
+            Directory.Delete ownedImage
+            images.Set(workspace, copy, Some original) |> wait |> result |> ignore
+
             workspaces.Edit(workspace, selected.Workspace.Revision, ProfileEdit.Delete copy)
             |> wait
             |> result
             |> ignore
 
-            let ownedFolder = Path.Combine(state, "profile-images", workspace.ToString("N"))
             let foreign = Path.Combine(ownedFolder, "foreign.txt")
             let missing = images.Read(workspace, copy) |> wait = Error WorkspaceError.NotFound
 
             writer.WriteBoolean(
                 "deleteOwnedOnly",
-                not (File.Exists(Path.Combine(ownedFolder, copy.ToString("N") + ".image")))
-                && File.ReadAllText foreign = "keep"
-                && missing
+                not (File.Exists ownedImage) && File.ReadAllText foreign = "keep" && missing
             )
 
         writer.WriteEndObject()

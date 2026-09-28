@@ -266,8 +266,9 @@ module internal ProfileDeleteMutation =
                 fnisOutput
                 |> Option.iter (FnisOutputCleanup.removeProfileRows connection transaction)
 
-            request.BeforeCommit()
-            transaction.Commit()
+                request.BeforeCommit()
+                transaction.Commit()
+
             result)
 
     let run (services: ProfileMutationServices) (request: ProfileMutationRequest) target =

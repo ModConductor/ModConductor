@@ -15,6 +15,7 @@ class McCardGrid<I extends Object, T extends Object> extends StatefulWidget {
     this.filterActions = const [],
     this.cardExtent = 430,
     this.compactCardExtent,
+    this.compactCardWidth = 400,
     this.twoColumnWidth = 700,
     this.countLabel,
     this.onRefresh,
@@ -33,6 +34,7 @@ class McCardGrid<I extends Object, T extends Object> extends StatefulWidget {
   final List<Widget> filterActions;
   final double cardExtent;
   final double? compactCardExtent;
+  final double compactCardWidth;
   final double twoColumnWidth;
   final String? countLabel;
   final VoidCallback? onRefresh;
@@ -188,7 +190,7 @@ class McCardGridState<I extends Object, T extends Object>
                   .clamp(1, 2);
               final cardWidth =
                   (bounds.maxWidth - 8 - 16 * (columns - 1)) / columns;
-              final extent = cardWidth < 400
+              final extent = cardWidth < widget.compactCardWidth
                   ? widget.compactCardExtent ?? widget.cardExtent
                   : widget.cardExtent;
               rowExtent = extent * scale.toDouble() + 16;

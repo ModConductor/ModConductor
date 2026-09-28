@@ -84,13 +84,26 @@ type internal ProfileDataMutations
                         match imageCopy with
                         | Error error -> return Error error
                         | Ok() ->
+                            let beforeProfileCommit () =
+                                beforeCommit ()
+
+                                match command with
+                                | ProfileEdit.Delete target ->
+                                    match images.Remove(workspace, target) with
+                                    | Ok() -> ()
+                                    | Error _ ->
+                                        raise (
+                                            IOException "The profile image could not be removed."
+                                        )
+                                | _ -> ()
+
                             let request =
                                 { Workspace = workspace
                                   Expected = expected
                                   Command = command
                                   Progress = progress
                                   Token = token
-                                  BeforeCommit = beforeCommit
+                                  BeforeCommit = beforeProfileCommit
                                   CaptureCheckpoint = captureCheckpoint }
 
                             let! result =
@@ -110,13 +123,13 @@ type internal ProfileDataMutations
                                 | ProfileEdit.Delete target ->
                                     ProfileDeleteMutation.run services request target
 
-                            match command, result with
-                            | ProfileEdit.Clone(_, target), Error _ ->
-                                images.Remove(workspace, target.Id)
-                            | ProfileEdit.Delete target, Ok _ -> images.Remove(workspace, target)
-                            | _ -> ()
-
-                            return result
+                            return
+                                match command, result with
+                                | ProfileEdit.Clone(_, target), Error _ ->
+                                    match images.Remove(workspace, target.Id) with
+                                    | Ok() -> result
+                                    | Error error -> Error error
+                                | _ -> result
                 with
                 | ProfileDataException ProfileDataError.Busy -> return Error WorkspaceError.Busy
                 | ProfileDataException error ->
@@ -180,10 +193,17 @@ type internal ProfileDataMutations
 
                 if action.Complete then
                     match command with
-                    | ProfileEdit.Delete target -> images.Remove(workspace, target)
-                    | _ -> ()
+                    | ProfileEdit.Delete target ->
+                        let! profileRemains =
+                            database.Enqueue(fun () ->
+                                WorkspaceProfiles.profile connection null workspace target
+                                |> Option.isSome)
 
-                    return! completed workspace command action
+                        if profileRemains then
+                            return! mutate workspace expected command progress token ignore ignore
+                        else
+                            return! completed workspace command action
+                    | _ -> return! completed workspace command action
                 else
                     return! mutate workspace expected command progress token ignore ignore
         }
