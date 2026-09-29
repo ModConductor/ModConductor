@@ -161,7 +161,8 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                             let pendingFirstRun =
                                 match candidate, selection.Proton with
                                 | Some _, Some proton when
-                                    installation.Valid
+                                    OperatingSystem.IsLinux()
+                                    && installation.Valid
                                     && proton.AppId = Skyrim.definition.SteamAppId
                                     ->
                                     evidence.Problems

@@ -143,6 +143,8 @@ jobs:
         working-directory: ui/packages/mc_client
         env:
           MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe
+          MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe
+          MC_NEXUS_OUTPUT: ${{ github.workspace }}/.agent-workspace/nexus-client
         run: flutter test --no-pub
       - name: Check native Windows Flutter wire path
         if: runner.os == 'Windows'

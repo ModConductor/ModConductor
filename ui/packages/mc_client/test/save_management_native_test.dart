@@ -9,7 +9,7 @@ void main() {
   final engine = Platform.environment['MC_ENGINE_PATH'];
   final fixture = Platform.environment['MC_NATIVE_FIXTURE'];
   test(
-    'save groups use the versioned protocol and refuse a changed companion before copying',
+    'Linux Proton save groups use the versioned protocol and refuse a changed companion before copying',
     () async {
       final area = await Directory.systemTemp.createTemp('mc-save-management-');
       final state = await Directory('${area.path}/state').create();
@@ -150,7 +150,7 @@ void main() {
         await area.delete(recursive: true);
       }
     },
-    skip: engine == null || fixture == null,
+    skip: !Platform.isLinux || engine == null || fixture == null,
     timeout: const Timeout(Duration(seconds: 90)),
   );
 }

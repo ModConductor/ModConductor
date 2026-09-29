@@ -37,7 +37,7 @@ void main() {
         ? 'Set MC_ENGINE_PATH to a published NativeAOT engine.'
         : false,
     () {
-      test('name-only concurrent creation uses stable distinct owned roots', () async {
+      test('concurrent name-only creation owns distinct roots', () async {
         final client = (await start()).workspaces();
         final firstId = newOperationId(), secondId = newOperationId();
         final created = await Future.wait([
@@ -48,11 +48,20 @@ void main() {
           created.map((value) => value.workspace.path).toSet(),
           hasLength(2),
         );
-        expect(created.map((value) => value.workspace.path).toSet(), {
-          '${state.path}${Platform.pathSeparator}workspaces${Platform.pathSeparator}$firstId',
-          '${state.path}${Platform.pathSeparator}workspaces${Platform.pathSeparator}$secondId',
-        });
-        for (final page in created) {
+        for (final (id, page) in [
+          (firstId, created[0]),
+          (secondId, created[1]),
+        ]) {
+          final expected = Directory.fromUri(
+            state.uri.resolve('workspaces/$id/'),
+          );
+          expect(
+            await FileSystemEntity.identical(
+              page.workspace.path,
+              expected.path,
+            ),
+            isTrue,
+          );
           expect(Directory(page.workspace.path).existsSync(), isTrue);
           expect(page.workspace.pendingRoot, isNull);
         }
