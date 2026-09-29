@@ -209,7 +209,18 @@ void main() {
         await tester.pumpAndSettle();
         await tap(ValueKey((modId: entry.mod.id)));
         expect(library().mods.selected!.mod.id, entry.mod.id);
-        await tester.tap(find.text('Save version'));
+        final saveVersion = find.descendant(
+          of: find.byKey(const ValueKey('saved-files')),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is McAction && widget.label == 'Save version',
+          ),
+        );
+        if (saveVersion.evaluate().isEmpty) {
+          await tester.tap(find.text('Saved files').last);
+          await tester.pumpAndSettle();
+        }
+        expect(saveVersion, findsOneWidget);
+        await tester.tap(saveVersion);
         await until(
           () => library().activity == null && !library().loadingFiles,
         );
