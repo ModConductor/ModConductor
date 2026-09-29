@@ -3,10 +3,11 @@ $ErrorActionPreference='Stop'
 $directory=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ModConductor\session-keys'
 $provider=[System.Security.Cryptography.CngProvider]::MicrosoftSoftwareKeyStorageProvider
 $owned=@()
-$state=Join-Path ([IO.Path]::GetTempPath()) ('mc-key-state-'+[Guid]::NewGuid().ToString('N'))
+$stateRoot=Join-Path (Join-Path (Split-Path $PSScriptRoot -Parent) '.agent-workspace') ('mc-key-state-'+[Guid]::NewGuid().ToString('N'))
 function KeyExists($name) { [System.Security.Cryptography.CngKey]::Exists($name,$provider) }
 function StartEngine {
  $before=@(Get-ChildItem $directory -Filter '*.lease' -ErrorAction SilentlyContinue | ForEach-Object Name)
+ $state=Join-Path $stateRoot ('engine-'+[Guid]::NewGuid().ToString('N'))
  $p=New-Object System.Diagnostics.Process
  $p.StartInfo.FileName=$EnginePath
  $p.StartInfo.Arguments='--state-directory "'+$state+'"'
@@ -43,6 +44,7 @@ $parameters=New-Object System.Security.Cryptography.CngKeyCreationParameters
 $parameters.Provider=$provider
 $foreign=[System.Security.Cryptography.CngKey]::Create([System.Security.Cryptography.CngAlgorithm]::Rsa,$foreignName,$parameters)
 try {
+ [IO.Directory]::CreateDirectory($stateRoot) | Out-Null
  $normal=StartEngine
  CloseEngine $normal
  $crashed=StartEngine
@@ -64,5 +66,5 @@ try {
  }
  $foreign.Delete()
  $foreign.Dispose()
- Remove-Item $state -Recurse -Force
+ if(Test-Path $stateRoot){Remove-Item $stateRoot -Recurse -Force}
 }
