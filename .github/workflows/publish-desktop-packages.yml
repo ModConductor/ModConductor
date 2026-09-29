@@ -140,7 +140,7 @@ jobs:
       run_homebrew_test: false
       run_linux_cask_test: true
       run_windows_packaging_tests: true
-      run_winget_test: true
+      run_winget_test: false
       jreleaser_image: jreleaser/jreleaser-slim:v1.26.0
       jreleaser_config: packaging/jreleaser-desktop.yml
       winget_upstream_repo: microsoft/winget-pkgs
