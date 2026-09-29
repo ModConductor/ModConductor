@@ -32,7 +32,7 @@ void check_queue_order() {
   desktop::Requests queued;
   const desktop::Arguments olderA{"--workspace", "/older-a"};
   const desktop::Arguments olderB{"--workspace", "/older-b"};
-  const desktop::Arguments linkA{"--uri", "nxm://skyrimspecialedition/mods/1/files/1?key=a"};
+  const desktop::Arguments linkA{"nxm://skyrimspecialedition/mods/1/files/1?key=a"};
   const desktop::Arguments linkB{"--uri", "nxm://skyrimspecialedition/mods/1/files/2?key=b"};
   check(queued.Add(olderA) && queued.Add(olderB) && queued.Add(linkA), "Queue setup failed.");
   const auto firstLink = queued.Read().first.value();
