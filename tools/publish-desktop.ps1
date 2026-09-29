@@ -32,7 +32,8 @@ if ($flutterDetails.frameworkVersion -ne '3.47.4' -or !$flutterDetails.dartSdkVe
 $nsisArchive = Join-Path $root '.tools/nsis-3.12.zip'
 $nsis = Join-Path $root '.tools/nsis/nsis-3.12/makensis.exe'
 if (!(Test-Path $nsis)) {
-  Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip' -OutFile $nsisArchive
+  & curl.exe --fail --location --retry 3 --silent --show-error --output $nsisArchive 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip'
+  if ($LASTEXITCODE -ne 0) { throw 'NSIS archive download failed' }
   if ((Get-FileHash $nsisArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f') { throw 'NSIS archive checksum mismatch' }
   Expand-Archive $nsisArchive -DestinationPath .tools/nsis
 }
