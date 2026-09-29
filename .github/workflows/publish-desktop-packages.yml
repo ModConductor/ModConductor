@@ -103,6 +103,7 @@ jobs:
       attestations: write
       contents: write
       id-token: write
+      packages: write
     with:
       version: ${{ inputs.version }}
       revision: ${{ github.sha }}
