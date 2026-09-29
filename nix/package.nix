@@ -1,6 +1,7 @@
 { self, pkgs, dotnet-sdk, flutter }:
 let
   lib = pkgs.lib;
+  productVersion = "0.1.1";
   sourceFor = directories: files: lib.cleanSourceWith {
     src = self.outPath;
     filter = path: type:
@@ -25,7 +26,7 @@ let
 
   nugetCache = pkgs.stdenvNoCC.mkDerivation {
     pname = "modconductor-nuget-cache";
-    version = "0.1.0";
+    version = productVersion;
     src = engineSource;
     nativeBuildInputs = [ dotnet-sdk pkgs.cacert ];
     dontConfigureNuget = true;
@@ -50,7 +51,7 @@ let
 
   engine = pkgs.stdenv.mkDerivation {
     pname = "modconductor-engine";
-    version = "0.1.0";
+    version = productVersion;
     src = engineSource;
     nativeBuildInputs = with pkgs; [ dotnet-sdk clang pkg-config patchelf ];
     dontConfigureNuget = true;
@@ -113,7 +114,7 @@ let
 
   app = flutter.buildFlutterApplication {
     pname = "modconductor";
-    version = "0.1.0";
+    version = productVersion;
     src = uiSource;
     sourceRoot = "source/ui";
     packageRoot = ".";
@@ -178,7 +179,7 @@ let
     preFixup = ''
       writeFinalPackageMetadata() {
         bash ${self.outPath}/nix/write-package-metadata.sh \
-          --output "$out" --version 0.1.0 \
+          --output "$out" --version ${productVersion} \
           --revision ${lib.escapeShellArg sourceRevision} \
           --source-date-epoch ${toString sourceDate}
       }
