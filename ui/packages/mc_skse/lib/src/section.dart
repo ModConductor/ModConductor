@@ -175,21 +175,32 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         );
   }
 
+  bool _selectionCompleted(SkyrimSetupStatus next) =>
+      next.ready ||
+      (next.phase == SkyrimSetupStatusPhase.cancelled &&
+          status?.phase != SkyrimSetupStatusPhase.cancelled);
+
+  void _syncSelection(SkyrimSetupStatus next, bool completed) {
+    if (next.canCancel && next.phase != SkyrimSetupStatusPhase.failed) {
+      selection = next.selection;
+      userEdited = false;
+      return;
+    }
+    if (completed) {
+      selection = const SkyrimSetupSelection();
+      userEdited = false;
+      return;
+    }
+    if (!userEdited) selection = next.selection;
+  }
+
   void _accept(SkyrimSetupStatus next) {
+    final completed = _selectionCompleted(next);
+    final restartWatch = completed && selection.hasChange && !busy;
     setState(() {
-      final wasCancelled = status?.phase == SkyrimSetupStatusPhase.cancelled;
       status = next;
       _updateEvidenceFresh = true;
-      if (next.canCancel && next.phase != SkyrimSetupStatusPhase.failed) {
-        selection = next.selection;
-        userEdited = false;
-      } else if (next.ready ||
-          (next.phase == SkyrimSetupStatusPhase.cancelled && !wasCancelled)) {
-        selection = const SkyrimSetupSelection();
-        userEdited = false;
-      } else if (!userEdited) {
-        selection = next.selection;
-      }
+      _syncSelection(next, completed);
       for (final id in const ['skse', 'enb', 'fnis']) {
         if (actionFor(id) == SkyrimSetupAction.update &&
             !next.components.any(
@@ -208,6 +219,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         !reviewingSkse) {
       unawaited(_reviewSkse());
     }
+    if (restartWatch) scheduleMicrotask(_observe);
   }
 
   void _clearUpdateChoices() {

@@ -113,6 +113,22 @@ class SetupClientFixture extends SkyrimSetupClient {
     canCancel: false,
   );
 
+  SkyrimSetupStatus readyState(SkyrimSetupSelection selection) {
+    final current = state(selection);
+    return SkyrimSetupStatus(
+      phase: SkyrimSetupStatusPhase.ready,
+      status: 'Skyrim setup is ready',
+      detail: '',
+      components: current.components,
+      selection: selection,
+      canStart: false,
+      canContinue: false,
+      active: false,
+      ready: true,
+      canCancel: false,
+    );
+  }
+
   @override
   Future<SkyrimSetupStatus> read(
     String workspace,
@@ -442,6 +458,34 @@ void main() {
       expect(client.continues, 0);
     },
   );
+
+  testWidgets('completed setup reconnects without the applied choices', (
+    tester,
+  ) async {
+    final installed = <String>{};
+    final client = SetupClientFixture(installed: installed);
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+
+    await tester.tap(find.byType(Switch).at(1));
+    await settle(tester);
+    await tester.tap(find.byIcon(Icons.folder_open_outlined));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    final applied = client.applied!;
+
+    installed.add('enb');
+    client.running = false;
+    client.emit('workspace', 'profile', client.readyState(applied));
+    await settle(tester);
+
+    expect(client.lastSelection.hasChange, isFalse);
+    expect(client.lastSelection.enbArchivePath, isNull);
+    expect(find.text('Clear choices'), findsNothing);
+    expect(find.text('enbseries.zip'), findsNothing);
+    expect(find.text('Check the selected components'), findsNothing);
+  });
 
   testWidgets('a previous profile event cannot replace the current setup', (
     tester,
