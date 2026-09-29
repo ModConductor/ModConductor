@@ -4,14 +4,14 @@
   dotnet-sdk_10,
   flutter347,
   version ? "@PACKAGE_VERSION@",
-  src ? pkgs.fetchFromGitHub {
+}:
+let
+  src = pkgs.fetchFromGitHub {
     owner = "ModConductor";
     repo = "ModConductor";
     tag = "v${version}";
     hash = "@SOURCE_HASH@";
-  },
-}:
-let
+  };
   dotnet-sdk = dotnet-sdk_10;
   flutter = flutter347;
   sourceFor =
