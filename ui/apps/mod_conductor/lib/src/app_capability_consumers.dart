@@ -20,15 +20,15 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
   }
 
   void _syncWorkspaceConsumers() {
+    final workspace = _workspaces.confirmedWorkspace;
     _game.attach(
       widget.gameContexts,
-      workspaceId: _workspaces.workspace?.id,
-      profileId: _workspaces.workspace?.selectedProfile?.id,
+      workspaceId: workspace?.id,
+      profileId: workspace?.selectedProfile?.id,
       editable: _workspaces.canEdit,
     );
     _startSkseLaunchCheck();
     _syncCapabilityConsumers();
-    final workspace = _workspaces.workspace;
     final profileId = workspace?.selectedProfile?.id;
     _syncInstallationScope(
       workspace?.id,

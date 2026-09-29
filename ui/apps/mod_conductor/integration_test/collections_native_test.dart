@@ -186,13 +186,22 @@ void main() {
         final entry = library().mods.ids
             .map((id) => library().mods[id]!)
             .singleWhere((row) => row.mod.kind == ModKind.regular);
-        await tester.enterText(
-          find.descendant(
-            of: find.byKey(const ValueKey('installed-mods')),
-            matching: find.byType(TextField),
-          ),
-          'Weathered',
+        final installedMods = find.byKey(const ValueKey('installed-mods'));
+        final modFilter = find.descendant(
+          of: installedMods,
+          matching: find.byType(TextField),
         );
+        if (modFilter.evaluate().isEmpty) {
+          await tester.tap(
+            find.descendant(
+              of: installedMods,
+              matching: find.byTooltip('Filter mods'),
+            ),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(modFilter, findsOneWidget);
+        await tester.enterText(modFilter, 'Weathered');
         await tester.pumpAndSettle();
         await tap(ValueKey((modId: entry.mod.id)));
         expect(library().mods.selected!.mod.id, entry.mod.id);

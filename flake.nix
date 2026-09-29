@@ -38,7 +38,8 @@
         FLUTTER_SUPPRESS_ANALYTICS = "1";
         DART_SUPPRESS_ANALYTICS = "1";
         shellHook = ''
-          export LD_LIBRARY_PATH="${pkgs.fontconfig.lib}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export LD_LIBRARY_PATH="${pkgs.libepoxy}/lib:${pkgs.fontconfig.lib}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export XDG_DATA_DIRS="${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
         '';
       };
 

@@ -78,6 +78,8 @@ class WorkspaceController extends ChangeNotifier {
 
   bool get connected => _client != null;
   WorkspaceInfo? get workspace => showingWorkspace ? page?.workspace : null;
+  WorkspaceInfo? get confirmedWorkspace =>
+      _creation?.id == workspace?.id ? null : workspace;
   String? get activity => _activities[workspace?.id ?? ''];
   String? get currentProblem =>
       _problemWorkspace == workspace?.id ? problem : null;

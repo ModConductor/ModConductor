@@ -7,6 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mc_skse/mc_skse.dart';
+import 'package:mc_workspaces/mc_workspaces.dart';
 import 'package:mod_conductor/src/app.dart';
 
 Finder keyed(String value) => find.byKey(ValueKey(value));
@@ -87,6 +88,21 @@ class _WorkspacesFake extends Fake implements WorkspacesClient {
     final selected = workspaces.singleWhere((value) => value.path == path);
     return WorkspacePage(selected, [selected.selectedProfile!], null);
   }
+}
+
+class _DelayedCreateWorkspacesFake extends _WorkspacesFake {
+  final created = Completer<WorkspacePage>();
+  String? requestedId;
+  WorkspacePage? recovered;
+
+  @override
+  Future<WorkspacePage> create(String id, String name, [String? path]) {
+    requestedId = id;
+    return created.future;
+  }
+
+  @override
+  Future<WorkspacePage> read(String id, {String? after}) async => recovered!;
 }
 
 class _SetupEvents extends Fake implements SkyrimSetupClient {
@@ -294,12 +310,14 @@ class _DelayedSkyrimGameContexts extends _CapabilityGameContexts {
 class _DelayedSettingsFake extends _SettingsFake {
   final reads = <String, Completer<SettingsSnapshot>>{};
   final values = <String, SettingsSnapshot>{};
+  final requestedWorkspaceIds = <String>[];
   Completer<SettingsSnapshot>? save;
   bool failWorkspaceRead = false;
   final savedWorkspaceIds = <String>[];
 
   @override
   Future<SettingsSnapshot> readWorkspace(String workspaceId) {
+    requestedWorkspaceIds.add(workspaceId);
     if (failWorkspaceRead) {
       return Future.error(
         const SettingsException(
@@ -1092,6 +1110,73 @@ void main() {
       expect(brightness(tester), Brightness.dark);
     },
   );
+
+  testWidgets('workspace settings wait for creation to finish', (tester) async {
+    final settings = _DelayedSettingsFake();
+    final workspaces = _DelayedCreateWorkspacesFake();
+    await mount(tester, settings: settings, workspaces: workspaces);
+
+    final controller = tester
+        .widget<WorkspaceBrowser>(find.byType(WorkspaceBrowser))
+        .controller;
+    final creating = controller.create('Weekend');
+    await tester.pump();
+    final id = workspaces.requestedId!;
+    expect(settings.requestedWorkspaceIds, isEmpty);
+
+    workspaces.created.complete(
+      WorkspacePage(
+        WorkspaceInfo(
+          id: id,
+          name: 'Weekend',
+          path: '/workspace/$id',
+          revision: 1,
+        ),
+        const [],
+        null,
+      ),
+    );
+    await creating;
+    await tester.pumpAndSettle();
+    expect(settings.requestedWorkspaceIds, [id]);
+  });
+
+  testWidgets('failed creation keeps settings off the provisional workspace', (
+    tester,
+  ) async {
+    final settings = _DelayedSettingsFake();
+    final workspaces = _DelayedCreateWorkspacesFake();
+    await mount(tester, settings: settings, workspaces: workspaces);
+
+    final controller = tester
+        .widget<WorkspaceBrowser>(find.byType(WorkspaceBrowser))
+        .controller;
+    final creating = controller.create('Weekend');
+    await tester.pump();
+    final id = workspaces.requestedId!;
+    workspaces.created.completeError(
+      const WorkspaceException(WorkspaceFault.busy, 'busy'),
+    );
+    await creating;
+    await tester.pumpAndSettle();
+    expect(controller.needsCheck, isTrue);
+    expect(settings.requestedWorkspaceIds, isEmpty);
+
+    workspaces.recovered = WorkspacePage(
+      WorkspaceInfo(
+        id: id,
+        name: 'Weekend',
+        path: '/workspace/$id',
+        revision: 1,
+      ),
+      const [],
+      null,
+    );
+    await controller.check();
+    await tester.pumpAndSettle();
+    expect(controller.needsCheck, isFalse);
+    expect(settings.requestedWorkspaceIds, [id]);
+  });
 
   testWidgets('connection loss hides unconfirmed form and reconnect loads it', (
     tester,

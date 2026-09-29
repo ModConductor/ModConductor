@@ -293,7 +293,9 @@ class _ModConductorAppState extends _AppStateBase
     _syncWorkspaceConsumers();
     if (oldWidget.settings != widget.settings) {
       unawaited(_loadApplicationSettings());
-      unawaited(_loadWorkspaceSettings(_workspaces.workspace?.id, force: true));
+      unawaited(
+        _loadWorkspaceSettings(_workspaces.confirmedWorkspace?.id, force: true),
+      );
     }
   }
 
