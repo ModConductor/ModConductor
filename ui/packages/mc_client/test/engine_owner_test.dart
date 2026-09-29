@@ -13,8 +13,10 @@ void main() {
   });
   final executable = Platform.environment['MC_ENGINE_PATH'];
   final root = Directory.current.parent.parent.parent.path;
-  final dart =
-      '$root/.tools/flutter/bin/cache/dart-sdk/bin/dart${Platform.isWindows ? '.exe' : ''}';
+  final flutterRoot = Platform.environment['FLUTTER_ROOT']!;
+  final dart = Platform.isWindows
+      ? '$flutterRoot/bin/cache/dart-sdk/bin/dart.exe'
+      : '$flutterRoot/bin/dart';
   Future<Process> fixture(String engine, String mode) => Process.start(dart, [
     '--packages=$root/ui/.dart_tool/package_config.json',
     '$root/ui/packages/mc_client/test/fixtures/bootstrap_child.dart',
