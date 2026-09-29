@@ -132,3 +132,15 @@ jobs:
           MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/linux-x64/ModConductor.Engine
           MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures
           MC_NEXUS_OUTPUT: ${{ github.workspace }}/.agent-workspace/nexus-client
+
+  package-tools-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install fixture prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends jq xvfb gcc libc6-dev procps
+      - run: bash nix/test-write-package-metadata.sh
+      - run: bash tools/test-generate-aur-package.sh
+      - run: bash tools/test-smoke-desktop-package.sh

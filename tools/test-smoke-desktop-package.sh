@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 C
-cc "$work/engine.c" -o "$engine"
+gcc "$work/engine.c" -o "$engine"
 cat > "$launcher" <<'LAUNCHER'
 #!/usr/bin/env bash
 mkdir -p "$XDG_DATA_HOME"
