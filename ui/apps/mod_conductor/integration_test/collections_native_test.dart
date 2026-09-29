@@ -191,7 +191,56 @@ void main() {
           of: installedMods,
           matching: find.byType(TextField),
         );
+        Future<void> diagnoseFilter(String phase) async {
+          final allInstalledMods = find.byKey(
+            const ValueKey('installed-mods'),
+            skipOffstage: false,
+          );
+          final allLibraries = find.byType(
+            ModLibraryBrowser,
+            skipOffstage: false,
+          );
+          String counts(Finder onstage, Finder all) {
+            final visible = onstage.evaluate().length;
+            return 'onstage=$visible offstage=${all.evaluate().length - visible}';
+          }
+
+          final workspaceTabs = find.ancestor(
+            of: find.byKey(
+              const ValueKey('workspace-mods-tab'),
+              skipOffstage: false,
+            ),
+            matching: find.bySubtype<SegmentedButton<dynamic>>(
+              skipOffstage: false,
+            ),
+          );
+          final libraryTabs = find.descendant(
+            of: allLibraries,
+            matching: find.byType(SegmentedButton<String>, skipOffstage: false),
+            skipOffstage: false,
+          );
+          final report = [
+            'Filter diagnostic ($phase):',
+            'installed-mods ${counts(installedMods, allInstalledMods)}',
+            'ModLibraryBrowser ${counts(find.byType(ModLibraryBrowser), allLibraries)}',
+            'filter TextField ${counts(modFilter, find.descendant(of: allInstalledMods, matching: find.byType(TextField, skipOffstage: false), skipOffstage: false))}',
+            'Filter mods control ${counts(find.descendant(of: installedMods, matching: find.byTooltip('Filter mods')), find.descendant(of: allInstalledMods, matching: find.byTooltip('Filter mods', skipOffstage: false), skipOffstage: false))}',
+            'Close filter control ${counts(find.descendant(of: installedMods, matching: find.byTooltip('Close filter')), find.descendant(of: allInstalledMods, matching: find.byTooltip('Close filter', skipOffstage: false), skipOffstage: false))}',
+            'workspace pane ${workspaceTabs.evaluate().isEmpty ? 'missing' : tester.widget<SegmentedButton<dynamic>>(workspaceTabs.first).selected.join(', ')}',
+            'library pane ${libraryTabs.evaluate().isNotEmpty
+                ? tester.widget<SegmentedButton<String>>(libraryTabs.first).selected.join(', ')
+                : allLibraries.evaluate().isEmpty
+                ? 'missing'
+                : 'split'}',
+          ].join('\n');
+          debugPrint(report);
+          await File('${evidence.path}/filter-diagnostic-$phase.txt')
+              .writeAsString(report);
+          await capture('filter-diagnostic-$phase');
+        }
+
         if (modFilter.evaluate().isEmpty) {
+          await diagnoseFilter('before-toggle');
           await tester.tap(
             find.descendant(
               of: installedMods,
@@ -199,6 +248,9 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
+        }
+        if (modFilter.evaluate().isEmpty) {
+          await diagnoseFilter('after-toggle');
         }
         expect(modFilter, findsOneWidget);
         await tester.enterText(modFilter, 'Weathered');
