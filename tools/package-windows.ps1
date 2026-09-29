@@ -77,7 +77,8 @@ $directories = @(Files $payload | ForEach-Object {
 } | Sort-Object -Unique | Sort-Object { $_.Split('\').Count } -Descending)
 $deletes += @($directories | ForEach-Object { 'RMDir "$INSTDIR\' + $_ + '"' })
 $deletes += 'RMDir "$INSTDIR"'
-$deletes | Set-Content -Encoding utf8NoBOM "$Output/uninstall-files.nsh"
+$uninstallFiles = Join-Path $Output 'uninstall-files.nsh'
+$deletes | Set-Content -Encoding utf8NoBOM $uninstallFiles
 $portable = "$Output/ModConductor-$Version-win-x64-portable.zip"
 Add-Type -AssemblyName System.IO.Compression
 $zip = [IO.Compression.ZipFile]::Open($portable, 'Create')
@@ -92,7 +93,7 @@ try {
 } finally { $zip.Dispose() }
 $installer = "$Output/ModConductor-$Version-win-x64-setup.exe"
 $nsisArguments = @(
-  "/DPAYLOAD=$payload", "/DUNINSTALL_FILES=$Output/uninstall-files.nsh",
+  "/DPAYLOAD=$payload", "/DUNINSTALL_FILES=$uninstallFiles",
   "/DOUTPUT=$installer", "/DVERSION=$Version",
   "/DAPP_ICON=$root/ui/apps/mod_conductor/windows/runner/resources/app_icon.ico",
   "$root/tools/windows-installer.nsi"
