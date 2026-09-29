@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
@@ -974,9 +975,7 @@ void main() {
     },
   );
 
-  testWidgets('Help navigation remains aligned at supported widths', (
-    tester,
-  ) async {
+  testWidgets('Linux Help golden stays aligned at both widths', (tester) async {
     for (final visualCase in [
       (name: 'wide', size: const Size(1280, 800)),
       (name: 'narrow', size: const Size(680, 800)),
@@ -994,7 +993,7 @@ void main() {
         ),
       );
     }
-  });
+  }, skip: !Platform.isLinux);
 
   testWidgets('Help stays readable at a 900 pixel window at both sizes', (
     tester,

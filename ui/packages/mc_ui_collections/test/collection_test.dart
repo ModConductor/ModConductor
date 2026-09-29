@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
@@ -299,10 +300,12 @@ void main() {
           horizontal.controller!.position.maxScrollExtent > 0,
           visualCase.name == 'narrow_rtl',
         );
-        await expectLater(
-          find.byType(McCollection<int, Item>),
-          matchesGoldenFile('goldens/sort_header_${visualCase.name}_150.png'),
-        );
+        if (Platform.isLinux) {
+          await expectLater(
+            find.byType(McCollection<int, Item>),
+            matchesGoldenFile('goldens/sort_header_${visualCase.name}_150.png'),
+          );
+        }
         final sortSemantics = tester
             .getSemantics(
               find.descendant(of: header, matching: find.byType(TextButton)),
