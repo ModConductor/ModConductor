@@ -69,14 +69,18 @@ struct Request {
 };
 struct Snapshot { size_t count; std::optional<Request> first; };
 struct PrivateRequest { int64_t serial; std::array<uint8_t, 16> id; std::string input; };
-inline bool IsNxm(const Arguments& args) {
-  if (args.size() != 2 || args[0] != "--uri" || args[1].size() > 4096 || args[1].size() < 6) return false;
-  std::string prefix = args[1].substr(0,6);
+inline const std::string* NxmValue(const Arguments& args) {
+  const std::string* value = nullptr;
+  if (args.size() == 1) value = &args[0];
+  if (args.size() == 2 && args[0] == "--uri") value = &args[1];
+  if (!value || value->size() > 4096 || value->size() < 6) return nullptr;
+  std::string prefix = value->substr(0,6);
   for (auto& c : prefix) if (c >= 'A' && c <= 'Z') c += 'a' - 'A';
-  if (prefix != "nxm://") return false;
-  for (unsigned char c : args[1]) if (c < 32 || c == 127) return false;
-  return true;
+  if (prefix != "nxm://") return nullptr;
+  for (unsigned char c : *value) if (c < 32 || c == 127) return nullptr;
+  return value;
 }
+inline bool IsNxm(const Arguments& args) { return NxmValue(args) != nullptr; }
 inline std::string Reference(const std::array<uint8_t,16>& id) {
   static constexpr int order[] = {3,2,1,0,5,4,7,6,8,9,10,11,12,13,14,15};
   std::string value;
@@ -87,9 +91,9 @@ std::optional<std::array<uint8_t,32>> NxmFingerprint(const std::string& input);
 class Requests {
  public:
   bool Add(const Arguments& input) {
-    const bool nxm = IsNxm(input);
+    const auto* nxm = NxmValue(input);
     auto args = nxm ? Arguments{} : Screen(input);
-    const auto fingerprint = nxm ? NxmFingerprint(input[1]) : std::optional<std::array<uint8_t,32>>{};
+    const auto fingerprint = nxm ? NxmFingerprint(*nxm) : std::optional<std::array<uint8_t,32>>{};
     if (nxm && !fingerprint) return false;
     std::lock_guard<std::mutex> guard(mutex_);
     if (stopping_) return false;
@@ -103,9 +107,9 @@ class Requests {
     Entry entry;
     entry.view.id = ++serial_;
     entry.view.arguments = std::move(args);
-    entry.view.private_pending = nxm;
+    entry.view.private_pending = nxm != nullptr;
     if (nxm) {
-      entry.raw = input[1];
+      entry.raw = *nxm;
       entry.fingerprint = fingerprint;
       std::random_device random;
       for (auto& value : entry.key) value = static_cast<uint8_t>(random());

@@ -23,9 +23,21 @@ cat > "$metadata/chocolatey/modconductor.nuspec" <<NUSPEC
   <metadata>
     <id>modconductor</id>
     <version>$version</version>
+    <title>Mod Conductor</title>
     <authors>Mod Conductor contributors</authors>
+    <owners>Mod Conductor contributors</owners>
     <projectUrl>https://github.com/ModConductor/ModConductor</projectUrl>
-    <description>Desktop mod organiser</description>
+    <projectSourceUrl>https://github.com/ModConductor/ModConductor/tree/v$version</projectSourceUrl>
+    <packageSourceUrl>https://github.com/ModConductor/ModConductor/blob/v$version/tools/finalize-windows-release.sh</packageSourceUrl>
+    <docsUrl>https://github.com/ModConductor/ModConductor/blob/v$version/README.md</docsUrl>
+    <bugTrackerUrl>https://github.com/ModConductor/ModConductor/issues</bugTrackerUrl>
+    <licenseUrl>https://github.com/ModConductor/ModConductor/blob/v$version/LICENSE</licenseUrl>
+    <iconUrl>https://raw.githubusercontent.com/ModConductor/ModConductor/v$version/packaging/icons/hicolor/256x256/apps/dev.modconductor.mod_conductor.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>Cross-platform desktop mod organiser for Windows and Linux.</summary>
+    <description>Mod Conductor installs and organises game mods on Windows and Linux. It supports Skyrim Special Edition through Steam, with profiles, conflict and plugin ordering, Nexus downloads, and setup for SKSE, ENBSeries, and FNIS.</description>
+    <releaseNotes>https://github.com/ModConductor/ModConductor/releases/tag/v$version</releaseNotes>
+    <tags>modding mods game skyrim skyrim-special-edition mod-manager linux windows</tags>
   </metadata>
   <files><file src="tools\**" target="tools" /></files>
 </package>
