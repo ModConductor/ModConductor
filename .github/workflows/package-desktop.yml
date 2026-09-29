@@ -1,7 +1,12 @@
 name: Desktop packages
 
 on:
-  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: desktop-package-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -10,23 +15,22 @@ permissions:
 
 jobs:
   package:
-    uses: alsi-lawr/package-release-workflows/.github/workflows/package.yml@d4d773e5329a6dd93cbced51003e40466174a80e
+    uses: alsi-lawr/package-release-workflows/.github/workflows/package.yml@v1
     permissions:
       contents: read
       attestations: write
       id-token: write
     with:
       package_name: modconductor
-      package_version: 0.1.0
-      shared_helpers_ref: d4d773e5329a6dd93cbced51003e40466174a80e
+      shared_helpers_ref: v1
       source_archive_template: "{package_name}-v{version}-source.tar.gz"
       source_cargo_toolchain: 1.89.0
       dotnet_version: 10.0.400
       dotnet_project_path: src/ModConductor.Engine/ModConductor.Engine.fsproj
-      package_smoke_script: tools/smoke-desktop-package.py
-      package_metadata_finalize_script: tools/finalize-desktop-release.py
-      package_publish_script: tools/publish-desktop.py
-      package_publish_prepare_script: tools/prepare-desktop-package.py
+      package_smoke_script: tools/smoke-desktop-package
+      package_metadata_finalize_script: tools/finalize-desktop-release.sh
+      package_publish_script: tools/publish-desktop
+      package_publish_prepare_script: tools/prepare-desktop-package
       package_publish_matrix: >-
         [{"rid":"linux-x64","runner":"ubuntu-24.04","machine":"x86_64","executable":"artifacts/publish/linux-x64/bin/modconductor","publish_executable":"bin/modconductor","archive_executable":"bin/modconductor","publish_executables":["app/modconductor/mod_conductor","app/modconductor/engine/ModConductor.Engine","app/modconductor/engine/modconductor-loot-helper"]},{"rid":"win-x64","runner":"windows-2025","machine":"amd64","executable":"artifacts/publish/win-x64/payload/mod_conductor.exe","publish_executable":"payload/mod_conductor.exe","archive_executable":"mod_conductor.exe","publish_executables":["payload/engine/ModConductor.Engine.exe","payload/engine/modconductor-loot-helper.exe"],"archive_executables":["engine/ModConductor.Engine.exe","engine/modconductor-loot-helper.exe"]}]
       jreleaser_image: jreleaser/jreleaser-slim:v1.26.0

@@ -109,7 +109,7 @@ cd ../../apps/mod_conductor
 flutter test --no-pub test
 flutter build linux --release --no-pub
 cd ../../..
-python3 tools/assemble-development.py
+bash tools/assemble-development.sh
 ```
 
 Use `flutter build windows --release --no-pub` on Windows. The bundle tool builds
@@ -129,9 +129,8 @@ NSIS archive SHA-256 is
 From the repository root on Windows:
 
 ```powershell
-python tools/publish-windows.py `
-  --rid win-x64 --version 0.1.0 --revision (git rev-parse HEAD) `
-  --publish-directory .tools/packages/windows-x64
+./tools/publish-desktop.ps1 -Rid win-x64 -Version 0.1.0 `
+  -Revision (git rev-parse HEAD) -PublishDirectory .tools/packages/windows-x64
 ```
 
 Use a new output directory for each build. The package step requires the real
@@ -153,13 +152,13 @@ installation for package smoke tests. Other Windows architectures, MSIX,
 system-wide installation, file associations, signing, and publication are not
 selected. MC-064 retains real-game qualification; MC-067 retains compliance review.
 
-The desktop package workflow uses `tools/publish-desktop.py` for Linux and
-Windows x64. On Windows, `tools/publish-windows.py` builds the NativeAOT engine,
-Flutter app, and LOOT helper once, then calls `tools/package-windows.py`. It
+The desktop package workflow uses `tools/publish-desktop.sh` on Linux and
+`tools/publish-desktop.ps1` on Windows. The Windows script builds the NativeAOT engine,
+Flutter app, and LOOT helper once, then calls `tools/package-windows.ps1`. It
 checks the .NET 10.0.400, Flutter 3.47.4, Rust 1.89.0, and NSIS 3.12 pins.
 The output contains the complete `payload/`, the NSIS installer, and the local
 portable ZIP. The shared archive step makes the release ZIP from that same
-payload. `tools/finalize-desktop-release.py` adds the installer to release
+payload. `tools/finalize-desktop-release.sh` adds the installer to release
 assets and writes Scoop, Chocolatey, and WinGet metadata from the archive and
 installer checksums. It also checks both platform provenance revisions and
 adds `modconductor-v<VERSION>-source.tar.gz` from that exact Git commit and the
@@ -175,14 +174,13 @@ The Linux package hook builds inside an Ubuntu 24.04 FHS container. Docker build
 the tool image from `tools/linux-package/` only; it bind-mounts this checkout and
 does not copy the checkout into the image. It checks the exact .NET 10.0.400,
 Flutter 3.47.4/Dart 3.13.3, and Rust 1.89.0 toolchains before building.
-Existing `.tools/flutter` must match the pin. If another SDK is installed there,
-pass `--flutter-sdk` with the path to the pinned SDK inside this checkout.
+The script installs the pinned SDK in `.tools/flutter` if it is absent.
 
 ```sh
-python3 tools/publish-linux.py \
+bash tools/publish-desktop.sh \
   --rid linux-x64 --version 0.1.0 --revision "$(git rev-parse HEAD)" \
   --publish-directory .tools/packages/linux-x64
-python3 tools/smoke-linux-package.py \
+bash tools/smoke-desktop-package.sh \
   .tools/packages/linux-x64/bin/modconductor --version 0.1.0
 ```
 
@@ -190,7 +188,7 @@ Use a new output directory for each build. The payload contains the Flutter
 bundle, NativeAOT engine, SQLite library, and pinned LOOT helper. Its launcher
 uses paths relative to the extracted directory. Notices, dependency locks,
 payload checksums, SPDX file inventory, and unsigned local provenance are in
-`share/doc/modconductor`. The shared package workflow uses this Python hook to
+`share/doc/modconductor`. The shared package workflow uses this shell script to
 make the Linux x64 tar archive; it restores execute modes for the launcher and
 all three child executables after artifact transfer. The archive checksum is a
 separate release artifact.
@@ -201,13 +199,10 @@ the selected Linux baseline. The existing Nix package remains a store-bound
 build; it is not the source of this portable payload.
 
 The shared package workflow also builds an Ubuntu 24.04 amd64 DEB from the same
-tar archive. To build it locally from an assembled archive:
+tar archive. To build all Linux release formats from an assembled archive:
 
 ```sh
-python3 tools/package-deb.py \
-  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
-  --output artifacts/release/ModConductor_0.1.0-1_amd64.deb \
-  --version 0.1.0
+bash tools/finalize-linux-release.sh 0.1.0 artifacts/release artifacts/package-metadata
 ```
 
 The DEB installs `modconductor` in `/usr/bin`, its desktop files in
@@ -219,15 +214,7 @@ storage needs an available, unlocked Secret Service provider in the user's
 desktop session; installing the package does not create or unlock a keyring.
 Upgrade and removal leave user state under the user's home directory intact.
 
-The same release hook also builds a Fedora 44 x86_64 RPM from that archive.
-For a local build, use:
-
-```sh
-python3 tools/publish-rpm.py \
-  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
-  --output artifacts/release/modconductor-0.1.0-1.fc44.x86_64.rpm \
-  --version 0.1.0
-```
+The same release hook builds a Fedora 44 x86_64 RPM from that archive.
 
 The RPM installs the same application, `/usr/bin/modconductor` launcher, and
 desktop entry as the DEB. Its Fedora dependencies include GTK 3, libsecret,
@@ -238,16 +225,12 @@ NXM handler. Install, upgrade, and remove it in an isolated Fedora 44 guest;
 do not install it on the host for package tests.
 
 The same release archive also produces a Linux x64 AppImage and a Linux-only
-Homebrew cask for that AppImage. Build them locally with:
+Homebrew cask for that AppImage. To build only the AppImage from that archive:
 
 ```sh
-python3 tools/package-appimage.py \
-  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
-  --output artifacts/release/modconductor-0.1.0-linux-x64.AppImage \
-  --version 0.1.0
-python3 tools/generate-linux-cask.py \
-  --appimage artifacts/release/modconductor-0.1.0-linux-x64.AppImage \
-  --output artifacts/release/modconductor.rb --version 0.1.0
+bash tools/package-appimage.sh \
+  artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
+  artifacts/release/modconductor-0.1.0-linux-x64.AppImage 0.1.0
 ```
 
 The generator checks pinned appimagetool 1.9.1, linuxdeploy
@@ -271,7 +254,7 @@ handler uses the stable AppImage path, not its temporary mount path.
 Check an installed cask AppImage on a private Xvfb display:
 
 ```sh
-python3 tools/smoke-linux-package.py "$HOME/Applications/modconductor-0.1.0-linux-x64.AppImage" \
+bash tools/smoke-desktop-package.sh "$HOME/Applications/modconductor-0.1.0-linux-x64.AppImage" \
   --version 0.1.0 --appimage --close-window
 ```
 
@@ -288,7 +271,7 @@ compliance review.
 
 ## Local Arch package
 
-`tools/generate-aur-package.py` uses the assembled Linux x64 tar archive to
+`tools/generate-aur-package.sh` uses the assembled Linux x64 tar archive to
 write `modconductor-bin.PKGBUILD` and `modconductor-bin.SRCINFO`. It uses the
 pinned Arch `base-devel` image to generate `.SRCINFO`. It does not rebuild the
 desktop binaries. The release finalizer adds both files to the checksum list.
@@ -298,10 +281,9 @@ installed launcher as the DEB and RPM packages.
 For a local check, use a new output directory in `.agent-workspace/`:
 
 ```sh
-python3 tools/generate-aur-package.py \
-  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
-  --version 0.1.0 \
-  --output-directory .agent-workspace/aur-check
+bash tools/generate-aur-package.sh \
+  artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
+  .agent-workspace/aur-check 0.1.0
 ```
 
 The AUR recipe points at the matching release archive. Local verification can

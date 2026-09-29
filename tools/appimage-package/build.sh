@@ -36,7 +36,7 @@ cp -a /usr/share/icons/Adwaita "$appdir/usr/share/icons/"
 cp -a /usr/share/mime "$appdir/usr/share/"
 cp /work/fonts.conf "$appdir/etc/fonts/fonts.conf"
 
-python3 /work/bundled-notices.py "$appdir"
+bash /work/bundled-notices.sh "$appdir"
 
 unset LD_LIBRARY_PATH
 "$tools/appimagetool-x86_64.AppImage" --appimage-extract-and-run \

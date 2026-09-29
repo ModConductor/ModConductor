@@ -92,7 +92,7 @@ treated as the binary's corresponding source.
 The Linux x64 AppImage generator uses appimagetool 1.9.1, linuxdeploy
 1-alpha-20251107-1, the GTK plugin at
 `7a3fbc31a9e5075073ff8790f26effbac5f84453`, and the type-2 runtime
-20251108. `tools/bootstrap-appimage-tools.py` pins their official download
+20251108. `tools/bootstrap-appimage-tools.sh` pins their official download
 URLs and SHA-256 values. The type-2 runtime and GTK plugin hook are bundled;
 their [runtime](third-party/appimage-runtime-LICENSE.txt) and
 [plugin](third-party/linuxdeploy-plugin-gtk-LICENSE.txt) notices accompany the

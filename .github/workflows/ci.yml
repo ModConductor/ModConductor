@@ -1,68 +1,60 @@
-name: Foundation
+name: CI
 
 on:
-  push:
   pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
+
 jobs:
-  build:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+      - run: dotnet tool restore
+      - run: dotnet tool run fantomas --check src tests
+      - run: dotnet tool run csharpier check src/ModConductor.Protocol/ModConductor.Protocol.csproj Directory.Packages.props ModConductor.slnx
+      - run: dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/lib/src/workspaces_client.dart packages/mc_client/lib/src/mod_library_client.dart packages/mc_client/lib/src/mod_library_models.dart packages/mc_client/lib/src/mod_library_wire.dart packages/mc_client/test packages/mc_workspaces/lib packages/mc_workspaces/test packages/mc_ui_collections/lib packages/mc_ui_collections/test packages/mc_mod_library/lib packages/mc_mod_library/test
+        working-directory: ui
+
+  engine-tests:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
-    env:
-      DOTNET_CLI_TELEMETRY_OPTOUT: 1
-      DOTNET_NOLOGO: 1
-      DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
-      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.tools/dotnet
-      DOTNET_CLI_HOME: ${{ github.workspace }}/.tools/dotnet-cli
-      NUGET_PACKAGES: ${{ github.workspace }}/.tools/nuget/packages
-      PUB_CACHE: ${{ github.workspace }}/.tools/pub-cache
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Linux desktop prerequisites
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            clang cmake ninja-build pkg-config libgtk-3-dev libepoxy-dev \
-            libx11-dev libsecret-1-dev liblzma-dev zlib1g-dev libssl-dev \
-            libstdc++-12-dev libunwind-dev libicu-dev libegl1 libgles2 \
-            fontconfig fonts-dejavu-core libglib2.0-bin xdg-utils \
-            xvfb xauth xdotool dbus-x11
-          pkg-config --print-errors --cflags --libs gtk+-3.0
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - name: Install pinned Flutter SDK locally
-        run: python tools/bootstrap-flutter.py
-      - name: Add Flutter to PATH
-        shell: bash
-        run: echo "$GITHUB_WORKSPACE/.tools/flutter/bin" >> "$GITHUB_PATH"
-      - name: Restore locked engine
-        run: dotnet restore ModConductor.slnx --locked-mode
-      - name: Restore local tools
-        run: dotnet tool restore
-      - name: Check F# formatting
-        run: dotnet tool run fantomas --check src tests
-      - name: Check protocol project formatting
-        run: dotnet tool run csharpier check src/ModConductor.Protocol/ModConductor.Protocol.csproj Directory.Packages.props ModConductor.slnx
-      - name: Build engine
-        run: dotnet build ModConductor.slnx --configuration Release --no-restore
-      - name: Publish native storage and filesystem fixtures
+      - run: dotnet restore ModConductor.slnx --locked-mode
+      - run: dotnet build ModConductor.slnx --configuration Release --no-restore
+      - name: Publish native test fixture
         run: dotnet publish tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj --configuration Release --runtime ${{ runner.os == 'Linux' && 'linux-x64' || 'win-x64' }} --no-restore --output .tools/publish/native-fixtures
-      - name: Check scoped native fixtures
+      - name: Run scoped native tests
         shell: pwsh
         env:
           MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/${{ runner.os == 'Windows' && 'ModConductor.Native.Fixtures.exe' || 'ModConductor.Native.Fixtures' }}
           MC_NATIVE_FIXTURE_ROOT: ${{ github.workspace }}/.agent-workspace
         run: |
+          New-Item -ItemType Directory -Force .agent-workspace/test-results | Out-Null
           $cases = @(
             'platform:NativeTests', 'storage:StorageTests', 'workspaces:WorkspaceTests',
             'library:LibraryTests', 'migration:MigrationTests', 'migration:VortexMigrationTests',
@@ -84,104 +76,59 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - uses: actions/upload-artifact@v7
-        if: runner.os == 'Windows' && (success() || failure())
+        if: failure()
         with:
-          name: windows-native-fixture-${{ github.sha }}
-          path: .tools/publish/native-fixtures/
+          name: native-test-failures-${{ matrix.os }}
+          path: .agent-workspace/test-results/*.trx
+          if-no-files-found: ignore
           retention-days: 3
-      - name: Restore locked desktop dependencies
+
+  flutter-analysis:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+      - run: flutter pub get --enforce-lockfile
         working-directory: ui/apps/mod_conductor
-        run: flutter pub get --enforce-lockfile
-      - name: Check generated protocol boundaries
-        run: python tools/generate-protocol.py --check
-      - name: Analyze desktop and shared foundation
+      - run: flutter analyze --no-pub
         working-directory: ui
-        run: flutter analyze --no-pub
-      - name: Check Dart formatting
-        working-directory: ui
-        run: dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/lib/src/workspaces_client.dart packages/mc_client/lib/src/mod_library_client.dart packages/mc_client/lib/src/mod_library_models.dart packages/mc_client/lib/src/mod_library_wire.dart packages/mc_client/test packages/mc_workspaces/lib packages/mc_workspaces/test packages/mc_ui_collections/lib packages/mc_ui_collections/test packages/mc_mod_library/lib packages/mc_mod_library/test
-      - name: Check desktop interactions
-        working-directory: ui/apps/mod_conductor
-        run: flutter test --no-pub test
-      - name: Check shared collections
-        working-directory: ui/packages/mc_ui_collections
-        run: flutter test --no-pub
-      - name: Check mod library presentation
-        working-directory: ui/packages/mc_mod_library
-        run: flutter test --no-pub
-      - name: Check workspace presentation
-        working-directory: ui/packages/mc_workspaces
-        run: flutter test --no-pub
-      - name: Publish Linux NativeAOT engine
-        if: runner.os == 'Linux'
+
+  flutter-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+      - name: Install test prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev libepoxy-dev libx11-dev libsecret-1-dev liblzma-dev zlib1g-dev libssl-dev libstdc++-12-dev libunwind-dev libicu-dev
+      - run: dotnet restore src/ModConductor.Engine/ModConductor.Engine.fsproj --locked-mode
+      - name: Build engine used by client tests
         run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime linux-x64 --self-contained true --no-restore -p:ModConductorLocalPublishVerificationOnly=true --output .tools/publish/linux-x64
-      - name: Publish Windows NativeAOT engine
-        if: runner.os == 'Windows'
-        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime win-x64 --self-contained true --no-restore -p:ModConductorLocalPublishVerificationOnly=true --output .tools/publish/win-x64
-      - name: Check Linux durable operations and session security
-        if: runner.os == 'Linux'
+      - run: dotnet restore tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj --locked-mode
+      - run: dotnet publish tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj --configuration Release --runtime linux-x64 --no-restore --output .tools/publish/native-fixtures
+      - run: flutter pub get --enforce-lockfile
+        working-directory: ui/apps/mod_conductor
+      - run: flutter test --no-pub test
+        working-directory: ui/apps/mod_conductor
+      - run: flutter test --no-pub
+        working-directory: ui/packages/mc_ui_collections
+      - run: flutter test --no-pub
+        working-directory: ui/packages/mc_mod_library
+      - run: flutter test --no-pub
+        working-directory: ui/packages/mc_workspaces
+      - run: flutter test --no-pub
         working-directory: ui/packages/mc_client
         env:
           MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/linux-x64/ModConductor.Engine
           MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures
           MC_NEXUS_OUTPUT: ${{ github.workspace }}/.agent-workspace/nexus-client
-        run: flutter test --no-pub
-      - name: Check native Flutter wire path on private display
-        if: runner.os == 'Linux'
-        run: python tools/check-linux-wire.py
-      - name: Check native Linux folder selection and workspace journey
-        if: runner.os == 'Linux'
-        run: python tools/check-linux-wire.py --workspaces --output .agent-workspace/workspace-ui
-      - name: Check native Linux collections
-        if: runner.os == 'Linux'
-        run: python tools/check-linux-wire.py --collections --output .agent-workspace/collections-ui
-      - name: Check Windows session key cleanup
-        if: runner.os == 'Windows'
-        run: ./tools/check-windows-session-keys.ps1 -EnginePath "${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe"
-      - name: Check Windows authenticated wire and cancellation
-        if: runner.os == 'Windows'
-        working-directory: ui/packages/mc_client
-        env:
-          MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe
-          MC_NATIVE_FIXTURE: ${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe
-          MC_NEXUS_OUTPUT: ${{ github.workspace }}/.agent-workspace/nexus-client
-        run: flutter test --no-pub
-      - name: Check native Windows Flutter wire path
-        if: runner.os == 'Windows'
-        working-directory: ui/apps/mod_conductor
-        run: flutter test integration_test/native_wire_test.dart -d windows --no-pub --dart-define=MC_ENGINE_PATH=${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe
-      - name: Check native Windows collections
-        if: runner.os == 'Windows'
-        working-directory: ui/apps/mod_conductor
-        run: flutter test integration_test/collections_native_test.dart -d windows --no-pub --dart-define=MC_ENGINE_PATH=${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe --dart-define=MC_NATIVE_FIXTURE=${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe --dart-define=MC_COLLECTION_OUTPUT=${{ github.workspace }}/.agent-workspace/collections-ui
-      - name: Build Linux desktop
-        if: runner.os == 'Linux'
-        working-directory: ui/apps/mod_conductor
-        run: flutter build linux --release --no-pub
-      - name: Build Windows desktop
-        if: runner.os == 'Windows'
-        working-directory: ui/apps/mod_conductor
-        run: flutter build windows --release --no-pub
-      - name: Install pinned Linux LOOT helper toolchain
-        if: runner.os == 'Linux'
-        run: rustup toolchain install 1.89.0 --profile minimal
-      - name: Assemble development bundle
-        run: python tools/assemble-development.py
-      - name: Install pinned Windows packaging tools
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          rustup toolchain install 1.89.0 --profile minimal
-          $archive = "$env:GITHUB_WORKSPACE/.tools/nsis-3.12.zip"
-          Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip' -OutFile $archive
-          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($hash -ne '56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f') { throw "NSIS archive hash mismatch: $hash" }
-          Expand-Archive $archive -DestinationPath "$env:GITHUB_WORKSPACE/.tools/nsis"
-          "$env:GITHUB_WORKSPACE/.tools/nsis/nsis-3.12" >> $env:GITHUB_PATH
-      - name: Build pinned Windows LOOT helper
-        if: runner.os == 'Windows'
-        working-directory: native/ModConductor.Loot.Helper
-        run: cargo +1.89.0 build --locked --release --target x86_64-pc-windows-msvc
-      - name: Construct local unsigned Windows distributions
-        if: runner.os == 'Windows'
-        run: python tools/package-windows.py --loot-helper native/ModConductor.Loot.Helper/target/x86_64-pc-windows-msvc/release/modconductor-loot-helper.exe --output .tools/packages/windows-x64

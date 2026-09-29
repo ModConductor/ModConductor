@@ -5,7 +5,7 @@ LABEL org.modconductor.tool="reusable-linux-x64-package-builder"
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl git python3 clang cmake ninja-build pkg-config \
+    ca-certificates curl git jq clang cmake ninja-build pkg-config \
     libgtk-3-dev libepoxy-dev libx11-dev libsecret-1-dev liblzma-dev \
     zlib1g-dev libssl-dev libstdc++-12-dev libunwind-dev libicu-dev \
     fontconfig fonts-dejavu-core libglib2.0-bin xdg-utils xvfb xauth \

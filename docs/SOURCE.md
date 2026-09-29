@@ -73,7 +73,7 @@ archive or a private source cache.
   [tagged source](https://github.com/AppImage/type2-runtime/tree/20251108),
   and the bundled linuxdeploy GTK plugin comes from
   [`7a3fbc31a9e5075073ff8790f26effbac5f84453`](https://github.com/linuxdeploy/linuxdeploy-plugin-gtk/tree/7a3fbc31a9e5075073ff8790f26effbac5f84453).
-  `tools/bootstrap-appimage-tools.py` pins their distributed binary/script
+  `tools/bootstrap-appimage-tools.sh` pins their distributed binary/script
   hashes. Appimagetool and linuxdeploy are packaging tools, not copied into
   the AppImage.
 
