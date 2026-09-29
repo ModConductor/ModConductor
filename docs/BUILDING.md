@@ -150,7 +150,8 @@ remain in the chosen workspace, not the binary directory. Test both formats in
 an isolated Windows user profile before release. Do not use a physical game
 installation for package smoke tests. Other Windows architectures, MSIX,
 system-wide installation, file associations, signing, and publication are not
-selected. MC-064 retains real-game qualification; MC-067 retains compliance review.
+selected. Release publication requires the package checks and explicit human
+approval.
 
 The desktop package workflow uses `tools/publish-desktop.sh` on Linux and
 `tools/publish-desktop.ps1` on Windows. The Windows script builds the NativeAOT engine,
@@ -167,6 +168,19 @@ the same release checksum list; [source directions](SOURCE.md) are copied into
 the platform payloads. These are local, unsigned artifacts. The package
 workflow does not publish or submit them. WinGet metadata names the selected
 project licence; package/runtime qualification remains separate.
+
+## Release publication
+
+Pushing a `v<VERSION>` tag runs **Desktop packages** and stores the release
+assets and package metadata. Create the GitHub release from those checked
+assets. The workflow does not create the release.
+
+After the release exists, run **Publish desktop packages** from the same tag.
+Supply the version and the successful **Desktop packages** run ID. The workflow
+checks that the package source revision matches the tag, runs the package
+checks, and publishes Homebrew, Scoop, Chocolatey, WinGet fork, and Nixpkgs fork
+updates. AUR publication is a separate opt-in input. Open the WinGet and
+Nixpkgs upstream pull requests manually.
 
 ## Local Linux x64 desktop payload
 
@@ -248,9 +262,8 @@ Fedora 44 before release. If FUSE is unavailable in a test container, use
 `--appimage-extract-and-run`; that does not prove direct FUSE mounting.
 
 The cask links this exact AppImage on Linux and checks its SHA-256. It does
-not target macOS. Do not publish the cask or enable a package repository until
-the licence-compliance, hosting, and signing decisions are complete. An AppImage NXM
-handler uses the stable AppImage path, not its temporary mount path.
+not target macOS. The first release remains unsigned. An AppImage NXM handler
+uses the stable AppImage path, not its temporary mount path.
 Check an installed cask AppImage on a private Xvfb display:
 
 ```sh
@@ -261,13 +274,12 @@ bash tools/smoke-desktop-package.sh "$HOME/Applications/modconductor-0.1.0-linux
 This mode extracts the AppImage under checkout-owned scratch and does not test
 FUSE mounting. It needs Xvfb and xdotool.
 The optional shared Linux cask test uses this command after Homebrew installs
-the cask. The shared publisher needs an explicit existing tap repository and
-`publish_homebrew=true`; this project does not set either one yet.
+the cask. The shared publisher updates `alsi-lawr/homebrew-tap` when
+`publish_homebrew=true`.
 
 Test installation, upgrade, and removal in an isolated Ubuntu 24.04 guest.
 The package workflow does not publish a release or install the product on the
-host. MC-064 retains real-game qualification; MC-067 retains the remaining
-compliance review.
+host. Package publication still requires explicit human approval.
 
 ## Local Arch package
 
@@ -290,16 +302,16 @@ bash tools/generate-aur-package.sh \
 The AUR recipe points at the matching release archive. Local verification can
 substitute a `file://` URL for that same archive. Build with `makepkg` as a
 non-root user, then install the resulting package in an isolated Arch system.
-The original project material is GPL-3.0-or-later; mixed-payload package
-metadata and remaining compliance still need review. Do not submit the recipe
-to the public AUR or publish the package before MC-067 is complete.
+The shared publisher can update `modconductor-bin` when AUR publication is
+selected and `AUR_SSH_PRIVATE_KEY` is available. This route is opt-in.
 
 ## Nix local package
 
 On x86-64 Linux, `nix build .#modconductor` builds the Flutter application,
 engine, and pinned LOOT helper as one local package. `nix run .#modconductor`
-runs that package. Neither command needs a separate helper build. Do not
-publish the result before the remaining MC-067 compliance review.
+runs that package. Neither command needs a separate helper build. The shared
+publisher builds the Nixpkgs package from `packaging/nixpkgs/package.nix` and
+pushes a fork branch. Open the upstream Nixpkgs pull request manually.
 
 ## UI checks
 

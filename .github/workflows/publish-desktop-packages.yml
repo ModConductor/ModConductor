@@ -1,0 +1,164 @@
+name: Publish desktop packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix
+        required: true
+        type: string
+      package_run_id:
+        description: Successful Desktop packages workflow run ID
+        required: true
+        type: string
+      publish_aur:
+        description: Publish modconductor-bin to the AUR
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: desktop-package-publication-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  import-package-artifacts:
+    name: Import verified package artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the matching release tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          test "$GITHUB_REF" = "refs/tags/v$VERSION" || {
+            echo "::error::Run this workflow from tag v$VERSION." >&2
+            exit 1
+          }
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets-${{ inputs.version }}
+          path: artifacts/release
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.package_run_id }}
+          github-token: ${{ github.token }}
+      - name: Download package metadata
+        uses: actions/download-artifact@v8
+        with:
+          name: package-metadata-${{ inputs.version }}
+          path: artifacts/package-metadata
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.package_run_id }}
+          github-token: ${{ github.token }}
+      - name: Download JReleaser workspace
+        uses: actions/download-artifact@v8
+        with:
+          name: jreleaser-workspace-${{ inputs.version }}
+          path: out/jreleaser
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.package_run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify the source revision
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          metadata=artifacts/package-metadata/modconductor-source.json
+          test "$(jq -r .version "$metadata")" = "$VERSION"
+          test "$(jq -r .source_revision "$metadata")" = "$GITHUB_SHA"
+      - name: Upload release assets for publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets-${{ inputs.version }}
+          path: artifacts/release
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Upload package metadata for publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-metadata-${{ inputs.version }}
+          path: artifacts/package-metadata
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Upload JReleaser workspace for publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: jreleaser-workspace-${{ inputs.version }}
+          path: out/jreleaser
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Publish package repositories
+    needs: import-package-artifacts
+    uses: alsi-lawr/package-release-workflows/.github/workflows/package-release.yml@v1
+    permissions:
+      actions: read
+      attestations: write
+      contents: write
+      id-token: write
+    with:
+      version: ${{ inputs.version }}
+      revision: ${{ github.sha }}
+      package_name: modconductor
+      command_name: modconductor
+      windows_executable_name: mod_conductor.exe
+      winget_scope: user
+      winget_uninstall_key: ModConductor
+      release_name: Mod Conductor
+      container_smoke_script: tools/smoke-desktop-package.sh
+      smoke_script: tools/smoke-desktop-package
+      brew_cask_path: artifacts/release/modconductor.rb
+      brew_cask_tap_repo: alsi-lawr/homebrew-tap
+      brew_cask_smoke_script: tools/smoke-desktop-package
+      scoop_manifest_path: artifacts/package-metadata/scoop/modconductor.json
+      scoop_bucket_repo: alsi-lawr/scoop-bucket
+      chocolatey_nuspec_path: artifacts/package-metadata/chocolatey/modconductor.nuspec
+      winget_manifest_prefix: artifacts/package-metadata/manifests/a/alsi-lawr/ModConductor
+      release_title_prefix: Mod Conductor
+      publish_github_release: false
+      publish_homebrew: true
+      publish_scoop: true
+      publish_winget: true
+      publish_nixpkgs: true
+      publish_chocolatey: true
+      publish_aur: ${{ inputs.publish_aur }}
+      aur_package_base: modconductor-bin
+      aur_pkgbuild_path: artifacts/release/modconductor-bin.PKGBUILD
+      aur_srcinfo_path: artifacts/release/modconductor-bin.SRCINFO
+      publish_docker_hub: false
+      publish_nix_images: false
+      promote_latest: false
+      run_package_tests: true
+      run_homebrew_test: false
+      run_linux_cask_test: true
+      run_windows_packaging_tests: true
+      run_winget_test: true
+      jreleaser_image: jreleaser/jreleaser-slim:v1.26.0
+      jreleaser_config: packaging/jreleaser-desktop.yml
+      winget_upstream_repo: microsoft/winget-pkgs
+      winget_fork_owner: alsi-lawr
+      winget_fork_repo: winget-pkgs
+      winget_branch_prefix: modconductor-v
+      nix_upstream_repo: NixOS/nixpkgs
+      nix_fork_owner: alsi-lawr
+      nix_fork_repo: nixpkgs
+      nix_branch_prefix: modconductor-v
+      nix_package_name: modconductor
+      nix_package_template_path: packaging/nixpkgs/package.nix
+      nix_package_dependencies_path: nix/pubspec.lock.json
+      docker_build_matrix: '[]'
+      docker_manifest_images: '[]'
+      ghcr_build_matrix: '[]'
+      ghcr_manifest_images: '[]'
+      promotion_image_matrix: '[]'
+    secrets:
+      PACKAGE_REPOSITORY_TOKEN: ${{ secrets.PACKAGE_REPOSITORY_TOKEN }}
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-output='' version='' revision='' source_date_epoch=''
+output='' version='' revision='' source_date_epoch='' dotnet_sdk=10.0.400
 while (($#)); do
   case "$1" in
     --output) output=$2 ;;
     --version) version=$2 ;;
     --revision) revision=$2 ;;
     --source-date-epoch) source_date_epoch=$2 ;;
+    --dotnet-sdk) dotnet_sdk=$2 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
   shift 2
@@ -28,5 +29,5 @@ manifest_sha=$(sha256sum "$manifest" | cut -d ' ' -f1)
 created=$(date -u -d "@$source_date_epoch" +%Y-%m-%dT%H:%M:%SZ)
 jq -n --slurpfile inventory "$manifest" --arg version "$version" --arg sha "$manifest_sha" --arg created "$created" \
   '{spdxVersion:"SPDX-2.3",dataLicense:"CC0-1.0",SPDXID:"SPDXRef-DOCUMENT",name:("ModConductor-Nix-x86_64-linux-"+$version),documentNamespace:("https://modconductor.invalid/spdx/nix/"+$version+"/"+$sha),creationInfo:{created:$created,creators:["Tool: nix/write-package-metadata.sh"]},packages:[{name:"Mod Conductor",SPDXID:"SPDXRef-ModConductor",versionInfo:$version,downloadLocation:"NOASSERTION",filesAnalyzed:true,licenseConcluded:"NOASSERTION",licenseDeclared:"GPL-3.0-or-later",copyrightText:"NOASSERTION"}],files:($inventory[0]|to_entries|map({fileName:("./"+.value.path),SPDXID:("SPDXRef-File-"+(.key|tostring)),checksums:[{algorithm:"SHA256",checksumValue:.value.sha256}],licenseConcluded:"NOASSERTION",copyrightText:"NOASSERTION"})),relationships:([{spdxElementId:"SPDXRef-DOCUMENT",relatedSpdxElement:"SPDXRef-ModConductor",relationshipType:"DESCRIBES"}]+($inventory[0]|to_entries|map({spdxElementId:"SPDXRef-ModConductor",relatedSpdxElement:("SPDXRef-File-"+(.key|tostring)),relationshipType:"CONTAINS"})))}' > "$documents/sbom.spdx.json"
-jq -n --arg revision "$revision" --arg sha "$manifest_sha" \
-  '{source_revision:$revision,nix_system:"x86_64-linux",flutter_sdk:"3.47.4",dotnet_sdk:"10.0.400",signature:"unsigned-local-verification-only",payload_manifest_sha256:$sha}' > "$documents/provenance.json"
+jq -n --arg revision "$revision" --arg sha "$manifest_sha" --arg dotnet_sdk "$dotnet_sdk" \
+  '{source_revision:$revision,nix_system:"x86_64-linux",flutter_sdk:"3.47.4",dotnet_sdk:$dotnet_sdk,signature:"unsigned-local-verification-only",payload_manifest_sha256:$sha}' > "$documents/provenance.json"
