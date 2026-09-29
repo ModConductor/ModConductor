@@ -66,7 +66,8 @@ for archive SHA-256 hashes.
 | yaml | 3.1.4 | [pub.dev](https://pub.dev/packages/yaml/versions/3.1.4) | [notice](third-party/yaml-LICENSE.txt) |
 
 Notice line endings/trailing whitespace are normalized without changing terms.
-The GPL selection does not complete the remaining compliance review or publication decision.
+The final licence assessment selected GPL-3.0-or-later. Publication remains a
+separate human decision.
 
 ## Rust LOOT helper
 

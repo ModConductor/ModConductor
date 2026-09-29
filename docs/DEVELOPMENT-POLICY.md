@@ -7,14 +7,12 @@ repository are licensed under the GNU General Public License, version 3 or
 own terms and notices; this grant does not relicense it. Record actual adoption
 in [Provenance](PROVENANCE.md).
 
-The licence selection does not authorize this workflow to publish source or
-binaries. Local builds and tests do not authorize distribution. The remaining
-licence compliance, source-delivery, package, and publication gates require
-separate review and explicit human approval.
+The licence assessment is complete. Local builds and tests do not authorize
+publication. Release packages must pass their package checks, and publication
+requires explicit human approval.
 
 The investigation consulted Mod Organizer 2 source. No clean-room claim is made.
-A language change or process boundary does not settle obligations for reused
-material. The final licence assessment remains separate from development.
+The GPL-3.0-or-later licence is the result of the final assessment.
 
 Use F# for authored engine logic and Flutter for presentation. Keep engine policy
 out of Dart. UI dependencies must be FOSS, without commercial/FOSS dual licensing
@@ -22,7 +20,7 @@ or proprietary required components. Confine CMake to Flutter native integration.
 
 Keep mockup apps, fixtures, preview runners, and captures untracked under
 `.agent-workspace/<session-id>/`. Production components and behavioral tests belong
-in source. Do not create a README yet.
+in source.
 
 Keep separate Protobuf files for each cohesive feature under `modconductor.v1`.
 A protocol major change requires explicit human instruction. Internal prototype
