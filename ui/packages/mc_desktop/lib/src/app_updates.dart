@@ -20,7 +20,7 @@ class AppRelease {
   final String version;
   final bool compatible;
   Uri get page =>
-      Uri.https('github.com', '/alsi-lawr/ModConductor/releases/tag/v$version');
+      Uri.https('github.com', '/ModConductor/ModConductor/releases/tag/v$version');
 }
 
 AppRelease parseWindowsRelease(Object? body) {
@@ -229,7 +229,7 @@ class DesktopAppUpdateSource implements AppUpdateSource {
   final MethodChannel _channel;
   static final _releaseEndpoint = Uri.https(
     'api.github.com',
-    '/repos/alsi-lawr/ModConductor/releases/latest',
+    '/repos/ModConductor/ModConductor/releases/latest',
   );
 
   @override

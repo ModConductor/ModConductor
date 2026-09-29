@@ -10,13 +10,13 @@ executable=$(unzip -Z1 "$archive" | awk '$0 == "mod_conductor.exe" || $0 ~ /\/mo
 [[ $(printf '%s\n' "$executable" | wc -l) -eq 1 && -n $executable ]] || { echo "Expected one Windows desktop executable" >&2; exit 1; }
 archive_sha=$(sha256sum "$archive" | cut -d ' ' -f1)
 installer_sha=$(sha256sum "$installer" | cut -d ' ' -f1)
-archive_url="https://github.com/alsi-lawr/ModConductor/releases/download/v$version/${archive##*/}"
-installer_url="https://github.com/alsi-lawr/ModConductor/releases/download/v$version/${installer##*/}"
+archive_url="https://github.com/ModConductor/ModConductor/releases/download/v$version/${archive##*/}"
+installer_url="https://github.com/ModConductor/ModConductor/releases/download/v$version/${installer##*/}"
 archive_stem=${archive##*/}
 archive_stem=${archive_stem%.zip}
 mkdir -p "$metadata/scoop" "$metadata/chocolatey/tools" "$metadata/manifests/a/alsi-lawr/ModConductor/$version"
 jq -n --arg version "$version" --arg url "$archive_url" --arg hash "$archive_sha" --arg executable "${executable//\//\\}" \
-  '{version:$version,description:"Desktop mod organiser",homepage:"https://github.com/alsi-lawr/ModConductor",architecture:{"64bit":{url:$url,hash:$hash}},bin:[[$executable,"modconductor"]],shortcuts:[[$executable,"Mod Conductor"]]}' > "$metadata/scoop/modconductor.json"
+  '{version:$version,description:"Desktop mod organiser",homepage:"https://github.com/ModConductor/ModConductor",architecture:{"64bit":{url:$url,hash:$hash}},bin:[[$executable,"modconductor"]],shortcuts:[[$executable,"Mod Conductor"]]}' > "$metadata/scoop/modconductor.json"
 cat > "$metadata/chocolatey/modconductor.nuspec" <<NUSPEC
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
@@ -24,7 +24,7 @@ cat > "$metadata/chocolatey/modconductor.nuspec" <<NUSPEC
     <id>modconductor</id>
     <version>$version</version>
     <authors>Mod Conductor contributors</authors>
-    <projectUrl>https://github.com/alsi-lawr/ModConductor</projectUrl>
+    <projectUrl>https://github.com/ModConductor/ModConductor</projectUrl>
     <description>Desktop mod organiser</description>
   </metadata>
   <files><file src="tools\**" target="tools" /></files>
@@ -82,7 +82,7 @@ Publisher: Mod Conductor contributors
 PackageName: Mod Conductor
 License: GPL-3.0-or-later
 ShortDescription: Desktop mod organiser
-PackageUrl: https://github.com/alsi-lawr/ModConductor
+PackageUrl: https://github.com/ModConductor/ModConductor
 ManifestType: defaultLocale
 ManifestVersion: 1.9.0
 YAML

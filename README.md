@@ -15,7 +15,7 @@ downloads, installation, profiles, and load order.
 ## Install
 
 Download Mod Conductor from the
-[latest GitHub release](https://github.com/alsi-lawr/ModConductor/releases/latest).
+[latest GitHub release](https://github.com/ModConductor/ModConductor/releases/latest).
 
 | Platform | Packages |
 | --- | --- |
@@ -69,7 +69,7 @@ yay -S modconductor-bin
 Run Mod Conductor without installing it:
 
 ```console
-nix run github:alsi-lawr/ModConductor#modconductor
+nix run github:ModConductor/ModConductor#modconductor
 ```
 
 Install it through your normal flake configuration if you want Nix to manage

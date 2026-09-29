@@ -206,7 +206,7 @@ void main() {
       await updates.openReleasePage();
       expect(
         source.opened.toString(),
-        'https://github.com/alsi-lawr/ModConductor/releases/tag/v1.2.4',
+        'https://github.com/ModConductor/ModConductor/releases/tag/v1.2.4',
       );
     },
   );

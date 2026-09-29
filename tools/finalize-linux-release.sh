@@ -31,7 +31,7 @@ Architecture: amd64
 Maintainer: Mod Conductor contributors
 Section: games
 Priority: optional
-Homepage: https://github.com/alsi-lawr/ModConductor
+Homepage: https://github.com/ModConductor/ModConductor
 Depends: libc6 (>= 2.34), libstdc++6 (>= 12), libgtk-3-0t64, libepoxy0, libsecret-1-0, libegl1, libgles2, libicu74, libunwind8, libssl3t64, zlib1g, libglib2.0-bin, fontconfig, fonts-dejavu-core, gsettings-desktop-schemas, xdg-utils, shared-mime-info
 Description: Desktop mod organiser
 CONTROL
@@ -59,10 +59,10 @@ cask "modconductor" do
   version "$version"
   sha256 "$(sha256sum "$appimage" | cut -d ' ' -f1)"
 
-  url "https://github.com/alsi-lawr/ModConductor/releases/download/v$version/${appimage##*/}"
+  url "https://github.com/ModConductor/ModConductor/releases/download/v$version/${appimage##*/}"
   name "Mod Conductor"
   desc "Desktop mod organiser"
-  homepage "https://github.com/alsi-lawr/ModConductor"
+  homepage "https://github.com/ModConductor/ModConductor"
 
   depends_on :linux
 

@@ -7,12 +7,12 @@ project:
   inceptionYear: "2026"
   stereotype: DESKTOP
   links:
-    homepage: https://github.com/alsi-lawr/ModConductor
-    documentation: https://github.com/alsi-lawr/ModConductor/tree/v{{projectVersion}}/docs
+    homepage: https://github.com/ModConductor/ModConductor
+    documentation: https://github.com/ModConductor/ModConductor/tree/v{{projectVersion}}/docs
 
 release:
   github:
-    owner: alsi-lawr
+    owner: ModConductor
     name: ModConductor
     tagName: v{{projectVersion}}
     skipRelease: true

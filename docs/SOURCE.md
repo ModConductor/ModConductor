@@ -4,7 +4,7 @@ The Linux and Windows release archives, installers, DEB, RPM, and AppImage
 contain executable Mod Conductor code. The corresponding MC source archive is
 `modconductor-v<VERSION>-source.tar.gz` on **the same version's release page**:
 
-`https://github.com/alsi-lawr/ModConductor/releases/download/v<VERSION>/modconductor-v<VERSION>-source.tar.gz`
+`https://github.com/ModConductor/ModConductor/releases/download/v<VERSION>/modconductor-v<VERSION>-source.tar.gz`
 
 Replace `<VERSION>` with the release version. The release's
 `checksums_sha256.txt` records the archive hash. Compare `SOURCE-REVISION` in

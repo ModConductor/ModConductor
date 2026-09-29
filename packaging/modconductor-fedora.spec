@@ -6,7 +6,7 @@ Summary: Desktop mod organiser
 # /usr/lib/modconductor/share/doc/modconductor/third-party. This is a local RPM,
 # not an assertion that this bundled payload meets Fedora repository policy.
 License: GPL-3.0-or-later AND GPL-3.0-only AND MPL-2.0 AND Apache-2.0 AND BSD-3-Clause AND BSD-2-Clause AND MIT AND 0BSD AND CC0-1.0 AND CC-BY-4.0 AND Unicode-3.0 AND Unicode-DFS-2016 AND Zlib AND BSL-1.0 AND FTL AND IJG
-URL: https://github.com/alsi-lawr/ModConductor
+URL: https://github.com/ModConductor/ModConductor
 BuildArch: x86_64
 Requires: /usr/bin/gsettings
 Requires: gtk3, libsecret, libglvnd-egl, libglvnd-gles
