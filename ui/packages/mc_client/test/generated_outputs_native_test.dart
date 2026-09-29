@@ -47,6 +47,16 @@ void main() {
                 )
               : null,
         );
+        if (Platform.isWindows) {
+          final isolated = await Process.run(fixture, [
+            '--isolate-windows-game-locations',
+            state.path,
+            area.path,
+            workspace,
+            profile,
+          ]);
+          expect(isolated.exitCode, 0, reason: '${isolated.stderr}');
+        }
         await expectLater(
           child.outputs(authenticate: false).read(workspace, profile),
           throwsA(

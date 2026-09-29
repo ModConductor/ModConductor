@@ -5,6 +5,7 @@ open System.IO
 open System.Runtime.CompilerServices
 open System.Text.Json
 open ModConductor.Native.Fixtures
+open ModConductor.Persistence
 
 let private writeJson includeNativeAot observe =
     use writer =
@@ -182,6 +183,19 @@ let private run (args: string array) =
         0
     | [| "--proton-files"; path |] when Path.IsPathFullyQualified path ->
         ProtonFixtures.create path |> ignore
+        0
+    | [| "--isolate-windows-game-locations"; state; area; workspace; profile |] when
+        Path.IsPathFullyQualified state && Path.IsPathFullyQualified area
+        ->
+        use store = new OperationStore(state)
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            state
+            area
+            (Guid.ParseExact(workspace, "N"))
+            (Guid.ParseExact(profile, "N"))
+
         0
     | [| "--steam-files"; path |] when Path.IsPathFullyQualified path ->
         SteamDiscoveryFixtures.create path |> ignore
