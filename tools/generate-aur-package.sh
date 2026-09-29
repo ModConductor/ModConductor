@@ -3,11 +3,13 @@ set -euo pipefail
 archive=$1 output=$2 version=$3
 root=$(cd "$(dirname "$0")/.." && pwd)
 [[ -f $archive && $version =~ ^[0-9]+(\.[0-9]+)*$ ]] || exit 1
+archive=$(realpath "$archive")
 mkdir -p "$output"
+output=$(cd "$output" && pwd)
 sha=$(sha256sum "$archive" | cut -d ' ' -f1)
 recipe="$output/modconductor-bin.PKGBUILD"
-# shellcheck disable=SC2154
-cat > "$recipe" <<RECIPE
+{
+  cat <<RECIPE
 pkgname=modconductor-bin
 pkgver=$version
 pkgrel=1
@@ -20,15 +22,21 @@ depends=('glibc' 'gcc-libs' 'gtk3' 'libepoxy' 'libglvnd' 'libsecret' 'icu' 'libu
 provides=('modconductor')
 conflicts=('modconductor')
 options=('!strip' '!debug')
+RECIPE
+  cat <<'RECIPE'
 source=("modconductor-v${pkgver}-linux-x64.tar.gz::${_release_base}/v${pkgver}/modconductor-v${pkgver}-linux-x64.tar.gz")
-sha256sums=('$sha')
+RECIPE
+  printf "sha256sums=('%s')\n" "$sha"
+  cat <<'RECIPE'
 
 package() {
   local payload="${srcdir}/modconductor-v${pkgver}-linux-x64"
   install -d "${pkgdir}/usr/lib/modconductor" "${pkgdir}/usr/bin" "${pkgdir}/usr/share/doc"
   cp -a --no-preserve=ownership "${payload}/." "${pkgdir}/usr/lib/modconductor/"
   cat > "${pkgdir}/usr/bin/modconductor" <<'MC_LAUNCHER'
-$(cat "$root/packaging/linux-installed-launcher.sh")
+RECIPE
+  cat "$root/packaging/linux-installed-launcher.sh"
+  cat <<'RECIPE'
 MC_LAUNCHER
   chmod 755 "${pkgdir}/usr/bin/modconductor"
   install -Dm644 "${payload}/share/applications/dev.modconductor.mod_conductor.desktop" "${pkgdir}/usr/share/applications/dev.modconductor.mod_conductor.desktop"
@@ -40,6 +48,7 @@ MC_LAUNCHER
   ln -s ../../lib/modconductor/share/doc/modconductor "${pkgdir}/usr/share/licenses/modconductor-bin"
 }
 RECIPE
+} > "$recipe"
 docker run --rm --init --network none --user "$(id -u):$(id -g)" \
   -v "$output:/recipe" -w /recipe -e HOME=/recipe \
   archlinux@sha256:8745817f349ed24373341ddb92776209eeec3f0364ea48f7f645ac5800d30a50 \

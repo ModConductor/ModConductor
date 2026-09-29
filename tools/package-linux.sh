@@ -34,11 +34,16 @@ engine="$work_directory/engine"
 helper="$work_directory/cargo-target/release/modconductor-loot-helper"
 for executable in "$bundle/mod_conductor" "$engine/ModConductor.Engine" "$helper"; do
   [[ -x $executable ]] || { echo "Missing executable $executable" >&2; exit 1; }
-  readelf -l -d "$executable" | grep -E 'interpreter:|RPATH|RUNPATH' | grep -q /nix/store/ && { echo "Nix-linked runtime: $executable" >&2; exit 1; } || :
+  elf=$(readelf -l -d "$executable") || { echo "Cannot read ELF metadata: $executable" >&2; exit 1; }
+  if grep -E 'interpreter:|RPATH|RUNPATH' <<<"$elf" | grep -q /nix/store/; then
+    echo "Nix-linked runtime: $executable" >&2
+    exit 1
+  fi
 done
 [[ -d $bundle/data/flutter_assets ]] || { echo "Flutter bundle missing" >&2; exit 1; }
 for library in "$bundle"/lib/*.so; do
-  if readelf -d "$library" | grep -E 'RPATH|RUNPATH' | grep -q /nix/store/; then
+  elf=$(readelf -d "$library") || { echo "Cannot read ELF metadata: $library" >&2; exit 1; }
+  if grep -E 'RPATH|RUNPATH' <<<"$elf" | grep -q /nix/store/; then
     echo "Nix-linked runtime library: $library" >&2
     exit 1
   fi

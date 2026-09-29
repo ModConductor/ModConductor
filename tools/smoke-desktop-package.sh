@@ -37,10 +37,31 @@ for number in {140..199}; do
 done
 [[ -n $display ]] || { echo "No private display available" >&2; exit 1; }
 xvfb_pid='' frontend_pid=''
+is_running() {
+  local state
+  state=$(ps -o stat= -p "$1" 2>/dev/null) || return 1
+  [[ $state != Z* ]]
+}
 # shellcheck disable=SC2329
 cleanup() {
-  [[ -z $frontend_pid ]] || kill -- -"$frontend_pid" 2>/dev/null || :
-  [[ -z $xvfb_pid ]] || kill "$xvfb_pid" 2>/dev/null || :
+  if [[ -n $frontend_pid ]]; then
+    kill -TERM -- -"$frontend_pid" 2>/dev/null || :
+    for ((stop_attempt=0; stop_attempt<20; stop_attempt++)); do
+      kill -0 -- -"$frontend_pid" 2>/dev/null || break
+      sleep .1
+    done
+    kill -KILL -- -"$frontend_pid" 2>/dev/null || :
+    wait "$frontend_pid" 2>/dev/null || :
+  fi
+  if [[ -n $xvfb_pid ]]; then
+    kill -TERM "$xvfb_pid" 2>/dev/null || :
+    for ((stop_attempt=0; stop_attempt<20; stop_attempt++)); do
+      is_running "$xvfb_pid" || break
+      sleep .1
+    done
+    kill -KILL "$xvfb_pid" 2>/dev/null || :
+    wait "$xvfb_pid" 2>/dev/null || :
+  fi
   rm -rf "$work" "$socket"
 }
 trap cleanup EXIT
@@ -64,9 +85,17 @@ unset WAYLAND_DISPLAY
 setsid "$launcher" >"$work/application.log" 2>&1 &
 frontend_pid=$!
 for ((attempt=0; attempt<150; attempt++)); do
-  kill -0 "$frontend_pid" || { cat "$work/application.log"; echo "Desktop exited before startup" >&2; exit 1; }
+  is_running "$frontend_pid" || { cat "$work/application.log"; echo "Desktop exited before startup" >&2; exit 1; }
   backend=$(find_descendant "$frontend_pid" ModConductor.Engine || :)
   if find "$work/data" -name state.db -print -quit | grep -q . && [[ -n $backend ]]; then
+    sleep 2
+    running_backend=$(find_descendant "$frontend_pid" ModConductor.Engine || :)
+    if ! is_running "$frontend_pid" || [[ -z $running_backend ]] || ! is_running "$running_backend"; then
+      cat "$work/application.log"
+      echo "Desktop or bundled engine exited during the startup check" >&2
+      exit 1
+    fi
+    backend=$running_backend
     if $close_window; then
       desktop_pid=$frontend_pid
       $appimage && desktop_pid=$(find_descendant "$frontend_pid" mod_conductor)
@@ -74,15 +103,18 @@ for ((attempt=0; attempt<150; attempt++)); do
       [[ ${#windows[@]} -eq 1 ]] || { echo "Expected one desktop window" >&2; exit 1; }
       xdotool windowclose "${windows[0]}"
       for ((close_attempt=0; close_attempt<100; close_attempt++)); do
-        kill -0 "$frontend_pid" 2>/dev/null || break
+        is_running "$frontend_pid" || break
         sleep .1
       done
-      kill -0 "$frontend_pid" 2>/dev/null && { echo "Desktop did not close" >&2; exit 1; }
+      is_running "$frontend_pid" && { echo "Desktop did not close" >&2; exit 1; }
+      status=0
+      wait "$frontend_pid" || status=$?
+      [[ $status -eq 0 ]] || { echo "Desktop exited with status $status" >&2; exit 1; }
       for close_attempt in {1..100}; do
-        [[ -e /proc/$backend ]] || break
+        is_running "$backend" || break
         sleep .1
       done
-      [[ ! -e /proc/$backend ]] || { echo "Engine remained after desktop closed" >&2; exit 1; }
+      is_running "$backend" && { echo "Engine remained after desktop closed" >&2; exit 1; }
     fi
     echo "Linux desktop and bundled engine started with private state"
     exit 0

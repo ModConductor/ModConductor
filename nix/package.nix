@@ -119,7 +119,7 @@ let
     packageRoot = ".";
     pubspecLock = lib.importJSON ./pubspec.lock.json;
     flutterBuildFlags = [ "--no-pub" ];
-    nativeBuildInputs = [ pkgs.patchelf pkgs.python3 pkgs.shared-mime-info ];
+    nativeBuildInputs = [ pkgs.patchelf pkgs.jq pkgs.shared-mime-info ];
     preBuild = ''
       mkdir -p apps/mod_conductor/linux/flutter/ephemeral/.plugin_symlinks
       ln -s "$(packagePath file_selector_linux)" \
@@ -177,7 +177,7 @@ let
     '';
     preFixup = ''
       writeFinalPackageMetadata() {
-        python3 ${self.outPath}/nix/write-package-metadata.py \
+        bash ${self.outPath}/nix/write-package-metadata.sh \
           --output "$out" --version 0.1.0 \
           --revision ${lib.escapeShellArg sourceRevision} \
           --source-date-epoch ${toString sourceDate}

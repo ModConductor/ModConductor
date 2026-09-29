@@ -278,7 +278,8 @@ desktop binaries. The release finalizer adds both files to the checksum list.
 The recipe installs the payload under `/usr/lib/modconductor` and uses the same
 installed launcher as the DEB and RPM packages.
 
-For a local check, use a new output directory in `.agent-workspace/`:
+For a local check, pass the archive, output directory, and version in that order.
+Use a new output directory in `.agent-workspace/`:
 
 ```sh
 bash tools/generate-aur-package.sh \
