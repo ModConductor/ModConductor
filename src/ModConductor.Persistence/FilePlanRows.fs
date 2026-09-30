@@ -31,13 +31,23 @@ module internal FilePlanRows =
             [ "$workspace", box (string workspace) ]
 
     let private versionsWith candidate connection transaction workspace profile =
+        let outputContext =
+            match GameContextRows.read connection transaction "" workspace profile with
+            | Ok state when state.Binding.IsSome ->
+                Some(OutputRows.contextId workspace profile state)
+            | _ -> None
+
         use command =
             Sqlite.command
                 connection
                 transaction
-                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND (EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR EXISTS(SELECT 1 FROM profile_mods s WHERE s.profile_id=$profile AND s.mod_id=m.id) OR m.id=$output OR m.id=$candidate))) ORDER BY m.id LIMIT $limit"
+                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND (EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR EXISTS(SELECT 1 FROM profile_mods s WHERE s.profile_id=$profile AND s.mod_id=m.id AND (NOT EXISTS(SELECT 1 FROM output_locations o WHERE o.id=m.id) OR EXISTS(SELECT 1 FROM output_locations o WHERE o.id=m.id AND o.context_id=$context AND o.enabled=1))) OR m.id=$output OR m.id=$candidate))) ORDER BY m.id LIMIT $limit"
                 [ "$workspace", box (string workspace)
                   "$profile", box (string profile)
+                  "$context",
+                  outputContext
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value)
                   "$output", box (string (FnisRunRows.outputId profile))
                   "$candidate",
                   candidate

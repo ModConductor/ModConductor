@@ -7,6 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'editor.dart';
+import 'editor_fields.dart';
 import 'fnis_tool.dart';
 import 'run_details.dart';
 import 'run_presentation.dart';
@@ -19,11 +20,13 @@ class ExecutablesBrowser extends StatefulWidget {
     required this.chooseExecutable,
     required this.chooseDirectory,
     this.fnis,
+    this.outputs,
     this.workspace,
   });
   final ExecutablesController controller;
   final ExecutablePathChooser chooseExecutable, chooseDirectory;
   final FnisClient? fnis;
+  final GeneratedOutputsClient? outputs;
   final WorkspaceInfo? workspace;
   @override
   State<ExecutablesBrowser> createState() => _ExecutablesBrowserState();
@@ -37,6 +40,7 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
     context: context,
     builder: (_) => ExecutableEditor(
       controller: c,
+      outputs: widget.outputs,
       initial: value,
       chooseExecutable: widget.chooseExecutable,
       chooseDirectory: widget.chooseDirectory,
@@ -164,6 +168,9 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
             const SizedBox(height: 16),
           ],
           _detail(context, 'Executable', value.executable),
+          _detail(context, 'Runtime', executableRuntimeLabel(value.runtime)),
+          if (value.outputName case final output?)
+            _detail(context, 'Output folder', output),
           _detail(context, 'Working directory', value.workingDirectory),
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
@@ -349,6 +356,12 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
                                   (v) =>
                                       Text(executableRunLabel(c.latest[v.id])),
                                 ),
+                                if (!narrow)
+                                  McColumn(
+                                    'Runtime',
+                                    (v) =>
+                                        Text(executableRuntimeLabel(v.runtime)),
+                                  ),
                                 if (!narrow)
                                   McColumn(
                                     'Executable',

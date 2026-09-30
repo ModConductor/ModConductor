@@ -188,7 +188,20 @@ module internal PublicationRows =
                 row.Entry.Kind <> ModKind.Regular
                 && not (
                     row.Entry.Kind = ModKind.GeneratedOutput
-                    && generatedFnisOutput connection transaction modId version
+                    && (generatedFnisOutput connection transaction modId version
+                        || (composition.IsNone
+                            && row.Entry.SourcePath
+                               |> Option.exists (fun path ->
+                                   match ModConductor.Platform.LogicalPath.components path with
+                                   | [ root ] ->
+                                       Sqlite.number
+                                           connection
+                                           transaction
+                                           "SELECT count(*) FROM output_locations WHERE id=$mod AND workspace_id=$workspace AND root_name=$root AND purpose=0 AND enabled=1 AND initialized=1"
+                                           [ "$mod", box (string modId)
+                                             "$workspace", box (string row.Entry.WorkspaceId)
+                                             "$root", box root ] = 1L
+                                   | _ -> false)))
                 )
                 ->
                 Error LibraryError.UnsupportedAction

@@ -5,11 +5,19 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.Platform
 
+[<RequireQualifiedAccess>]
+type ExecutableRuntime =
+    | Native
+    | Wine
+    | Proton
+
 type ExecutablePreset =
     { Id: Guid
       WorkspaceId: Guid
       Revision: int64
       Name: string
+      Runtime: ExecutableRuntime
+      OutputName: string option
       Launch: NativeLaunch }
 
 [<RequireQualifiedAccess>]
@@ -109,7 +117,8 @@ type ExecutableRun =
       Scope: string option
       RootExitCode: int option
       ActiveProcesses: int option
-      Problem: string option }
+      Problem: string option
+      OutputDirectory: string option }
 
     member this.Id = this.Source.Id
     member this.WorkspaceId = this.Source.WorkspaceId
@@ -132,6 +141,9 @@ type ExecutableError =
     | Capacity
     | Invalid of string
     | Unavailable of string
+
+type IExecutableLaunchProjection =
+    abstract Project: ExecutableRun -> Task<Result<NativeLaunch * string option, ExecutableError>>
 
 type IExecutableRepository =
     abstract List: Guid * Guid option -> Task<Result<PresetPage, ExecutableError>>

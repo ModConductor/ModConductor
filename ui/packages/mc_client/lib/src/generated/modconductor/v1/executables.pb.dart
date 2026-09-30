@@ -101,6 +101,8 @@ class ExecutablePreset extends $pb.GeneratedMessage {
     $core.String? workingDirectory,
     $core.Iterable<$core.String>? arguments,
     $core.Iterable<ExecutableEnvironmentSetting>? environment,
+    ExecutableRuntime? runtime,
+    $core.String? outputName,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -111,6 +113,8 @@ class ExecutablePreset extends $pb.GeneratedMessage {
     if (workingDirectory != null) result.workingDirectory = workingDirectory;
     if (arguments != null) result.arguments.addAll(arguments);
     if (environment != null) result.environment.addAll(environment);
+    if (runtime != null) result.runtime = runtime;
+    if (outputName != null) result.outputName = outputName;
     return result;
   }
 
@@ -139,6 +143,9 @@ class ExecutablePreset extends $pb.GeneratedMessage {
     ..pPS(7, _omitFieldNames ? '' : 'arguments')
     ..pPM<ExecutableEnvironmentSetting>(8, _omitFieldNames ? '' : 'environment',
         subBuilder: ExecutableEnvironmentSetting.create)
+    ..aE<ExecutableRuntime>(9, _omitFieldNames ? '' : 'runtime',
+        enumValues: ExecutableRuntime.values)
+    ..aOS(10, _omitFieldNames ? '' : 'outputName')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -219,6 +226,24 @@ class ExecutablePreset extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(8)
   $pb.PbList<ExecutableEnvironmentSetting> get environment => $_getList(7);
+
+  @$pb.TagNumber(9)
+  ExecutableRuntime get runtime => $_getN(8);
+  @$pb.TagNumber(9)
+  set runtime(ExecutableRuntime value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasRuntime() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearRuntime() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get outputName => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set outputName($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasOutputName() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearOutputName() => $_clearField(10);
 }
 
 class ExecutablePageRequest extends $pb.GeneratedMessage {
@@ -629,6 +654,7 @@ class ExecutableRun extends $pb.GeneratedMessage {
     $core.int? observedProcessCount,
     $core.String? problem,
     GameRunInfo? game,
+    $core.String? outputDirectory,
   }) {
     final result = create();
     if (request != null) result.request = request;
@@ -645,6 +671,7 @@ class ExecutableRun extends $pb.GeneratedMessage {
       result.observedProcessCount = observedProcessCount;
     if (problem != null) result.problem = problem;
     if (game != null) result.game = game;
+    if (outputDirectory != null) result.outputDirectory = outputDirectory;
     return result;
   }
 
@@ -682,6 +709,7 @@ class ExecutableRun extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'problem')
     ..aOM<GameRunInfo>(13, _omitFieldNames ? '' : 'game',
         subBuilder: GameRunInfo.create)
+    ..aOS(14, _omitFieldNames ? '' : 'outputDirectory')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -825,6 +853,15 @@ class ExecutableRun extends $pb.GeneratedMessage {
   void clearGame() => $_clearField(13);
   @$pb.TagNumber(13)
   GameRunInfo ensureGame() => $_ensure(12);
+
+  @$pb.TagNumber(14)
+  $core.String get outputDirectory => $_getSZ(13);
+  @$pb.TagNumber(14)
+  set outputDirectory($core.String value) => $_setString(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasOutputDirectory() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearOutputDirectory() => $_clearField(14);
 }
 
 class ExecutableProblem extends $pb.GeneratedMessage {

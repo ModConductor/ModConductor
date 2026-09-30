@@ -501,6 +501,9 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             None
         )
 
+    member _.Capture(modId, expected, version, cancellation) =
+        this.Run(modId, expected, version, None, cancellation, ignore, ignore, ignore, None)
+
     member _.Compose
         (
             modId,

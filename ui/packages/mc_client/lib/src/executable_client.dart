@@ -153,6 +153,15 @@ ExecutablePreset _preset(wire.ExecutablePreset value) => ExecutablePreset(
   workspaceId: value.workspaceId,
   revision: value.revision.toInt(),
   name: value.name,
+  outputName: value.hasOutputName() ? value.outputName : null,
+  runtime: switch (value.runtime) {
+    wire.ExecutableRuntime.EXECUTABLE_RUNTIME_NATIVE =>
+      ExecutableRuntime.native,
+    wire.ExecutableRuntime.EXECUTABLE_RUNTIME_WINE => ExecutableRuntime.wine,
+    wire.ExecutableRuntime.EXECUTABLE_RUNTIME_PROTON =>
+      ExecutableRuntime.proton,
+    _ => throw const FormatException('The tool runtime is unsupported.'),
+  },
   executable: value.executable,
   workingDirectory: value.workingDirectory,
   arguments: value.arguments,
@@ -170,6 +179,15 @@ wire.ExecutablePreset _presetWire(ExecutablePreset value) =>
       workspaceId: value.workspaceId,
       revision: Int64(value.revision),
       name: value.name,
+      outputName: value.outputName,
+      runtime: switch (value.runtime) {
+        ExecutableRuntime.native =>
+          wire.ExecutableRuntime.EXECUTABLE_RUNTIME_NATIVE,
+        ExecutableRuntime.wine =>
+          wire.ExecutableRuntime.EXECUTABLE_RUNTIME_WINE,
+        ExecutableRuntime.proton =>
+          wire.ExecutableRuntime.EXECUTABLE_RUNTIME_PROTON,
+      },
       executable: value.executable,
       workingDirectory: value.workingDirectory,
       arguments: value.arguments,
@@ -250,6 +268,7 @@ ExecutableRun readExecutableRun(wire.ExecutableRun value) {
         ? value.observedProcessCount
         : null,
     problem: value.hasProblem() ? value.problem : null,
+    outputDirectory: value.hasOutputDirectory() ? value.outputDirectory : null,
   );
 }
 

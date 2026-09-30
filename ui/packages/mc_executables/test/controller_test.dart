@@ -362,4 +362,61 @@ void main() {
       await api.changes.close();
     },
   );
+  testWidgets(
+    'generic editor saves the chosen runtime and can remove owned output',
+    (tester) async {
+      final api = FakeExecutables(), c = ExecutablesController();
+      c.attach(api, workspace, available: true);
+      await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: McAction(
+                label: 'Edit',
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => ExecutableEditor(
+                    controller: c,
+                    initial: api.current,
+                    chooseExecutable: (_) async => null,
+                    chooseDirectory: (_) async => null,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(action('Edit'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(McChoice<ExecutableRuntime>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Proton').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(McChoice<String>));
+      await tester.tap(find.byType(McChoice<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Audit output').last);
+      await tester.pumpAndSettle();
+      await tester.tap(action('Save'));
+      await tester.pumpAndSettle();
+      expect(api.current.runtime, ExecutableRuntime.proton);
+      expect(api.current.outputName, 'Audit output');
+      expect(api.current.arguments, ['', 'a b', '"quoted"']);
+      await tester.tap(action('Edit'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(McChoice<String>));
+      await tester.tap(find.byType(McChoice<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('None').last);
+      await tester.pumpAndSettle();
+      await tester.tap(action('Save'));
+      await tester.pumpAndSettle();
+      expect(api.current.outputName, isNull);
+      expect(api.current.runtime, ExecutableRuntime.proton);
+      c.dispose();
+      await api.changes.close();
+    },
+  );
 }

@@ -13,7 +13,8 @@ type internal DeploymentBackendRepository
         access: LibraryAccess,
         plans: FilePlanSession,
         recovery: Recovery,
-        generations: DeploymentGenerationStore
+        generations: DeploymentGenerationStore,
+        toolOutputs: ToolOutputSnapshots
     ) =
     interface IDeploymentRepository with
         member _.RunnableRoot(workspace, profile) =
@@ -51,20 +52,28 @@ type internal DeploymentBackendRepository
                     Ok(sources, context))
 
         member _.Prepare(id, sources, existing, progress, token) =
-            DeploymentPreparation.prepare
-                database
-                access
-                plans
-                generations
-                recovery
-                id
-                sources
-                existing
-                false
-                None
-                None
-                progress
-                token
+            task {
+                let! captured = toolOutputs.Capture(sources, token)
+
+                match captured with
+                | Error error -> return Error error
+                | Ok sources ->
+                    return!
+                        DeploymentPreparation.prepare
+                            database
+                            access
+                            plans
+                            generations
+                            recovery
+                            id
+                            sources
+                            existing
+                            false
+                            None
+                            None
+                            progress
+                            token
+            }
 
         member _.PrepareTransient(id, sources, existing, candidate, progress, token) =
             DeploymentPreparation.transient

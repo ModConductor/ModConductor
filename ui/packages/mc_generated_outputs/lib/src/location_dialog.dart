@@ -102,7 +102,7 @@ class OutputLocationsDialog extends StatelessWidget {
           const SizedBox(height: 12),
           if (!writable)
             const Text(
-              'Tools must write to the shown paths. These folders are not deployed.',
+              'Folders selected for tool output appear in Mods.',
             ),
           if (writable)
             const Text(

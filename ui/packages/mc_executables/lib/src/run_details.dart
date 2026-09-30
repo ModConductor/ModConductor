@@ -26,6 +26,8 @@ void showExecutableRunDetails(BuildContext context, ExecutableRun run) =>
                 McFact('File plan', files.fingerprint),
               ],
               McFact('Requested', run.requestedAt.toLocal().toString()),
+              if (run.outputDirectory case final output?)
+                McFact('Output folder', output, path: true),
               McFact(
                 'Root process',
                 run.rootExitCode != null

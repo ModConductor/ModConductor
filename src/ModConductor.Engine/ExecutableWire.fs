@@ -12,10 +12,16 @@ module internal ExecutableWire =
                 WorkspaceId = value.WorkspaceId.ToString("N"),
                 Revision = uint64 value.Revision,
                 Name = value.Name,
+                Runtime =
+                    (match value.Runtime with
+                     | ExecutableRuntime.Native -> Protocol.V1.ExecutableRuntime.Native
+                     | ExecutableRuntime.Wine -> Protocol.V1.ExecutableRuntime.Wine
+                     | ExecutableRuntime.Proton -> Protocol.V1.ExecutableRuntime.Proton),
                 Executable = value.Launch.Executable,
                 WorkingDirectory = value.Launch.WorkingDirectory
             )
 
+        value.OutputName |> Option.iter (fun name -> wire.OutputName <- name)
         wire.Arguments.AddRange value.Launch.Arguments
 
         for name, value in value.Launch.Environment do
@@ -30,6 +36,12 @@ module internal ExecutableWire =
           WorkspaceId = ModLibraryWire.id value.WorkspaceId
           Revision = ModLibraryWire.number value.Revision
           Name = value.Name
+          Runtime =
+            match value.Runtime with
+            | Protocol.V1.ExecutableRuntime.Wine -> ExecutableRuntime.Wine
+            | Protocol.V1.ExecutableRuntime.Proton -> ExecutableRuntime.Proton
+            | _ -> ExecutableRuntime.Native
+          OutputName = if value.HasOutputName then Some value.OutputName else None
           Launch =
             { Executable = value.Executable
               WorkingDirectory = value.WorkingDirectory
@@ -160,6 +172,7 @@ module internal ExecutableWire =
         |> Option.iter (fun count -> wire.ObservedProcessCount <- uint32 count)
 
         value.Problem |> Option.iter (fun problem -> wire.Problem <- problem)
+        value.OutputDirectory |> Option.iter (fun path -> wire.OutputDirectory <- path)
         wire
 
     let problem value =

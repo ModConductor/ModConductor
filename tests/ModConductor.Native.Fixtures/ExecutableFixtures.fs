@@ -141,6 +141,8 @@ module ExecutableFixtures =
                           WorkspaceId = workspace
                           Revision = 0L
                           Name = "Texture audit Ω"
+                          Runtime = ExecutableRuntime.Native
+                          OutputName = None
                           Launch = settings }
                     |> wait
                     |> result

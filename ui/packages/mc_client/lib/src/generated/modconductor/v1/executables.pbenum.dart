@@ -14,6 +14,28 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class ExecutableRuntime extends $pb.ProtobufEnum {
+  static const ExecutableRuntime EXECUTABLE_RUNTIME_NATIVE =
+      ExecutableRuntime._(0, _omitEnumNames ? '' : 'EXECUTABLE_RUNTIME_NATIVE');
+  static const ExecutableRuntime EXECUTABLE_RUNTIME_WINE =
+      ExecutableRuntime._(1, _omitEnumNames ? '' : 'EXECUTABLE_RUNTIME_WINE');
+  static const ExecutableRuntime EXECUTABLE_RUNTIME_PROTON =
+      ExecutableRuntime._(2, _omitEnumNames ? '' : 'EXECUTABLE_RUNTIME_PROTON');
+
+  static const $core.List<ExecutableRuntime> values = <ExecutableRuntime>[
+    EXECUTABLE_RUNTIME_NATIVE,
+    EXECUTABLE_RUNTIME_WINE,
+    EXECUTABLE_RUNTIME_PROTON,
+  ];
+
+  static final $core.List<ExecutableRuntime?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static ExecutableRuntime? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ExecutableRuntime._(super.value, super.name);
+}
+
 class ExecutableRunPhase extends $pb.ProtobufEnum {
   static const ExecutableRunPhase EXECUTABLE_RUN_PHASE_UNSPECIFIED =
       ExecutableRunPhase._(

@@ -55,3 +55,33 @@ type ExecutableTests() =
         flag "presetSurvivesRestart" |> should equal true
         flag "runHistorySurvivesRestart" |> should equal true
         flag "launchFailureVisible" |> should equal true
+
+    [<Test>]
+    member _.``tool reruns should reuse private output without snapshots until deployment prepare``
+        ()
+        =
+        let flags = NativeObservations.report.RootElement.GetProperty("genericTools")
+
+        for name in
+            [ "replacementPathsRemainLiteral"
+              "missingOutputPlaceholderRefused"
+              "sameFolderStateSurvivesRerunWithoutSnapshot"
+              "deploymentPrepareAloneCapturesOutput"
+              "nonzeroExitRetainsPartialOutputAndPriorDeployment"
+              "rerunPreservesDisabledOutputAndDeploymentSkipsIt"
+              "sameRegistrationResolvesPrivateOutputInEveryProfile"
+              "replacedOwnedOutputDirectoryRefusedWithoutWriting" ] do
+            flags.GetProperty(name).GetBoolean() |> should equal true
+
+    [<Test>]
+    member _.``runtime routes should retain literal argument boundaries and use selected profile path spelling``
+        ()
+        =
+        if System.OperatingSystem.IsLinux() then
+            let flags = NativeObservations.report.RootElement.GetProperty("genericTools")
+
+            for name in
+                [ "runtimePlaceholderPathsPreserveArgumentBoundaries"
+                  "externalProtonProjectionUsesSelectedContext"
+                  "unavailableWineRouteRefusedBeforeProcess" ] do
+                flags.GetProperty(name).GetBoolean() |> should equal true

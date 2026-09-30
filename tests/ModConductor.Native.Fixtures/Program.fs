@@ -146,7 +146,9 @@ let private run (args: string array) =
         writeJson true (fun writer -> GameLaunchFixtures.observe writer path)
     | args when args.Length >= 3 && args[0] = "--executable-child" -> ExecutableChild.run args[1..]
     | [| "--executables"; path |] when Path.IsPathFullyQualified path ->
-        writeJson true (fun writer -> ExecutableFixtures.observe writer path)
+        writeJson true (fun writer ->
+            ExecutableFixtures.observe writer path
+            GenericToolFixtures.observe writer path)
     | [| "--generation-game" |] ->
         Console.WriteLine "ready"
         Console.ReadLine() |> ignore

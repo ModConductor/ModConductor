@@ -4,6 +4,8 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="Descriptor.fs" />
+    <Compile Include="ToolArguments.fs" />
+    <Compile Include="RegisteredTool.fs" />
     <Compile Include="Preparation.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />

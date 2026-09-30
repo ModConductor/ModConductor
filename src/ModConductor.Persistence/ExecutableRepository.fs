@@ -273,7 +273,8 @@ type internal ExecutableRepository(database: StateDatabase) =
                                       Scope = None
                                       RootExitCode = None
                                       ActiveProcesses = None
-                                      Problem = None }
+                                      Problem = None
+                                      OutputDirectory = None }
 
                                 Sqlite.execute
                                     connection

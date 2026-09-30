@@ -6,7 +6,8 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.Platform
 
-type ExecutableSession(repository: IExecutableRepository) =
+type ExecutableSession(repository: IExecutableRepository, ?projection: IExecutableLaunchProjection)
+    =
     let state = ExecutionState()
     let gate, runs, roots = state.Gate, state.Runs, state.Roots
     let admission = new SemaphoreSlim(1, 1)
@@ -78,11 +79,43 @@ type ExecutableSession(repository: IExecutableRepository) =
                     | Error problem -> return Error problem
                     | Ok(snapshot, false) -> return Ok snapshot
                     | Ok(snapshot, true) ->
-                        signal snapshot.Id
-                        let owner = RunOwner(snapshot, None)
-                        lock gate (fun () -> runs.Add(request.Id, owner))
-                        owner.Completion <- launch owner
-                        return Ok snapshot
+                        let! prepared =
+                            match projection with
+                            | None -> Task.FromResult(Ok(snapshot.Launch, None))
+                            | Some projector -> projector.Project snapshot
+
+                        let! captured =
+                            match prepared, snapshot.Source with
+                            | Ok(launch, output), RunSource.Preset(input, tool) when
+                                launch <> tool.Launch || output <> snapshot.OutputDirectory
+                                ->
+                                repository.Update
+                                    { snapshot with
+                                        Source =
+                                            RunSource.Preset(input, { tool with Launch = launch })
+                                        OutputDirectory = output }
+                            | Ok _, _ -> Task.FromResult snapshot
+                            | Error problem, _ ->
+                                let detail =
+                                    match problem with
+                                    | ExecutableError.Invalid detail
+                                    | ExecutableError.Unavailable detail -> detail
+                                    | _ ->
+                                        "The tool configuration is no longer available. Read it again."
+
+                                repository.Update
+                                    { snapshot with
+                                        Phase = RunPhase.Failed
+                                        Problem = Some detail }
+
+                        signal captured.Id
+
+                        if not (ExecutablePolicy.terminal captured.Phase) then
+                            let owner = RunOwner(captured, None)
+                            lock gate (fun () -> runs.Add(request.Id, owner))
+                            owner.Completion <- launch owner
+
+                        return Ok captured
             finally
                 admission.Release() |> ignore
         }

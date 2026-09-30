@@ -21,12 +21,16 @@ class ExecutableEnvironment {
   final String? value;
 }
 
+enum ExecutableRuntime { native, wine, proton }
+
 class ExecutablePreset {
   ExecutablePreset({
     required this.id,
     required this.workspaceId,
     required this.revision,
     required this.name,
+    this.runtime = ExecutableRuntime.native,
+    this.outputName,
     required this.executable,
     required this.workingDirectory,
     required List<String> arguments,
@@ -34,6 +38,8 @@ class ExecutablePreset {
   }) : arguments = List.unmodifiable(arguments),
        environment = List.unmodifiable(environment);
   final String id, workspaceId, name, executable, workingDirectory;
+  final String? outputName;
+  final ExecutableRuntime runtime;
   final int revision;
   final List<String> arguments;
   final List<ExecutableEnvironment> environment;
@@ -84,6 +90,7 @@ class ExecutableRun {
     required this.rootExitCode,
     required this.observedProcessCount,
     required this.problem,
+    this.outputDirectory,
   });
   final ExecutableRunRequest? request;
   final GameRunInfo? game;
@@ -98,7 +105,7 @@ class ExecutableRun {
   List<String> get arguments => preset?.arguments ?? game!.arguments;
   List<ExecutableEnvironment> get environment =>
       preset?.environment ?? game!.environment;
-  final String? profileId, profileName, scope, problem;
+  final String? profileId, profileName, scope, problem, outputDirectory;
   final DateTime requestedAt;
   final ExecutableRunPhase phase;
   final int? processId, rootExitCode, observedProcessCount;

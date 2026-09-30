@@ -185,7 +185,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                     let mutable retained = false
 
                                     try
-                                        let! current = repository.Current expected
+                                        let! current = repository.Current value.View.Sources
                                         token.ThrowIfCancellationRequested()
 
                                         if not current then

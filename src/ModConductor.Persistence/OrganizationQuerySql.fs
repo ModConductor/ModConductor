@@ -4,11 +4,15 @@ open System
 open ModConductor.ModOrganization
 
 module internal OrganizationQuerySql =
-    let build profile workspace (query: ModQuery) =
+    let build profile workspace outputContext (query: ModQuery) =
         let parameters =
             ResizeArray<string * obj>(
                 [ "$profile", box (string profile)
                   "$workspace", box (string workspace)
+                  "$outputContext",
+                  outputContext
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value)
                   "$fnisOutput", box (string (FnisRunRows.outputId profile))
                   "$text", box query.Text ]
             )
@@ -57,7 +61,7 @@ WITH base AS (
  SELECT m.*,p.priority,p.enabled,
    (SELECT s.mod_id FROM profile_mods s JOIN mods sm ON sm.id=s.mod_id WHERE s.profile_id=$profile AND sm.kind=2 AND s.priority<p.priority ORDER BY s.priority DESC LIMIT 1) AS group_id
  FROM mods m LEFT JOIN profile_mods p ON p.mod_id=m.id AND p.profile_id=$profile
- WHERE m.workspace_id=$workspace AND (m.kind<>5 OR m.source_path IS NOT NULL OR EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR p.mod_id IS NOT NULL OR (m.id=$fnisOutput AND m.current_version IS NOT NULL))
+ WHERE m.workspace_id=$workspace AND (NOT EXISTS(SELECT 1 FROM output_locations o WHERE o.id=m.id) OR EXISTS(SELECT 1 FROM output_locations o WHERE o.id=m.id AND o.context_id=$outputContext)) AND (m.kind<>5 OR m.source_path IS NOT NULL OR EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR p.mod_id IS NOT NULL OR (m.id=$fnisOutput AND m.current_version IS NOT NULL))
 ), matches AS (
  SELECT b.* FROM base b WHERE
  (mc_contains(b.name,$text) OR mc_contains(b.version_text,$text) OR mc_contains(b.source_text,$text) OR mc_contains(b.notes,$text) OR mc_contains(b.comment,$text)

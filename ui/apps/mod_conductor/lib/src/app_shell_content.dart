@@ -53,6 +53,7 @@ mixin _ShellContent
             chooseExecutable: widget.chooseExecutable,
             chooseDirectory: widget.chooseGameDirectory,
             fnis: widget.fnis,
+            outputs: widget.outputs,
             workspace: workspace,
           ),
     artifactBuilder: !_supportsArchives || widget.artifacts == null

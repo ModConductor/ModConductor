@@ -30,7 +30,14 @@ module internal OrganizationQuery =
         if stale then
             Error LibraryError.StaleRevision
         else
-            let sql, parameters, order = OrganizationQuerySql.build profile workspace query
+            let outputContext =
+                match GameContextRows.read connection transaction "" workspace profile with
+                | Ok state when state.Binding.IsSome ->
+                    Some(OutputRows.contextId workspace profile state)
+                | _ -> None
+
+            let sql, parameters, order =
+                OrganizationQuerySql.build profile workspace outputContext query
 
             let joined id =
                 LibraryRows.find connection transaction id
@@ -45,6 +52,16 @@ module internal OrganizationQuery =
                         transaction
                         "SELECT count(*) FROM fnis_outputs WHERE profile_id=$profile AND mod_id=$mod"
                         [ "$profile", box (string profile); "$mod", box (string id) ] = 1L)
+                |> Option.filter (fun row ->
+                    Sqlite.number
+                        connection
+                        transaction
+                        "SELECT count(*) FROM output_locations WHERE id=$id AND context_id<>COALESCE($context,'')"
+                        [ "$id", box (string row.Entry.Id)
+                          "$context",
+                          outputContext
+                          |> Option.map (string >> box)
+                          |> Option.defaultValue (box DBNull.Value) ] = 0L)
                 |> Option.map (fun row ->
                     let selected = SelectionRows.find connection transaction profile id
 

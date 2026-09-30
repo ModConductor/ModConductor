@@ -11,6 +11,7 @@ module ExecutablePolicy =
     let validate (preset: ExecutablePreset) =
         let fields =
             preset.Name
+            :: Option.defaultValue "" preset.OutputName
             :: preset.Launch.Executable
             :: preset.Launch.WorkingDirectory
             :: preset.Launch.Arguments
@@ -33,8 +34,18 @@ module ExecutablePolicy =
             Error(ExecutableError.Invalid "The executable identity is invalid.")
         elif String.IsNullOrWhiteSpace preset.Name || preset.Name.Length > 256 then
             Error(ExecutableError.Invalid "Enter an executable name of at most 256 characters.")
+        elif
+            preset.OutputName
+            |> Option.exists (fun name -> String.IsNullOrWhiteSpace name || name.Length > 256)
+        then
+            Error(ExecutableError.Invalid "Enter an output folder name of at most 256 characters.")
         elif fields |> List.exists (fun value -> isNull value || value.Contains('\000')) then
             Error(ExecutableError.Invalid "Executable settings cannot contain a null character.")
+        elif
+            preset.OutputName.IsNone
+            && (preset.Launch.Arguments |> List.exists (fun arg -> arg.Contains("{output}")))
+        then
+            Error(ExecutableError.Invalid "Select an output folder to use {output}.")
         elif
             (fields
              |> List.sumBy (fun value -> int64 (Encoding.UTF8.GetByteCount value) + 8L))

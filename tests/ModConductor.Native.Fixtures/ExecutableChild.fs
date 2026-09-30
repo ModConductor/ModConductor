@@ -72,6 +72,12 @@ module ExecutableChild =
             Console.Error.WriteLine "owned child stderr"
             File.AppendAllText(mark ".count", "1")
             0
+        | "generator" ->
+            let output, content = args[2], args[3]
+            Directory.CreateDirectory output |> ignore
+            File.WriteAllText(Path.Combine(output, "generated.txt"), content)
+            File.AppendAllText(Path.Combine(output, "tool-state.txt"), "1")
+            Int32.Parse args[4]
         | "parent" ->
             use child = spawn "child"
             waitFile (Path.Combine(area, "child.started"))

@@ -56,7 +56,7 @@ module internal LaunchDeployment =
                             let mutable durable = false
 
                             try
-                                let! current = repository.Current expected
+                                let! current = repository.Current prepared.View.Sources
 
                                 let! contextResult =
                                     repository.Context(expected.WorkspaceId, expected.ProfileId)

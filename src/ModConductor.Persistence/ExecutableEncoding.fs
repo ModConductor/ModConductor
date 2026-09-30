@@ -59,7 +59,16 @@ module internal ExecutableEncoding =
             w.Write name
             opt text w value
 
-    let private readPreset (r: BinaryReader) =
+        w.Write(
+            match v.Runtime with
+            | ExecutableRuntime.Native -> 0
+            | ExecutableRuntime.Wine -> 1
+            | ExecutableRuntime.Proton -> 2
+        )
+
+        opt text w v.OutputName
+
+    let private readPreset version (r: BinaryReader) =
         let id, workspace, revision, name =
             readGuid r, readGuid r, r.ReadInt64(), r.ReadString()
 
@@ -73,6 +82,20 @@ module internal ExecutableEncoding =
           WorkspaceId = workspace
           Revision = revision
           Name = name
+          Runtime =
+            if version = 1 then
+                ExecutableRuntime.Native
+            else
+                match r.ReadInt32() with
+                | 0 -> ExecutableRuntime.Native
+                | 1 -> ExecutableRuntime.Wine
+                | 2 -> ExecutableRuntime.Proton
+                | _ -> raise (InvalidDataException "The tool runtime is invalid.")
+          OutputName =
+            if version = 1 then
+                None
+            else
+                readOpt (fun r -> r.ReadString()) r
           Launch =
             { Executable = executable
               WorkingDirectory = directory
@@ -82,7 +105,7 @@ module internal ExecutableEncoding =
     let private encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream)
-        writer.Write 1
+        writer.Write 2
         write writer value
         writer.Flush()
         Convert.ToBase64String(stream.ToArray())
@@ -91,10 +114,12 @@ module internal ExecutableEncoding =
         use stream = new MemoryStream(Convert.FromBase64String value)
         use reader = new BinaryReader(stream)
 
-        if reader.ReadInt32() <> 1 then
+        let version = reader.ReadInt32()
+
+        if version <> 1 && version <> 2 then
             raise (InvalidDataException "The executable record version is unsupported.")
 
-        let result = read reader
+        let result = read version reader
 
         if stream.Position <> stream.Length then
             raise (InvalidDataException "The executable record has trailing data.")
@@ -258,15 +283,16 @@ module internal ExecutableEncoding =
                 opt text w v.Scope
                 opt integer w v.RootExitCode
                 opt integer w v.ActiveProcesses
-                opt text w v.Problem)
+                opt text w v.Problem
+                opt text w v.OutputDirectory)
             value
 
     let decodeRun value =
         decode
-            (fun r ->
+            (fun version r ->
                 let source =
                     match r.ReadInt32() with
-                    | 0 -> RunSource.Preset(readRequest r, readPreset r)
+                    | 0 -> RunSource.Preset(readRequest r, readPreset version r)
                     | 1 -> RunSource.Game(readGame r)
                     | _ -> raise (InvalidDataException "The run source is invalid.")
 
@@ -280,5 +306,10 @@ module internal ExecutableEncoding =
                   Scope = readOpt (fun r -> r.ReadString()) r
                   RootExitCode = readOpt (fun r -> r.ReadInt32()) r
                   ActiveProcesses = readOpt (fun r -> r.ReadInt32()) r
-                  Problem = readOpt (fun r -> r.ReadString()) r })
+                  Problem = readOpt (fun r -> r.ReadString()) r
+                  OutputDirectory =
+                    if version = 1 then
+                        None
+                    else
+                        readOpt (fun r -> r.ReadString()) r })
             value

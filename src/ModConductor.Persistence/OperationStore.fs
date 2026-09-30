@@ -75,7 +75,14 @@ type OperationStore
         )
 
     let deploymentRepository =
-        DeploymentBackendRepository(database, modLibrary.Access, filePlans, deployment, generations)
+        DeploymentBackendRepository(
+            database,
+            modLibrary.Access,
+            filePlans,
+            deployment,
+            generations,
+            ToolOutputSnapshots(database, modLibrary)
+        )
 
     let deploymentBackend =
         ModConductor.Deployment.DeploymentBackend(deploymentRepository)
@@ -154,8 +161,19 @@ type OperationStore
     let migrations =
         MigrationStore(database, workspaceRoots, defaultArg migrationCheckpoint ignore)
 
+    let toolOutputs = ToolOutputStore(database, modLibrary, outputs)
+
     let executables =
-        ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
+        ModConductor.Executables.ExecutableSession(
+            ExecutableRepository(database),
+            projection =
+                ModConductor.GameLaunching.RegisteredToolSession(
+                    gameContexts,
+                    deploymentBackend,
+                    ModConductor.Deployment.GameProcesses.validateContext,
+                    toolOutputs.Resolve
+                )
+        )
 
     let skseLoaders = SkseLoaderStore(database)
     let enbSetups = EnbStore(database)

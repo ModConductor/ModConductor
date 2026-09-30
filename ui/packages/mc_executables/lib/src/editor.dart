@@ -3,6 +3,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
+import 'editor_fields.dart';
 
 typedef ExecutablePathChooser = Future<String?> Function(String? initial);
 
@@ -13,25 +14,14 @@ class ExecutableEditor extends StatefulWidget {
     required this.chooseExecutable,
     required this.chooseDirectory,
     this.initial,
+    this.outputs,
   });
   final ExecutablesController controller;
+  final GeneratedOutputsClient? outputs;
   final ExecutablePreset? initial;
   final ExecutablePathChooser chooseExecutable, chooseDirectory;
   @override
   State<ExecutableEditor> createState() => _ExecutableEditorState();
-}
-
-class _EnvironmentDraft {
-  _EnvironmentDraft(String key, String? content)
-    : name = TextEditingController(text: key),
-      value = TextEditingController(text: content ?? ''),
-      remove = content == null;
-  final TextEditingController name, value;
-  bool remove;
-  void dispose() {
-    name.dispose();
-    value.dispose();
-  }
 }
 
 class _ExecutableEditorState extends State<ExecutableEditor> {
@@ -39,10 +29,14 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
   final _name = TextEditingController(),
       _path = TextEditingController(),
       _cwd = TextEditingController();
-  final _args = <TextEditingController>[], _environment = <_EnvironmentDraft>[];
+  final _args = <TextEditingController>[],
+      _environment = <ExecutableEnvironmentDraft>[];
   late final String _id = widget.initial?.id ?? newOperationId();
   late final String _workspace = widget.controller.workspace!.id;
   late int _revision = widget.initial?.revision ?? 0;
+  ExecutableRuntime _runtime = ExecutableRuntime.native;
+  String? _outputName;
+  List<String> _outputNames = const [];
   bool _busy = false, _needsRead = false;
   String? _error;
   ExecutablePreset? _attempt, _saved;
@@ -50,7 +44,39 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
   void initState() {
     super.initState();
     final value = widget.initial;
-    if (value != null) _fill(value);
+    if (value != null) {
+      _fill(value);
+    }
+    _name.addListener(_nameChanged);
+    _readOutputs();
+  }
+
+  void _nameChanged() => setState(() {});
+
+  Future<void> _readOutputs() async {
+    final outputs = widget.outputs;
+    final profile = widget.controller.workspace?.selectedProfile?.id;
+    if (outputs == null || profile == null) {
+      return;
+    }
+    try {
+      final scope = await outputs.read(_workspace, profile);
+      if (mounted) {
+        setState(() {
+          _outputNames = scope.locations
+              .where(
+                (v) =>
+                    v.kind == OutputLocationKind.toolFolder &&
+                    v.status == OutputLocationStatus.ready,
+              )
+              .map((v) => v.name)
+              .toSet()
+              .toList();
+        });
+      }
+    } on Object {
+      // New folders are resolved when Run is requested; no file acquisition here.
+    }
   }
 
   void _fill(ExecutablePreset value) {
@@ -58,6 +84,8 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
     _path.text = value.executable;
     _cwd.text = value.workingDirectory;
     _revision = value.revision;
+    _runtime = value.runtime;
+    _outputName = value.outputName;
     for (final item in _args) {
       item.dispose();
     }
@@ -68,7 +96,7 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
     _environment.clear();
     _args.addAll(value.arguments.map((v) => TextEditingController(text: v)));
     _environment.addAll(
-      value.environment.map((v) => _EnvironmentDraft(v.name, v.value)),
+      value.environment.map((v) => ExecutableEnvironmentDraft(v.name, v.value)),
     );
   }
 
@@ -77,6 +105,8 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
     workspaceId: _workspace,
     revision: _revision,
     name: _name.text,
+    runtime: _runtime,
+    outputName: _outputName,
     executable: _path.text,
     workingDirectory: _cwd.text,
     arguments: _args.map((v) => v.text).toList(),
@@ -91,6 +121,8 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
   );
   bool _matches(ExecutablePreset a, ExecutablePreset b) =>
       a.name == b.name &&
+      a.runtime == b.runtime &&
+      a.outputName == b.outputName &&
       a.executable == b.executable &&
       a.workingDirectory == b.workingDirectory &&
       a.arguments.length == b.arguments.length &&
@@ -180,6 +212,7 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
 
   @override
   void dispose() {
+    _name.removeListener(_nameChanged);
     _name.dispose();
     _path.dispose();
     _cwd.dispose();
@@ -192,21 +225,6 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
     super.dispose();
   }
 
-  Widget _field(
-    String label,
-    TextEditingController value, {
-    bool required = false,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: TextFormField(
-      controller: value,
-      enabled: !_busy,
-      decoration: InputDecoration(labelText: label),
-      validator: required
-          ? (v) => v == null || v.trim().isEmpty ? 'Enter $label.' : null
-          : null,
-    ),
-  );
   @override
   Widget build(BuildContext context) => Form(
     key: _form,
@@ -249,112 +267,47 @@ class _ExecutableEditorState extends State<ExecutableEditor> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _field('Name', _name, required: true),
-                _field('Executable', _path, required: true),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: McAction(
-                    label: 'Browse executable…',
-                    onPressed: () => _browse(_path, widget.chooseExecutable),
+                executableField('Name', _name, required: true),
+                executablePathField(
+                  'Executable',
+                  _path,
+                  onBrowse: () => _browse(_path, widget.chooseExecutable),
+                ),
+                McChoice<ExecutableRuntime>(
+                  label: 'Runtime',
+                  value: _runtime,
+                  choices: ExecutableRuntime.values,
+                  describe: executableRuntimeLabel,
+                  onChanged: (value) => setState(() => _runtime = value),
+                ),
+                const SizedBox(height: 16),
+                executablePathField(
+                  'Working directory',
+                  _cwd,
+                  onBrowse: () => _browse(_cwd, widget.chooseDirectory),
+                ),
+                McChoice<String>(
+                  label: 'Output folder',
+                  value: _outputName ?? '',
+                  choices: {
+                    '',
+                    _outputName ?? '',
+                    ..._outputNames,
+                    '${_name.text.trim().isEmpty ? 'Tool' : _name.text.trim()} output',
+                  }.toList(),
+                  describe: (value) => value.isEmpty ? 'None' : value,
+                  onChanged: (value) => setState(
+                    () => _outputName = value.isEmpty ? null : value,
                   ),
                 ),
                 const SizedBox(height: 16),
-                _field('Working directory', _cwd, required: true),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: McAction(
-                    label: 'Browse folder…',
-                    onPressed: () => _browse(_cwd, widget.chooseDirectory),
-                  ),
+                ExecutableArguments(
+                  values: _args,
+                  onChanged: () => setState(() {}),
                 ),
-                const SizedBox(height: 16),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('Arguments'),
-                  children: [
-                    for (var i = 0; i < _args.length; i++)
-                      Row(
-                        key: ObjectKey(_args[i]),
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _field('Argument ${i + 1}', _args[i]),
-                          ),
-                          McIconAction(
-                            label: 'Remove argument ${i + 1}',
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () {
-                              setState(() {
-                                _args.removeAt(i).dispose();
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: McAction(
-                        label: 'Add argument',
-                        icon: Icons.add,
-                        onPressed: () =>
-                            setState(() => _args.add(TextEditingController())),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('Environment'),
-                  children: [
-                    for (final row in _environment)
-                      Column(
-                        key: ObjectKey(row),
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _field(
-                                  'Variable',
-                                  row.name,
-                                  required: true,
-                                ),
-                              ),
-                              McIconAction(
-                                label: 'Remove environment setting',
-                                icon: const Icon(Icons.remove_circle_outline),
-                                onPressed: () => setState(() {
-                                  _environment.remove(row);
-                                  row.dispose();
-                                }),
-                              ),
-                            ],
-                          ),
-                          McChoice<bool>(
-                            label: 'Change',
-                            value: row.remove,
-                            choices: const [false, true],
-                            describe: (v) =>
-                                v ? 'Remove child variable' : 'Set value',
-                            onChanged: (v) => setState(() => row.remove = v),
-                          ),
-                          const SizedBox(height: 16),
-                          if (!row.remove) _field('Value', row.value),
-                        ],
-                      ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: McAction(
-                        label: 'Add variable',
-                        icon: Icons.add,
-                        onPressed: () => setState(
-                          () => _environment.add(_EnvironmentDraft('', '')),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                ExecutableEnvironmentFields(
+                  values: _environment,
+                  onChanged: () => setState(() {}),
                 ),
               ],
             ),

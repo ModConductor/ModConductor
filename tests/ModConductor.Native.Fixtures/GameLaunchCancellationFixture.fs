@@ -63,7 +63,8 @@ module GameLaunchCancellationFixture =
                           Scope = None
                           RootExitCode = None
                           ActiveProcesses = None
-                          Problem = None }
+                          Problem = None
+                          OutputDirectory = None }
 
                     lock gate (fun () -> rows.Add(value.Id, value))
                     Task.FromResult(Ok(value, true))

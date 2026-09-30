@@ -52,7 +52,7 @@ module internal Descriptor =
         else
             Error "The installed SKSE loader path is invalid. Check SKSE before Play."
 
-    let private createWithHost
+    let internal createWithHost
         hostWindows
         hostLinux
         (state: GameContextState)

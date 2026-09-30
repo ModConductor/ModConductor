@@ -15,6 +15,21 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use executableRuntimeDescriptor instead')
+const ExecutableRuntime$json = {
+  '1': 'ExecutableRuntime',
+  '2': [
+    {'1': 'EXECUTABLE_RUNTIME_NATIVE', '2': 0},
+    {'1': 'EXECUTABLE_RUNTIME_WINE', '2': 1},
+    {'1': 'EXECUTABLE_RUNTIME_PROTON', '2': 2},
+  ],
+};
+
+/// Descriptor for `ExecutableRuntime`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List executableRuntimeDescriptor = $convert.base64Decode(
+    'ChFFeGVjdXRhYmxlUnVudGltZRIdChlFWEVDVVRBQkxFX1JVTlRJTUVfTkFUSVZFEAASGwoXRV'
+    'hFQ1VUQUJMRV9SVU5USU1FX1dJTkUQARIdChlFWEVDVVRBQkxFX1JVTlRJTUVfUFJPVE9OEAI=');
+
 @$core.Deprecated('Use executableRunPhaseDescriptor instead')
 const ExecutableRunPhase$json = {
   '1': 'ExecutableRunPhase',
@@ -126,6 +141,26 @@ const ExecutablePreset$json = {
       '6': '.modconductor.v1.ExecutableEnvironmentSetting',
       '10': 'environment'
     },
+    {
+      '1': 'runtime',
+      '3': 9,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ExecutableRuntime',
+      '10': 'runtime'
+    },
+    {
+      '1': 'output_name',
+      '3': 10,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'outputName',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_output_name'},
   ],
 };
 
@@ -136,7 +171,9 @@ final $typed_data.Uint8List executablePresetDescriptor = $convert.base64Decode(
     'UgRuYW1lEh4KCmV4ZWN1dGFibGUYBSABKAlSCmV4ZWN1dGFibGUSKwoRd29ya2luZ19kaXJlY3'
     'RvcnkYBiABKAlSEHdvcmtpbmdEaXJlY3RvcnkSHAoJYXJndW1lbnRzGAcgAygJUglhcmd1bWVu'
     'dHMSTwoLZW52aXJvbm1lbnQYCCADKAsyLS5tb2Rjb25kdWN0b3IudjEuRXhlY3V0YWJsZUVudm'
-    'lyb25tZW50U2V0dGluZ1ILZW52aXJvbm1lbnQ=');
+    'lyb25tZW50U2V0dGluZ1ILZW52aXJvbm1lbnQSPAoHcnVudGltZRgJIAEoDjIiLm1vZGNvbmR1'
+    'Y3Rvci52MS5FeGVjdXRhYmxlUnVudGltZVIHcnVudGltZRIkCgtvdXRwdXRfbmFtZRgKIAEoCU'
+    'gAUgpvdXRwdXROYW1liAEBQg4KDF9vdXRwdXRfbmFtZQ==');
 
 @$core.Deprecated('Use executablePageRequestDescriptor instead')
 const ExecutablePageRequest$json = {
@@ -332,6 +369,15 @@ const ExecutableRun$json = {
       '6': '.modconductor.v1.GameRunInfo',
       '10': 'game'
     },
+    {
+      '1': 'output_directory',
+      '3': 14,
+      '4': 1,
+      '5': 9,
+      '9': 7,
+      '10': 'outputDirectory',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_profile_id'},
@@ -341,6 +387,7 @@ const ExecutableRun$json = {
     {'1': '_root_exit_code'},
     {'1': '_observed_process_count'},
     {'1': '_problem'},
+    {'1': '_output_directory'},
   ],
 };
 
@@ -356,9 +403,10 @@ final $typed_data.Uint8List executableRunDescriptor = $convert.base64Decode(
     'gDUgVzY29wZYgBARIpCg5yb290X2V4aXRfY29kZRgKIAEoBUgEUgxyb290RXhpdENvZGWIAQES'
     'OQoWb2JzZXJ2ZWRfcHJvY2Vzc19jb3VudBgLIAEoDUgFUhRvYnNlcnZlZFByb2Nlc3NDb3VudI'
     'gBARIdCgdwcm9ibGVtGAwgASgJSAZSB3Byb2JsZW2IAQESMAoEZ2FtZRgNIAEoCzIcLm1vZGNv'
-    'bmR1Y3Rvci52MS5HYW1lUnVuSW5mb1IEZ2FtZUINCgtfcHJvZmlsZV9pZEIPCg1fcHJvZmlsZV'
-    '9uYW1lQg0KC19wcm9jZXNzX2lkQggKBl9zY29wZUIRCg9fcm9vdF9leGl0X2NvZGVCGQoXX29i'
-    'c2VydmVkX3Byb2Nlc3NfY291bnRCCgoIX3Byb2JsZW0=');
+    'bmR1Y3Rvci52MS5HYW1lUnVuSW5mb1IEZ2FtZRIuChBvdXRwdXRfZGlyZWN0b3J5GA4gASgJSA'
+    'dSD291dHB1dERpcmVjdG9yeYgBAUINCgtfcHJvZmlsZV9pZEIPCg1fcHJvZmlsZV9uYW1lQg0K'
+    'C19wcm9jZXNzX2lkQggKBl9zY29wZUIRCg9fcm9vdF9leGl0X2NvZGVCGQoXX29ic2VydmVkX3'
+    'Byb2Nlc3NfY291bnRCCgoIX3Byb2JsZW1CEwoRX291dHB1dF9kaXJlY3Rvcnk=');
 
 @$core.Deprecated('Use executableProblemDescriptor instead')
 const ExecutableProblem$json = {

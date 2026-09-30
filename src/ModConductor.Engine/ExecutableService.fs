@@ -45,7 +45,17 @@ type ExecutableService(executables: IExecutables) =
 
     override _.SaveExecutablePreset(request, _) =
         task {
-            let! result = executables.Save(ExecutableWire.parsePreset request)
+            let! result =
+                match request.Runtime with
+                | Protocol.V1.ExecutableRuntime.Native
+                | Protocol.V1.ExecutableRuntime.Wine
+                | Protocol.V1.ExecutableRuntime.Proton ->
+                    executables.Save(ExecutableWire.parsePreset request)
+                | _ ->
+                    Task.FromResult(
+                        Error(ExecutableError.Invalid "Select Native, Wine, or Proton.")
+                    )
+
             return ExecutableWire.presetReply result
         }
 

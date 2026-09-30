@@ -17,6 +17,12 @@ message ExecutableEnvironmentSetting {
   string name = 1;
   optional string value = 2; // Absent means remove from the child environment. No row means inherit.
 }
+enum ExecutableRuntime {
+  EXECUTABLE_RUNTIME_NATIVE = 0;
+  EXECUTABLE_RUNTIME_WINE = 1;
+  EXECUTABLE_RUNTIME_PROTON = 2;
+}
+
 message ExecutablePreset {
   string id = 1;
   string workspace_id = 2;
@@ -26,6 +32,8 @@ message ExecutablePreset {
   string working_directory = 6;
   repeated string arguments = 7;
   repeated ExecutableEnvironmentSetting environment = 8;
+  ExecutableRuntime runtime = 9;
+  optional string output_name = 10;
 }
 message ExecutablePageRequest { string workspace_id = 1; optional string after_id = 2; }
 message ExecutablePresetRef { string workspace_id = 1; string id = 2; }
@@ -63,6 +71,7 @@ message ExecutableRun {
   optional uint32 observed_process_count = 11;
   optional string problem = 12;
   GameRunInfo game = 13;
+  optional string output_directory = 14;
 }
 enum ExecutableProblemCode {
   EXECUTABLE_PROBLEM_CODE_UNSPECIFIED = 0;
