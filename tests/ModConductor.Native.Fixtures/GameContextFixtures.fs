@@ -243,6 +243,7 @@ module GameContextFixtures =
                     empty.Revision,
                     { GameId = GameId.SkyrimSpecialEditionSteam
                       Path = game
+                      Wine = None
                       Proton = None }
                 )
                 |> wait
@@ -255,6 +256,7 @@ module GameContextFixtures =
                     0L,
                     { GameId = GameId.SkyrimSpecialEditionSteam
                       Path = game
+                      Wine = None
                       Proton = None }
                 )
                 |> wait
@@ -330,6 +332,7 @@ module GameContextFixtures =
                     cloneBefore.Revision,
                     { GameId = GameId.SkyrimSpecialEditionSteam
                       Path = alternate
+                      Wine = None
                       Proton = None }
                 )
                 |> wait
@@ -359,6 +362,7 @@ module GameContextFixtures =
                     0L,
                     { GameId = GameId.SkyrimSpecialEditionSteam
                       Path = game
+                      Wine = None
                       Proton = None }
                 )
                 |> wait
@@ -376,6 +380,7 @@ module GameContextFixtures =
                     saved.Revision,
                     { GameId = GameId.SkyrimSpecialEditionSteam
                       Path = Path.Combine(game, "absent")
+                      Wine = None
                       Proton = None }
                 )
                 |> wait

@@ -864,6 +864,7 @@ module SkseFixtures =
                 0L,
                 { GameId = GameId.SkyrimSpecialEditionSteam
                   Path = game
+                  Wine = None
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -1087,6 +1088,7 @@ module SkseFixtures =
                 0L,
                 { GameId = GameId.SkyrimSpecialEditionSteam
                   Path = game
+                  Wine = None
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait

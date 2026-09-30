@@ -79,6 +79,7 @@ class Client implements GameContextsClient {
     int revision,
     String path, {
     ProtonSelection? proton,
+    WineSelection? wine,
   }) => onSave(id, revision, path);
   @override
   Future<GameContextState> refresh(String id, String profile, int revision) =>

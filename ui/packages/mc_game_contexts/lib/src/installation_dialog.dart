@@ -7,7 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'steam_search_controller.dart';
 import 'steam_chooser.dart';
 import 'proton_dialog.dart';
-import 'proton_selection_field.dart';
+import 'installation_setup_fields.dart';
 
 typedef GameDirectoryChooser = Future<String?> Function(String? initialPath);
 
@@ -21,12 +21,14 @@ class InstallationDialog extends StatefulWidget {
     required this.onUnknownSave,
     this.steamDiscovery,
     this.protonContexts,
+    this.chooseExecutable,
   });
   final GameContextState initial;
   final GameContextsClient client;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseDirectory;
+  final GameDirectoryChooser? chooseExecutable;
   final ValueChanged<GameContextState> onSaved;
   final VoidCallback onUnknownSave;
   @override
@@ -38,6 +40,15 @@ class _InstallationDialogState extends State<InstallationDialog> {
     text: widget.initial.binding?.path ?? '',
   );
   late GameContextState current = widget.initial;
+  late GameInstallationSource source = GameInstallationSource.fromGameId(
+    widget.initial.definition?.id,
+  );
+  late final wineExecutable = TextEditingController(
+    text: widget.initial.binding?.wine?.executable ?? '',
+  );
+  late final winePrefix = TextEditingController(
+    text: widget.initial.binding?.wine?.prefix ?? '',
+  );
   SteamSearchController? steamSearch;
   late ProtonSelection? proton = widget.initial.binding?.proton;
   bool busy = false;
@@ -66,6 +77,8 @@ class _InstallationDialogState extends State<InstallationDialog> {
     steamSearch?.dispose();
     folder.removeListener(gamePathChanged);
     folder.dispose();
+    wineExecutable.dispose();
+    winePrefix.dispose();
     super.dispose();
   }
 
@@ -74,7 +87,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
     if (busy || discovery == null) return;
     final search = steamSearch ??= SteamSearchController(
       discovery,
-      current.definition!.id,
+      GameInstallationSource.steam.gameId,
     );
     final path = await showDialog<String>(
       context: context,
@@ -99,9 +112,9 @@ class _InstallationDialogState extends State<InstallationDialog> {
     final selected = await showDialog<ProtonSelection>(
       context: context,
       builder: (_) => ProtonDialog(
-        gameId: current.definition!.id,
+        gameId: GameInstallationSource.steam.gameId,
         gameName: current.definition!.name,
-        steamAppId: current.definition!.declaredSteamAppId,
+        steamAppId: 489830,
         gamePath: gamePath,
         client: client,
         chooseDirectory: widget.chooseDirectory,
@@ -128,10 +141,16 @@ class _InstallationDialogState extends State<InstallationDialog> {
       final result = await widget.client.save(
         current.workspaceId,
         current.profileId,
-        current.definition!.id,
+        source.gameId,
         current.revision,
         folder.text,
-        proton: proton,
+        proton: source == GameInstallationSource.steam ? proton : null,
+        wine: Platform.isLinux && source != GameInstallationSource.steam
+            ? WineSelection(
+                executable: wineExecutable.text.trim(),
+                prefix: winePrefix.text.trim(),
+              )
+            : null,
       );
       widget.onSaved(result);
       if (mounted) Navigator.pop(context);
@@ -209,83 +228,79 @@ class _InstallationDialogState extends State<InstallationDialog> {
     }
   }
 
+  void selectSource(GameInstallationSource value) {
+    if (busy || value == source) return;
+    setState(() {
+      source = value;
+      proton = null;
+      wineExecutable.clear();
+      winePrefix.clear();
+      steamSearch?.dispose();
+      steamSearch = null;
+      error = null;
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => McFormDialog(
-    title: 'Game installation',
-    action: submitting ? 'Saving…' : 'Save',
-    canCancel: !submitting,
-    onSubmit: busy || needsReload ? null : save,
-    children: [
-      Text(
-        current.definition!.name,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-      const SizedBox(height: 4),
-      Text(current.definition!.storefront),
-      const SizedBox(height: 20),
-      TextFormField(
-        key: const ValueKey('installation-folder'),
-        controller: folder,
-        autofocus: true,
-        enabled: !busy,
-        minLines: 2,
-        maxLines: 3,
-        decoration: const InputDecoration(labelText: 'Installation folder'),
-        onFieldSubmitted: (_) => save(),
-      ),
-      const SizedBox(height: 10),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
+  Widget build(BuildContext context) => PopScope(
+    canPop: !submitting,
+    child: McDialog(
+      title: 'Game installation',
+      contentWidth: 640,
+      actions: [
+        McAction(
+          label: 'Cancel',
+          onPressed: submitting ? null : () => Navigator.pop(context),
+        ),
+        McAction(
+          key: const ValueKey('submit'),
+          label: submitting ? 'Saving…' : 'Save',
+          emphasis: McActionEmphasis.primary,
+          onPressed: busy || needsReload || folder.text.trim().isEmpty
+              ? null
+              : save,
+        ),
+      ],
+      children: [
+        InstallationSetupFields(
+          gameName: current.definition!.name,
+          source: source,
+          onSourceChanged: selectSource,
+          folder: folder,
+          wineExecutable: wineExecutable,
+          winePrefix: winePrefix,
+          chooseDirectory: widget.chooseDirectory,
+          chooseExecutable: widget.chooseExecutable,
+          onBrowse: browse,
+          onProblem: (value) => setState(() => error = value),
+          onFindSteam: widget.steamDiscovery == null ? null : findInSteam,
+          onSelectProton: widget.protonContexts == null ? null : chooseProton,
+          proton: proton,
+          busy: busy,
+        ),
+        if (error != null) ...[
+          const SizedBox(height: McSpacing.medium),
+          McStatus(title: error!, tone: McStatusTone.error),
+        ],
+        if (needsReload) ...[
+          const SizedBox(height: McSpacing.medium),
           McAction(
-            key: const ValueKey('browse-installation'),
-            label: 'Browse…',
-            icon: Icons.folder_open,
-            onPressed: busy ? null : browse,
-          ),
-          McAction(
-            key: const ValueKey('find-in-steam'),
-            label: 'Find in Steam…',
-            icon: Icons.search,
-            onPressed: busy || widget.steamDiscovery == null
-                ? null
-                : findInSteam,
+            key: const ValueKey('reload-installation'),
+            label: 'Reload saved installation',
+            icon: Icons.refresh,
+            onPressed: busy ? null : reload,
           ),
         ],
-      ),
-      if (Platform.isLinux) ...[
-        const SizedBox(height: 20),
-        ProtonSelectionField(
-          selection: proton,
-          runtimeName: current.binding?.proton == proton
-              ? current.binding?.evidence.proton?.runtimeName
-              : null,
-          onSelect: busy || widget.protonContexts == null ? null : chooseProton,
-        ),
+        if (reloaded) ...[
+          const SizedBox(height: McSpacing.medium),
+          Text(
+            'Saved installation',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: McSpacing.small),
+          SelectableText(current.binding?.path ?? 'No installation selected'),
+        ],
       ],
-      if (error != null) ...[
-        const SizedBox(height: 16),
-        McStatus(title: error!, tone: McStatusTone.error),
-      ],
-      if (needsReload) ...[
-        const SizedBox(height: 10),
-        McAction(
-          key: const ValueKey('reload-installation'),
-          label: 'Reload saved installation',
-          icon: Icons.refresh,
-          onPressed: busy ? null : reload,
-        ),
-      ],
-      if (reloaded) ...[
-        const SizedBox(height: 16),
-        Text(
-          'Saved installation',
-          style: Theme.of(context).textTheme.labelMedium,
-        ),
-        const SizedBox(height: 4),
-        SelectableText(current.binding?.path ?? 'No installation selected'),
-      ],
-    ],
+    ),
   );
 }

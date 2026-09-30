@@ -28,7 +28,7 @@ module internal Sqlite =
     let private incompatible () =
         raise (
             InvalidOperationException(
-                "The state database is incompatible with this pre-release build. Delete the Mod Conductor state directory to reset it."
+                "The state database is incompatible with this build. Use a compatible Mod Conductor version. Do not delete your state directory."
             )
         )
 
@@ -53,8 +53,11 @@ module internal Sqlite =
 
             if
                 not (header.AsSpan(0, sqliteHeader.Length).SequenceEqual sqliteHeader)
-                || int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(60, 4)))
-                   <> Schema.CurrentVersion
+                || not (
+                    List.contains
+                        (int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(60, 4))))
+                        [ 1L; Schema.CurrentVersion ]
+                )
                 || int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(68, 4)))
                    <> Schema.ApplicationId
             then
@@ -76,6 +79,12 @@ module internal Sqlite =
 
         match version, application, objects with
         | 0L, 0L, 0L -> execute connection transaction Schema.sql []
+        | 1L, Schema.ApplicationId, _ ->
+            execute
+                connection
+                transaction
+                "ALTER TABLE game_contexts ADD COLUMN wine_selection TEXT; PRAGMA user_version=2;"
+                []
         | Schema.CurrentVersion, Schema.ApplicationId, _ -> ()
         | _ -> incompatible ()
 

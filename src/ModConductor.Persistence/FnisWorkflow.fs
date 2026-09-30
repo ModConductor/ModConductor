@@ -75,11 +75,8 @@ type internal FnisWorkflow
             | Some binding ->
                 let evidence = binding.Evidence
 
-                if
-                    evidence.DefinitionId <> ModConductor.GameContexts.Skyrim.definition.Id
-                    || ModConductor.GameContexts.Skyrim.definition.Storefront <> "Steam"
-                then
-                    return Error "FNIS setup supports Skyrim Special Edition from Steam."
+                if not (ModConductor.GameContexts.ContextRuntime.ready evidence) then
+                    return Error "Select a checked Skyrim runtime before FNIS setup."
                 else
                     match
                         ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence

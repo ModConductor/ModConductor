@@ -23,8 +23,7 @@ module ComponentRoots =
     let gameRootId (workspace: Guid) (evidence: InstallationEvidence) =
         if
             not evidence.Valid
-            || evidence.DefinitionId <> Skyrim.definition.Id
-            || evidence.DefinitionRevision <> Skyrim.definition.Revision
+            || evidence.DefinitionRevision <> (Skyrim.forGame evidence.DefinitionId).Revision
         then
             Error "Select a checked Skyrim installation."
         else

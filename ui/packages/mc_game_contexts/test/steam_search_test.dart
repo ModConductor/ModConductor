@@ -154,7 +154,9 @@ void main() {
       Future<void> choose() async {
         await tester.tap(find.byKey(const ValueKey('change-installation')));
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('find-in-steam')));
+        await tester.tap(
+          find.byKey(const ValueKey('find-profile-installation')),
+        );
         await tester.pump();
         discovery.requests.last.complete(
           report([candidate('found', '/discovered-game')]),

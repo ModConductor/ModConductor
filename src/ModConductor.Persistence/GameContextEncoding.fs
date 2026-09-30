@@ -48,6 +48,7 @@ module internal GameContextEncoding =
             match e.Platform with
             | ContextPlatform.Windows -> 1
             | ContextPlatform.Proton -> 2
+            | ContextPlatform.Wine -> 3
         )
 
         text "root" e.RootPath
@@ -72,6 +73,11 @@ module internal GameContextEncoding =
         |> Option.iter (fun p ->
             w.WritePropertyName("proton")
             ProtonEncoding.write w p)
+
+        e.Wine
+        |> Option.iter (fun value ->
+            w.WritePropertyName("wine")
+            WineEncoding.write w value)
 
         location "documents" e.Locations.Documents
         location "saves" e.Locations.Saves
@@ -129,6 +135,7 @@ module internal GameContextEncoding =
             match (get root "platform").GetInt32() with
             | 1 -> ContextPlatform.Windows
             | 2 -> ContextPlatform.Proton
+            | 3 -> ContextPlatform.Wine
             | _ -> invalidOp "Invalid stored context platform."
           RootPath = text root "root"
           RootIdentity = optional root "rootIdentity" identity
@@ -144,6 +151,7 @@ module internal GameContextEncoding =
                   FileVersion = text e "fileVersion"
                   ProductVersion = text e "productVersion" })
           Proton = optional root "proton" ProtonEncoding.read
+          Wine = optional root "wine" WineEncoding.read
           Locations =
             { Documents = location "documents"
               Saves = location "saves"

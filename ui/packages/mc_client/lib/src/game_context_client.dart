@@ -16,6 +16,7 @@ abstract interface class GameContextsClient {
     int revision,
     String path, {
     ProtonSelection? proton,
+    WineSelection? wine,
   });
   Future<GameContextState> refresh(
     String workspaceId,
@@ -46,6 +47,7 @@ class GrpcGameContextsClient implements GameContextsClient {
     int revision,
     String path, {
     ProtonSelection? proton,
+    WineSelection? wine,
   }) async => _reply(
     await _client.saveGameContext(
       wire.SaveGameContextRequest(
@@ -55,6 +57,12 @@ class GrpcGameContextsClient implements GameContextsClient {
         expectedRevision: Int64(revision),
         path: path,
         proton: proton == null ? null : encodeProtonSelection(proton),
+        wine: wine == null
+            ? null
+            : wire.WineSelectionInfo(
+                executable: wine.executable,
+                prefix: wine.prefix,
+              ),
       ),
       options: CallOptions(timeout: const Duration(seconds: 30)),
     ),
@@ -98,10 +106,18 @@ GameInstallationEvidence _evidence(wire.GameInstallationEvidence e) =>
           GameContextPlatform.windows,
         wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_PROTON =>
           GameContextPlatform.proton,
+        wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_WINE =>
+          GameContextPlatform.wine,
         _ => throw const FormatException('Unknown game platform.'),
       },
       rootPath: e.rootPath,
       proton: e.hasProton() ? decodeProtonEvidence(e.proton) : null,
+      wine: e.hasWine()
+          ? WineSelection(
+              executable: e.wine.selection.executable,
+              prefix: e.wine.selection.prefix,
+            )
+          : null,
       dataPath: e.hasDataPath() ? e.dataPath : null,
       executable: e.hasExecutable()
           ? GameExecutableEvidence(
@@ -132,6 +148,8 @@ GameContextPlatform? _platform(wire.GameContextPlatform value) =>
         GameContextPlatform.windows,
       wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_PROTON =>
         GameContextPlatform.proton,
+      wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_WINE =>
+        GameContextPlatform.wine,
       _ => null,
     };
 
@@ -204,6 +222,12 @@ GameContextState _reply(wire.GameContextReply reply) {
                 path: s.binding.path,
                 proton: s.binding.hasProton()
                     ? decodeProtonSelection(s.binding.proton)
+                    : null,
+                wine: s.binding.hasWine()
+                    ? WineSelection(
+                        executable: s.binding.wine.executable,
+                        prefix: s.binding.wine.prefix,
+                      )
                     : null,
                 evidence: _evidence(s.binding.evidence),
                 needsCheck: s.binding.needsCheck,

@@ -7,7 +7,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_game_contexts/src/installation_dialog.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-import 'game_context_test.dart' show snapshot;
+import 'game_context_test.dart' show snapshot, Client;
 import 'proton_dialog_test.dart' show Discovery, SavingClient, empty;
 import 'steam_search_test.dart' show DiscoveryClient, candidate, report;
 
@@ -66,7 +66,79 @@ GameContextState manualState() {
   );
 }
 
+class ContextSavingClient extends Client {
+  String? savedGame;
+  WineSelection? savedWine;
+  ProtonSelection? savedProton;
+  @override
+  Future<GameContextState> save(
+    String id,
+    String profile,
+    String gameId,
+    int revision,
+    String path, {
+    ProtonSelection? proton,
+    WineSelection? wine,
+  }) async {
+    savedGame = gameId;
+    savedWine = wine;
+    savedProton = proton;
+    return snapshot(id, revision + 1, path);
+  }
+}
+
 void main() {
+  testWidgets(
+    'installation edits save GOG Wine without carrying the old Steam Proton context',
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final client = ContextSavingClient();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.light),
+          home: Scaffold(
+            body: InstallationDialog(
+              initial: manualState(),
+              client: client,
+              chooseDirectory: (_) async => null,
+              onSaved: (_) {},
+              onUnknownSave: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey(('Installation', GameInstallationSource.steam)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GOG Windows').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('wine-executable')),
+        '/bin/wine',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('wine-prefix')),
+        '/gog-prefix',
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('submit')));
+      await tester.tap(find.byKey(const ValueKey('submit')));
+      await tester.pumpAndSettle();
+      expect(client.savedGame, 'skyrim-se-gog');
+      expect(
+        client.savedWine,
+        const WineSelection(executable: '/bin/wine', prefix: '/gog-prefix'),
+      );
+      expect(client.savedProton, isNull);
+    },
+    skip: !Platform.isLinux,
+  );
+
   for (final input in ['text', 'browse', 'steam']) {
     testWidgets(
       '$input changes clear manual Proton only when the game path changes',
@@ -116,9 +188,13 @@ void main() {
               );
             case 'browse':
               selectedFolder = path;
-              await tap(find.byKey(const ValueKey('browse-installation')));
+              await tap(
+                find.byKey(const ValueKey('choose-installation-folder')),
+              );
             case 'steam':
-              await tap(find.byKey(const ValueKey('find-in-steam')));
+              await tap(
+                find.byKey(const ValueKey('find-profile-installation')),
+              );
               steam.requests.last.complete(
                 report([candidate('selected', path)]),
               );

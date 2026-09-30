@@ -53,7 +53,7 @@ type NexusService
             | Ok state when
                 state.Binding
                 |> Option.exists (fun binding ->
-                    binding.Evidence.DefinitionId = GameId.SkyrimSpecialEditionSteam)
+                    binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId).Revision)
                 ->
                 return Ok "skyrimspecialedition"
             | Ok _

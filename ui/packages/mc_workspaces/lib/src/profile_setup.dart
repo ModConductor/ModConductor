@@ -8,9 +8,8 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'workspace_dialog.dart' show DirectoryChooser;
 
-part 'profile_setup_choice_tile.dart';
-part 'profile_setup_installation.dart';
 part 'profile_setup_view.dart';
+part 'profile_setup_discovery.dart';
 
 class ProfileSetupGame {
   const ProfileSetupGame({
@@ -32,12 +31,17 @@ class ProfileSetupSelection {
     required this.game,
     required this.installation,
     this.proton,
+    this.wine,
+    this.source = GameInstallationSource.steam,
   });
 
   final String name;
   final ProfileSetupGame game;
   final String installation;
   final ProtonSelection? proton;
+  final WineSelection? wine;
+  final GameInstallationSource source;
+  String get gameId => source.gameId;
 }
 
 typedef ProfileSetupSubmit = Future<String?> Function(
@@ -59,6 +63,9 @@ class ProfileSetupSurface extends StatefulWidget {
     this.onComplete,
     this.initialInstallation,
     this.initialProton,
+    this.initialWine,
+    this.initialSource = GameInstallationSource.steam,
+    this.chooseExecutable,
     this.initialProblem,
     this.protonContexts,
   });
@@ -75,6 +82,9 @@ class ProfileSetupSurface extends StatefulWidget {
   final VoidCallback? onComplete;
   final String? initialInstallation;
   final ProtonSelection? initialProton;
+  final WineSelection? initialWine;
+  final GameInstallationSource initialSource;
+  final GameDirectoryChooser? chooseExecutable;
   final String? initialProblem;
   final ProtonContextsClient? protonContexts;
 
@@ -84,7 +94,10 @@ class ProfileSetupSurface extends StatefulWidget {
 
 class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
   final form = GlobalKey<FormState>();
-  final folderFocus = FocusNode(debugLabel: 'Choose profile game folder');
+  final folder = TextEditingController();
+  final wineExecutable = TextEditingController();
+  final winePrefix = TextEditingController();
+  late GameInstallationSource source;
   late final TextEditingController name;
   late ProfileSetupGame? game;
   SteamSearch? pendingSearch;
@@ -100,7 +113,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
   bool manualSelection = false;
 
   bool get busy => searching || choosingFolder || submitting;
-  bool get canSubmit => !busy && game != null && selectedInstallation != null;
+  bool get canSubmit => !busy && game != null && folder.text.trim().isNotEmpty;
 
   @override
   void initState() {
@@ -108,6 +121,11 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
     name = TextEditingController(text: widget.initialName);
     game = widget.games.length == 1 ? widget.games.single : null;
     selectedInstallation = widget.initialInstallation;
+    folder.text = widget.initialInstallation ?? '';
+    source = widget.initialSource;
+    wineExecutable.text = widget.initialWine?.executable ?? '';
+    winePrefix.text = widget.initialWine?.prefix ?? '';
+    folder.addListener(folderChanged);
     proton = widget.initialProton;
     manualSelection = selectedInstallation != null;
     searched = selectedInstallation != null;
@@ -120,9 +138,16 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
     if (oldWidget.initialName != widget.initialName && !widget.nameEditable) {
       name.text = widget.initialName;
     }
-    if (oldWidget.initialInstallation != widget.initialInstallation &&
+    if ((oldWidget.initialInstallation != widget.initialInstallation ||
+            oldWidget.initialSource != widget.initialSource ||
+            oldWidget.initialProton != widget.initialProton ||
+            oldWidget.initialWine != widget.initialWine) &&
         widget.initialInstallation != null &&
         !busy) {
+      folder.text = widget.initialInstallation!;
+      source = widget.initialSource;
+      wineExecutable.text = widget.initialWine?.executable ?? '';
+      winePrefix.text = widget.initialWine?.prefix ?? '';
       selectedInstallation = widget.initialInstallation;
       proton = widget.initialProton;
       manualSelection = true;
@@ -134,9 +159,30 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
   void dispose() {
     final search = pendingSearch;
     if (search != null) unawaited(search.cancel());
-    folderFocus.dispose();
+    folder.removeListener(folderChanged);
+    folder.dispose();
+    wineExecutable.dispose();
+    winePrefix.dispose();
     name.dispose();
     super.dispose();
+  }
+
+  void folderChanged() {
+    if (selectedInstallation != folder.text) proton = null;
+    selectedInstallation = folder.text.isEmpty ? null : folder.text;
+    if (mounted) setState(() {});
+  }
+
+  void selectSource(GameInstallationSource value) {
+    if (busy || source == value) return;
+    setState(() {
+      source = value;
+      proton = null;
+      wineExecutable.clear();
+      winePrefix.clear();
+      candidates = const [];
+      problem = null;
+    });
   }
 
   void selectGame(ProfileSetupGame? value) {
@@ -147,6 +193,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       game = value;
       pendingSearch = null;
       candidates = const [];
+      folder.clear();
       selectedInstallation = null;
       proton = null;
       steamRoots = const [];
@@ -157,65 +204,8 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
     });
   }
 
-  Future<void> findInstallations() async {
-    final selectedGame = game;
-    if (busy || selectedGame == null) return;
-    final client = widget.discovery;
-    if (client == null) {
-      setState(() {
-        searched = true;
-        candidates = const [];
-        selectedInstallation = null;
-        proton = null;
-        steamRoots = const [];
-        manualSelection = false;
-        problem = null;
-      });
-      return;
-    }
-    setState(() {
-      searching = true;
-      problem = null;
-      searched = true;
-      candidates = const [];
-      selectedInstallation = null;
-      proton = null;
-      steamRoots = const [];
-      manualSelection = false;
-    });
-    final search = client.search(selectedGame.id, const []);
-    pendingSearch = search;
-    try {
-      final result = await search.result;
-      if (!mounted ||
-          !identical(pendingSearch, search) ||
-          game != selectedGame) {
-        return;
-      }
-      setState(() {
-        candidates = result.candidates;
-        steamRoots = result.roots.map((root) => root.path).toList();
-        selectedInstallation = result.candidates.length == 1
-            ? result.candidates.single.directory.canonicalPath
-            : null;
-      });
-    } on Exception {
-      if (mounted && identical(pendingSearch, search)) {
-        setState(() => problem = 'The Steam search did not finish. Try again.');
-      }
-    } finally {
-      if (mounted && identical(pendingSearch, search)) {
-        setState(() {
-          pendingSearch = null;
-          searching = false;
-        });
-      }
-    }
-  }
-
   Future<void> chooseFolder() async {
     if (busy) return;
-    folderFocus.requestFocus();
     setState(() {
       choosingFolder = true;
       problem = null;
@@ -225,6 +215,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       if (mounted && selected != null) {
         setState(() {
           if (selectedInstallation != selected) proton = null;
+          folder.text = selected;
           selectedInstallation = selected;
           manualSelection = true;
           searched = true;
@@ -237,49 +228,16 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
     } finally {
       if (mounted) {
         setState(() => choosingFolder = false);
-        folderFocus.requestFocus();
       }
-    }
-  }
-
-  Future<void> selectProton() async {
-    final client = widget.protonContexts;
-    final selectedGame = game;
-    final installation = selectedInstallation;
-    if (!Platform.isLinux ||
-        busy ||
-        client == null ||
-        selectedGame == null ||
-        installation == null) {
-      return;
-    }
-    final selected = await showDialog<ProtonSelection>(
-      context: context,
-      builder: (_) => ProtonDialog(
-        gameId: selectedGame.id,
-        gameName: selectedGame.name,
-        steamAppId: selectedGame.steamAppId,
-        gamePath: installation,
-        client: client,
-        chooseDirectory: widget.chooseDirectory,
-        roots: steamRoots,
-        initial: proton,
-      ),
-    );
-    if (mounted &&
-        selected != null &&
-        game == selectedGame &&
-        selectedInstallation == installation) {
-      setState(() => proton = selected);
     }
   }
 
   Future<void> submit() async {
     final selectedGame = game;
-    final installation = selectedInstallation;
+    final installation = folder.text.trim();
     if (!canSubmit ||
         selectedGame == null ||
-        installation == null ||
+        installation.isEmpty ||
         !form.currentState!.validate()) {
       return;
     }
@@ -293,7 +251,14 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
           name: name.text.trim(),
           game: selectedGame,
           installation: installation,
-          proton: proton,
+          proton: source == GameInstallationSource.steam ? proton : null,
+          source: source,
+          wine: Platform.isLinux && source != GameInstallationSource.steam
+              ? WineSelection(
+                  executable: wineExecutable.text.trim(),
+                  prefix: winePrefix.text.trim(),
+                )
+              : null,
         ),
       );
       if (!mounted) return;

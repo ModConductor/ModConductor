@@ -144,6 +144,7 @@ module GameLaunchFixtures =
                         0L,
                         { GameId = GameId.SkyrimSpecialEditionSteam
                           Path = game
+                          Wine = None
                           Proton = Some proton }
                     )
                 |> wait
@@ -337,6 +338,7 @@ module GameLaunchFixtures =
                         0L,
                         { GameId = GameId.SkyrimSpecialEditionSteam
                           Path = game
+                          Wine = None
                           Proton = Some proton }
                     )
                 |> wait

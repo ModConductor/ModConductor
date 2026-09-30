@@ -1,5 +1,6 @@
 namespace ModConductor.Engine
 
+open System
 open ModConductor.GameContexts
 open ModConductor.Protocol.V1
 
@@ -8,6 +9,10 @@ module private GameContextWire =
         function
         | ContextPlatform.Windows -> GameContextPlatform.Windows
         | ContextPlatform.Proton -> GameContextPlatform.Proton
+        | ContextPlatform.Wine -> GameContextPlatform.Wine
+
+    let wineSelection (value: WineSelection) =
+        WineSelectionInfo(Executable = value.Executable, Prefix = value.Prefix)
 
     let location =
         function
@@ -30,6 +35,11 @@ module private GameContextWire =
             )
 
         value.Proton |> Option.iter (fun p -> result.Proton <- ProtonWire.evidence p)
+
+        value.Wine
+        |> Option.iter (fun wine ->
+            result.Wine <- WineContextEvidence(Selection = wineSelection wine.Selection))
+
         value.DataPath |> Option.iter (fun path -> result.DataPath <- path)
         value.LauncherPath |> Option.iter (fun path -> result.LauncherPath <- path)
 
@@ -102,9 +112,7 @@ module private GameContextWire =
 
             value.Binding
             |> Option.iter (fun b ->
-                let d =
-                    match b.GameId with
-                    | GameId.SkyrimSpecialEditionSteam -> Skyrim.definition
+                let d = Skyrim.forGame b.GameId
 
                 state.Definition <-
                     GameDefinitionInfo(
@@ -137,6 +145,7 @@ module private GameContextWire =
                     )
 
                 b.Proton |> Option.iter (fun p -> binding.Proton <- ProtonWire.selection p)
+                b.Wine |> Option.iter (fun wine -> binding.Wine <- wineSelection wine)
                 b.Failure |> Option.iter (fun failure -> binding.Failure <- failure)
                 state.Binding <- binding)
 
@@ -200,7 +209,20 @@ type GameContextService(contexts: IGameContexts) =
                     ModLibraryWire.number request.ExpectedRevision,
                     { GameId = game
                       Path = request.Path
-                      Proton = ProtonWire.readSelection request.Proton }
+                      Proton = ProtonWire.readSelection request.Proton
+                      Wine =
+                        if isNull request.Wine then
+                            None
+                        else
+                            let path (value: string) =
+                                if value <> "" && not (IO.Path.IsPathFullyQualified value) then
+                                    ModLibraryWire.reject "Select an absolute Wine path."
+
+                                value
+
+                            Some
+                                { Executable = path request.Wine.Executable
+                                  Prefix = path request.Wine.Prefix } }
                 )
 
             return GameContextWire.reply result

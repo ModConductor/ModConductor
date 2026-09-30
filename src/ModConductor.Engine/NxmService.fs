@@ -60,7 +60,8 @@ type NxmService
                     | Ok value when
                         value.Binding
                         |> Option.exists (fun binding ->
-                            binding.Evidence.DefinitionId = GameId.SkyrimSpecialEditionSteam)
+                            binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId)
+                                .Revision)
                         ->
                         ()
                     | _ ->

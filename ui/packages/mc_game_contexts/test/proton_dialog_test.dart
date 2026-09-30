@@ -77,6 +77,7 @@ class SavingClient extends Client {
     int revision,
     String path, {
     ProtonSelection? proton,
+    WineSelection? wine,
   }) {
     selections.add(proton);
     return super.save(id, profile, gameId, revision, path, proton: proton);

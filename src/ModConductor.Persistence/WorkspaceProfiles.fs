@@ -171,7 +171,7 @@ module internal WorkspaceProfiles =
                         Sqlite.execute
                             connection
                             transaction
-                            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection) SELECT $target,workspace_id,game_id,$binding,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$source"
+                            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection,wine_selection) SELECT $target,workspace_id,game_id,$binding,path,revision,evidence,checked_owner,failure,proton_selection,wine_selection FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$source"
                             [ "$target", box (string value.Id)
                               "$binding", box (string (Guid.NewGuid()))
                               "$workspace", box (string id)

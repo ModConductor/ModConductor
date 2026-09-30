@@ -22,8 +22,8 @@ module SkseResolver =
     let private otherStorefront (file: NexusFile) =
         [ file.Name; file.Description ]
         |> List.exists (fun text ->
-            text.Contains("GOG", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("VR", StringComparison.OrdinalIgnoreCase))
+            text.Contains("VR", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Epic", StringComparison.OrdinalIgnoreCase))
 
     let private declaredRuntime (file: NexusFile) =
         let description = file.Description
@@ -48,7 +48,10 @@ module SkseResolver =
                     let suffix = tail.Substring(value.Length).Trim()
 
                     if
-                        not (suffix.StartsWith("from Steam", StringComparison.OrdinalIgnoreCase))
+                        not (
+                            suffix.StartsWith("from Steam", StringComparison.OrdinalIgnoreCase)
+                            || suffix.StartsWith("from GOG", StringComparison.OrdinalIgnoreCase)
+                        )
                     then
                         None
                     else
@@ -62,7 +65,8 @@ module SkseResolver =
         && (declaredRuntime file |> Option.isSome
             || [ file.Name; file.Description ]
                |> List.exists (fun text ->
-                   text.Contains("Steam", StringComparison.OrdinalIgnoreCase)))
+                   text.Contains("Steam", StringComparison.OrdinalIgnoreCase)
+                   || text.Contains("GOG", StringComparison.OrdinalIgnoreCase)))
 
     let releases (value: NexusMod) =
         if value.Game <> "skyrimspecialedition" || value.Id <> NexusModId then
@@ -88,19 +92,36 @@ module SkseResolver =
             || binding.Evidence.Executable.IsNone
             ->
             Error SkseProblem.GameUnavailable
-        | Some binding when
-            binding.Evidence.DefinitionId <> Skyrim.definition.Id
-            || Skyrim.definition.Storefront <> "Steam"
-            ->
-            Error SkseProblem.UnsupportedStorefront
         | Some binding ->
             let executable = binding.Evidence.Executable.Value
 
             match tryRuntimeVersion executable.FileVersion with
             | None -> Error SkseProblem.UnknownCompatibility
             | Some runtime ->
+                let gog (release: SkseAuthorRelease) =
+                    [ release.File.Name; release.File.Description ]
+                    |> List.exists (fun text ->
+                        text.Contains("GOG", StringComparison.OrdinalIgnoreCase))
+
+                let edition =
+                    match binding.GameId with
+                    | GameId.SkyrimSpecialEditionGog -> Some true
+                    | GameId.SkyrimSpecialEditionSteam -> Some false
+                    | GameId.SkyrimSpecialEditionDirect ->
+                        if Skyrim.isGogRuntime executable.FileVersion then
+                            Some true
+                        elif
+                            available
+                            |> List.exists (fun release ->
+                                not (gog release) && release.DeclaredRuntimeVersion = Some runtime)
+                        then
+                            Some false
+                        else
+                            None
+
                 let ordered =
                     available
+                    |> List.filter (fun release -> edition = Some(gog release))
                     |> List.sortByDescending (fun release ->
                         release.ComponentVersion, release.File.Id)
 

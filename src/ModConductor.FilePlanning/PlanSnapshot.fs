@@ -28,8 +28,7 @@ module internal PlanSnapshot =
         | Some binding when binding.NeedsCheck || not binding.Evidence.Valid ->
             Some "Refresh the saved game installation."
         | Some binding when
-            binding.Evidence.DefinitionId <> Skyrim.definition.Id
-            || binding.Evidence.DefinitionRevision <> Skyrim.definition.Revision
+            binding.Evidence.DefinitionRevision <> (Skyrim.forGame binding.GameId).Revision
             ->
             Some "Select a supported Skyrim installation."
         | Some binding when
@@ -37,6 +36,10 @@ module internal PlanSnapshot =
             && (binding.Proton.IsNone || binding.Evidence.Proton.IsNone)
             ->
             Some "Select and save the Proton data and runtime folders."
+        | Some binding when
+            binding.Evidence.Platform = ContextPlatform.Wine && binding.Evidence.Wine.IsNone
+            ->
+            Some "Select and save the Wine executable and prefix."
         | Some _ -> None
 
     let context (sources: PlanSources) =

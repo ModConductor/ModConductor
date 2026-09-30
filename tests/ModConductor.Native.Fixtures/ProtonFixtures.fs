@@ -328,6 +328,7 @@ module ProtonFixtures =
                         0L,
                         { GameId = GameId.SkyrimSpecialEditionSteam
                           Path = game
+                          Wine = None
                           Proton = Some { selected with ToolId = "" } }
                     )
                     |> wait
@@ -345,6 +346,7 @@ module ProtonFixtures =
                         0L,
                         { GameId = GameId.SkyrimSpecialEditionSteam
                           Path = game
+                          Wine = None
                           Proton = None }
                     )
                     |> wait
@@ -362,6 +364,7 @@ module ProtonFixtures =
                         saved.Revision,
                         { GameId = GameId.SkyrimSpecialEditionSteam
                           Path = game
+                          Wine = None
                           Proton =
                             Some
                                 { selected with

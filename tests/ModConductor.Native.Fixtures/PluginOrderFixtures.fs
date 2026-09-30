@@ -101,6 +101,7 @@ module PluginOrderFixtures =
                         0L,
                         { GameId = GameId.SkyrimSpecialEditionSteam
                           Path = game
+                          Wine = None
                           Proton = Some proton }
                     )
                 |> wait

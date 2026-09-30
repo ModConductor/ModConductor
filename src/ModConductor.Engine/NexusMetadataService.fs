@@ -51,7 +51,8 @@ type NexusMetadataService
                 | Ok context when
                     context.Binding
                     |> Option.exists (fun binding ->
-                        binding.Evidence.DefinitionId = GameId.SkyrimSpecialEditionSteam)
+                        binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId)
+                            .Revision)
                     ->
                     let! metadata =
                         session.ReadMetadata

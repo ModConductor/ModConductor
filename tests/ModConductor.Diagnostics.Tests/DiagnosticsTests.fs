@@ -374,6 +374,7 @@ type private FixtureGameContexts
                 { Id = Guid.NewGuid()
                   GameId = GameId.SkyrimSpecialEditionSteam
                   Path = root
+                  Wine = None
                   Proton = None
                   Evidence = evidence
                   NeedsCheck = false

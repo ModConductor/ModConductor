@@ -26,8 +26,8 @@ module internal GameProcesses =
         if Path.IsPathRooted value then
             Some(Path.GetFullPath value)
         elif value.Length > 3 && value[1] = ':' && (value[2] = '\\' || value[2] = '/') then
-            match evidence.Proton, prefix with
-            | Some proton, Some prefix when same prefix proton.PrefixPath ->
+            match ContextRuntime.prefix evidence, prefix with
+            | Some selected, Some prefix when same prefix selected ->
                 let drive =
                     Path.Combine(
                         prefix,
@@ -97,8 +97,8 @@ module internal GameProcesses =
                         ))
 
                 let selectedPrefix =
-                    match evidence.Proton, running.Prefix with
-                    | Some proton, Some prefix -> same prefix proton.PrefixPath
+                    match ContextRuntime.prefix evidence, running.Prefix with
+                    | Some selected, Some prefix -> same prefix selected
                     | _ -> false
 
                 if named && (running.Incomplete || selectedPrefix || paths.IsEmpty) then
@@ -117,8 +117,8 @@ module internal GameProcesses =
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             let evidence = binding.Evidence
 
-            if evidence.Platform = ContextPlatform.Proton && evidence.Proton.IsNone then
-                Error "Select a checked Proton context before deployment."
+            if not (ContextRuntime.ready evidence) then
+                Error "Select a checked runtime before deployment."
             else
                 Ok evidence
 

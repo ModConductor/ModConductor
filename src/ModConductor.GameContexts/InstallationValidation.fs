@@ -6,7 +6,7 @@ open System.Security.Cryptography
 open ModConductor.Platform
 
 module InstallationValidation =
-    let private locations (definition: GameDefinition) =
+    let locations (definition: GameDefinition) =
         if OperatingSystem.IsWindows() then
             let locate folder components =
                 let root =
@@ -24,7 +24,7 @@ module InstallationValidation =
                 locate Environment.SpecialFolder.LocalApplicationData definition.LocalAppData }
         else
             let unavailable =
-                Location.Unavailable "Save and settings locations require a Proton context."
+                Location.Unavailable "Select a runtime to locate saves and settings."
 
             { Documents = unavailable
               Saves = unavailable
@@ -185,8 +185,10 @@ module InstallationValidation =
               Platform =
                 if OperatingSystem.IsWindows() then
                     ContextPlatform.Windows
-                else
+                elif definition.Id = GameId.SkyrimSpecialEditionSteam then
                     ContextPlatform.Proton
+                else
+                    ContextPlatform.Wine
               RootPath = resolved
               RootIdentity = rootIdentity
               DataPath = dataPath
@@ -194,7 +196,13 @@ module InstallationValidation =
               Executable = executable
               LauncherPath = launcher
               Proton = None
-              Locations = locations definition
+              Wine = None
+              Locations =
+                locations (
+                    Skyrim.forRuntime
+                        definition.Id
+                        (executable |> Option.map _.FileVersion |> Option.defaultValue "")
+                )
               Problems = List.ofSeq problems
               CheckedAt =
                 DateTimeOffset.FromUnixTimeMilliseconds(

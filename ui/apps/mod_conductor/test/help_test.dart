@@ -278,6 +278,7 @@ class FakeGameContexts extends Fake implements GameContextsClient {
     int revision,
     String path, {
     ProtonSelection? proton,
+    WineSelection? wine,
   }) async => boundGame(workspaceId, profileId);
 }
 
@@ -431,6 +432,7 @@ class RetryGameContexts extends Fake implements GameContextsClient {
     int revision,
     String path, {
     ProtonSelection? proton,
+    WineSelection? wine,
   }) async {
     final current = states[profileId] ?? unboundGame(workspaceId, profileId);
     if (revision != current.revision) {

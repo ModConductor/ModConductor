@@ -24,15 +24,19 @@ class GameContextPlatform extends $pb.ProtobufEnum {
   static const GameContextPlatform GAME_CONTEXT_PLATFORM_PROTON =
       GameContextPlatform._(
           2, _omitEnumNames ? '' : 'GAME_CONTEXT_PLATFORM_PROTON');
+  static const GameContextPlatform GAME_CONTEXT_PLATFORM_WINE =
+      GameContextPlatform._(
+          3, _omitEnumNames ? '' : 'GAME_CONTEXT_PLATFORM_WINE');
 
   static const $core.List<GameContextPlatform> values = <GameContextPlatform>[
     GAME_CONTEXT_PLATFORM_UNSPECIFIED,
     GAME_CONTEXT_PLATFORM_WINDOWS,
     GAME_CONTEXT_PLATFORM_PROTON,
+    GAME_CONTEXT_PLATFORM_WINE,
   ];
 
   static final $core.List<GameContextPlatform?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 2);
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
   static GameContextPlatform? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

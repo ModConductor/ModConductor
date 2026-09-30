@@ -74,8 +74,7 @@ type internal EnbInstallDeployment
         task {
             let generation = prepared.Switch.Generation.Id
 
-            let runtimeName =
-                evidence.Proton |> Option.map _.RuntimeName |> Option.defaultValue "Windows"
+            let runtimeName = ModConductor.GameContexts.ContextRuntime.name evidence
 
             let previousPresent =
                 priorValues

@@ -16,12 +16,14 @@ class GameContextBrowser extends StatefulWidget {
     required this.chooseDirectory,
     this.steamDiscovery,
     this.protonContexts,
+    this.chooseExecutable,
     this.footer,
   });
   final GameContextController controller;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseDirectory;
+  final GameDirectoryChooser? chooseExecutable;
   final Widget? footer;
   @override
   State<GameContextBrowser> createState() => _GameContextBrowserState();
@@ -47,6 +49,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
         initial: initial,
         client: client,
         chooseDirectory: widget.chooseDirectory,
+        chooseExecutable: widget.chooseExecutable,
         steamDiscovery: widget.steamDiscovery,
         protonContexts: widget.protonContexts,
         onSaved: (result) => c.accept(result, client),
@@ -84,6 +87,11 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
     }
   }
 
+  String platformName(GameContextPlatform platform) => switch (platform) {
+    GameContextPlatform.windows => 'Windows',
+    GameContextPlatform.proton => 'Proton',
+    GameContextPlatform.wine => 'Wine',
+  };
   String location(GameLocation value) => switch (value) {
     LocatedGameFolder(:final path, :final exists) =>
       exists ? path : '$path\nNot found',
@@ -179,7 +187,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${state.definition!.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
+                              '${state.definition!.storefront} · ${platformName(evidence!.platform)}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -202,13 +210,16 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                                             GameContextPlatform.proton &&
                                         evidence.proton == null
                                   ? 'Proton not selected'
+                                  : evidence.platform ==
+                                            GameContextPlatform.wine &&
+                                        !evidence.runtimeReady
+                                  ? 'Wine not selected'
                                   : evidence.proton == null
                                   ? 'Installation files checked'
                                   : 'Installation and Proton files checked'),
                     detail: binding.needsCheck || c.needsRead
                         ? 'Last checked: ${checkedAt(evidence.checkedAt)}'
-                        : evidence.platform == GameContextPlatform.proton &&
-                              evidence.proton == null
+                        : !evidence.runtimeReady
                         ? 'Save and settings locations are unavailable.'
                         : 'Game version ${evidence.executable!.fileVersion}',
                     tone: binding.failure != null
@@ -268,12 +279,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                           rows: [
                             McFact('Game', state.definition!.name),
                             McFact('Store', state.definition!.storefront),
-                            McFact(
-                              'Platform',
-                              evidence.platform == GameContextPlatform.windows
-                                  ? 'Windows'
-                                  : 'Proton',
-                            ),
+                            McFact('Platform', platformName(evidence.platform)),
                             McFact(
                               'Installation folder',
                               binding.path,
@@ -292,6 +298,16 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                               McFact('Launcher', launcher, path: true),
                           ],
                         ),
+                        if (binding.wine case final wine?) ...[
+                          const SizedBox(height: McSpacing.large),
+                          McFactGroup(
+                            title: 'Wine',
+                            rows: [
+                              McFact('Executable', wine.executable, path: true),
+                              McFact('Prefix', wine.prefix, path: true),
+                            ],
+                          ),
+                        ],
                         if (evidence.proton case final proton?) ...[
                           const SizedBox(height: 20),
                           McFactGroup(

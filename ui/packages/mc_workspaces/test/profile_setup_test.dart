@@ -75,6 +75,9 @@ Future<void> mount(
   ProtonContextsClient? protonContexts,
   VoidCallback? onCancel,
   VoidCallback? onComplete,
+  GameInstallationSource initialSource = GameInstallationSource.steam,
+  String? initialInstallation,
+  WineSelection? initialWine,
   Size size = const Size(1000, 760),
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -87,6 +90,9 @@ Future<void> mount(
       home: Scaffold(
         body: ProfileSetupSurface(
           initialName: '',
+          initialSource: initialSource,
+          initialInstallation: initialInstallation,
+          initialWine: initialWine,
           games: const [game],
           discovery: discovery,
           chooseDirectory: chooseDirectory,
@@ -113,6 +119,95 @@ Future<void> findInstallations(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'GOG profile creation retains a partial Wine selection without Steam discovery',
+    (tester) async {
+      final discovery = Discovery(const []);
+      ProfileSetupSelection? submitted;
+      await mount(
+        tester,
+        discovery: discovery,
+        chooseDirectory: (_) async => null,
+        initialSource: GameInstallationSource.gog,
+        initialInstallation: '/games/gog',
+        onSubmit: (value) async {
+          submitted = value;
+          return null;
+        },
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('profile-setup-name')),
+        'GOG',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('wine-executable')),
+        '/bin/wine',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('submit-profile-setup')),
+      );
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(submitted?.gameId, 'skyrim-se-gog');
+      expect(submitted?.installation, '/games/gog');
+      expect(
+        submitted?.wine,
+        const WineSelection(executable: '/bin/wine', prefix: ''),
+      );
+      expect(submitted?.proton, isNull);
+      expect(discovery.searches, 0);
+    },
+    skip: !Platform.isLinux,
+  );
+
+  testWidgets(
+    'a same-folder context replacement updates setup source and runtime',
+    (tester) async {
+      final discovery = Discovery(const []);
+      ProfileSetupSelection? submitted;
+      Future<String?> submit(ProfileSetupSelection value) async {
+        submitted = value;
+        return null;
+      }
+
+      await mount(
+        tester,
+        discovery: discovery,
+        chooseDirectory: (_) async => null,
+        initialInstallation: '/games/same',
+        onSubmit: submit,
+      );
+      await mount(
+        tester,
+        discovery: discovery,
+        chooseDirectory: (_) async => null,
+        initialInstallation: '/games/same',
+        initialSource: GameInstallationSource.gog,
+        initialWine: const WineSelection(
+          executable: '/bin/wine',
+          prefix: '/prefix',
+        ),
+        onSubmit: submit,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('profile-setup-name')),
+        'GOG',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('submit-profile-setup')),
+      );
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(submitted?.gameId, 'skyrim-se-gog');
+      expect(
+        submitted?.wine,
+        const WineSelection(executable: '/bin/wine', prefix: '/prefix'),
+      );
+      expect(submitted?.proton, isNull);
+    },
+    skip: !Platform.isLinux,
+  );
+
   testWidgets('Linux profile setup allows Proton to be selected later', (
     tester,
   ) async {
@@ -128,7 +223,6 @@ void main() {
       },
     );
     await findInstallations(tester);
-    expect(find.text('Not selected'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
     await tester.pumpAndSettle();
 
@@ -242,8 +336,11 @@ void main() {
       isNull,
     );
     await tester.tap(
-      find.byKey(const ValueKey(('profile-installation', '/games/second'))),
+      find.byKey(const ValueKey(('Steam folder', '/games/first'))),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('/games/second').last);
+    await tester.pumpAndSettle();
     await tester.pump();
     await tester.ensureVisible(
       find.byKey(const ValueKey('submit-profile-setup')),
@@ -277,7 +374,7 @@ void main() {
           .onPressed,
       isNull,
     );
-    await tester.tap(find.byKey(const ValueKey('choose-profile-game-folder')));
+    await tester.tap(find.byKey(const ValueKey('choose-installation-folder')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const ValueKey('submit-profile-setup')),
@@ -309,8 +406,8 @@ void main() {
       );
 
       await findInstallations(tester);
-      final override = tester.widget<TextButton>(
-        find.byKey(const ValueKey('choose-another-profile-game-folder')),
+      final override = tester.widget<McIconAction>(
+        find.byKey(const ValueKey('choose-installation-folder')),
       );
       override.focusNode!.requestFocus();
       await tester.pump();
@@ -343,9 +440,7 @@ void main() {
     );
 
     await findInstallations(tester);
-    await tester.tap(
-      find.byKey(const ValueKey('choose-another-profile-game-folder')),
-    );
+    await tester.tap(find.byKey(const ValueKey('choose-installation-folder')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
     await tester.pumpAndSettle();

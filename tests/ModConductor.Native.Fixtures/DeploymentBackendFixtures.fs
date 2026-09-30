@@ -106,6 +106,7 @@ module DeploymentBackendFixtures =
         let selection source runtime =
             { GameId = GameId.SkyrimSpecialEditionSteam
               Path = source
+              Wine = None
               Proton = if OperatingSystem.IsLinux() then Some runtime else None }
 
         contexts.Save(workspace, profile, 0L, selection game proton)

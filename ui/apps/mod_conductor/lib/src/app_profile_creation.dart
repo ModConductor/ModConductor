@@ -48,10 +48,11 @@ mixin _ProfileCreation on _AppStateBase {
       final saved = await client.save(
         workspace.id,
         profile.id,
-        selection.game.id,
+        selection.gameId,
         state.revision,
         selection.installation,
         proton: selection.proton,
+        wine: selection.wine,
       );
       _game.accept(saved, client);
       return null;
@@ -113,6 +114,9 @@ mixin _ProfileCreation on _AppStateBase {
       protonContexts: widget.protonContexts,
       initialInstallation: binding?.path,
       initialProton: binding?.proton,
+      initialSource: GameInstallationSource.fromGameId(state.definition?.id),
+      initialWine: binding?.wine,
+      chooseExecutable: widget.chooseExecutable,
       initialProblem: _game.problem ?? binding?.failure,
       actionLabel: 'Save profile',
       onSubmit: (selection) => _saveProfileSetup(workspace, profile, selection),
@@ -126,23 +130,19 @@ mixin _ProfileCreation on _AppStateBase {
     final attempt = _ProfileCreationAttempt();
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
-          child: ProfileSetupSurface(
-            initialName: '',
-            games: _profileSetupGames,
-            discovery: widget.steamDiscovery,
-            chooseDirectory: widget.chooseGameDirectory,
-            protonContexts: widget.protonContexts,
-            actionLabel: 'Create profile',
-            canCancel: true,
-            onCancel: () => Navigator.pop(dialogContext),
-            onComplete: () => Navigator.pop(dialogContext),
-            onSubmit: (selection) =>
-                _submitProfileCreation(workspace, attempt, selection),
-          ),
-        ),
+      builder: (dialogContext) => ProfileSetupSurface(
+        initialName: '',
+        games: _profileSetupGames,
+        discovery: widget.steamDiscovery,
+        chooseDirectory: widget.chooseGameDirectory,
+        chooseExecutable: widget.chooseExecutable,
+        protonContexts: widget.protonContexts,
+        actionLabel: 'Create profile',
+        canCancel: true,
+        onCancel: () => Navigator.pop(dialogContext),
+        onComplete: () => Navigator.pop(dialogContext),
+        onSubmit: (selection) =>
+            _submitProfileCreation(workspace, attempt, selection),
       ),
     );
   }
@@ -211,10 +211,11 @@ mixin _ProfileCreation on _AppStateBase {
       saved = await client.save(
         workspace.id,
         profile.id,
-        selection.game.id,
+        selection.gameId,
         loaded.revision,
         selection.installation,
         proton: selection.proton,
+        wine: selection.wine,
       );
     }
     attempt.committedContext = saved;
@@ -253,7 +254,8 @@ mixin _ProfileCreation on _AppStateBase {
     ProfileSetupSelection? previous,
     ProfileSetupSelection current,
   ) =>
-      previous?.game.id == current.game.id &&
+      previous?.gameId == current.gameId &&
+      previous?.wine == current.wine &&
       previous?.installation == current.installation &&
       _sameProton(previous?.proton, current.proton);
 
@@ -286,8 +288,10 @@ mixin _ProfileCreation on _AppStateBase {
     ProfileSetupSelection selection,
   ) {
     final binding = state.binding;
-    return state.definition?.id == selection.game.id &&
+    return state.definition?.id == selection.gameId &&
         binding != null &&
+        binding.path == selection.installation &&
+        binding.wine == selection.wine &&
         _sameProton(binding.proton, selection.proton) &&
         !binding.needsCheck &&
         binding.failure == null &&

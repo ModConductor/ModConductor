@@ -91,6 +91,7 @@ module DeploymentLiveFixture =
         let selection =
             { GameId = GameId.SkyrimSpecialEditionSteam
               Path = game
+              Wine = None
               Proton =
                 if OperatingSystem.IsLinux() then
                     Some

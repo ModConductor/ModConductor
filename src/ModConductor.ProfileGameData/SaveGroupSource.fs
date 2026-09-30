@@ -16,19 +16,22 @@ module internal SaveGroupSource =
         | Some binding when
             not binding.NeedsCheck
             && binding.Evidence.Valid
-            && binding.Evidence.DefinitionId = Skyrim.definition.Id
-            && binding.Evidence.DefinitionRevision = Skyrim.definition.Revision
+            && binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId).Revision
             && (match binding.Evidence.Platform, binding.Evidence.Proton, binding.Proton with
                 | ContextPlatform.Windows, None, None -> true
                 | ContextPlatform.Proton, Some evidence, Some selection ->
                     selection.AppId = Skyrim.definition.SteamAppId && evidence.Selection = selection
+                | ContextPlatform.Wine, None, None ->
+                    binding.Wine.IsSome
+                    && binding.Evidence.Wine
+                       |> Option.exists (fun evidence -> Some evidence.Selection = binding.Wine)
                 | _ -> false)
             ->
             Ok binding
         | _ ->
             Error(
                 ProfileDataError.Unavailable
-                    "Select and refresh the Skyrim Special Edition Steam context first."
+                    "Select and refresh the Skyrim Special Edition context first."
             )
 
     let profileRoot scope =
@@ -47,12 +50,9 @@ module internal SaveGroupSource =
         | Location.Unavailable reason -> Error(ProfileDataError.Unavailable reason)
 
     let private windowsPath (binding: GameBinding) =
-        binding.Evidence.Proton
-        |> Option.bind (fun proton ->
-            proton.Paths
-            |> List.tryFind (fun path ->
-                path.Name.Equals("Saves", StringComparison.OrdinalIgnoreCase))
-            |> Option.bind _.WindowsPath)
+        ContextRuntime.paths binding.Evidence
+        |> List.tryFind (fun path -> path.Name.Equals("Saves", StringComparison.OrdinalIgnoreCase))
+        |> Option.bind _.WindowsPath
 
     let source scope source =
         result {

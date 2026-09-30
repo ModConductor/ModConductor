@@ -6,7 +6,7 @@ open ModConductor.Platform
 open ModConductor.GameContexts
 
 module internal PrefixPaths =
-    let resolve root identity (components: string list) file =
+    let resolve allowExternal root identity (components: string list) file =
         use held =
             HeldDirectory.Open(HostPath.create root |> Result.defaultWith invalidOp, identity)
 
@@ -43,19 +43,31 @@ module internal PrefixPaths =
                         let path = Path.GetFullPath(target, current)
 
                         if not (PrefixFiles.contained root path) then
-                            raise (
-                                IOException "The user folder points outside the selected prefix."
-                            )
+                            if allowExternal then
+                                let external, externalIdentity = PrefixFiles.directory path
 
-                        let relative = Path.GetRelativePath(root, path)
+                                use redirected =
+                                    HeldDirectory.Open(
+                                        HostPath.create external |> Result.defaultWith invalidOp,
+                                        externalIdentity
+                                    )
 
-                        let next =
-                            if relative = "." then
-                                []
+                                walk redirected external rest (links + 1)
                             else
-                                relative.Split('/') |> List.ofArray
+                                raise (
+                                    IOException
+                                        "The user folder points outside the selected prefix."
+                                )
+                        else
+                            let relative = Path.GetRelativePath(root, path)
 
-                        walk held root (next @ rest) (links + 1)
+                            let next =
+                                if relative = "." then
+                                    []
+                                else
+                                    relative.Split('/') |> List.ofArray
+
+                            walk held root (next @ rest) (links + 1)
                     | None ->
                         let path = Path.Combine(current, name)
 
@@ -72,7 +84,8 @@ module internal PrefixPaths =
 
         walk held root components 0
 
-    let locations
+    let locationsWith
+        allowExternal
         (definition: GameDefinition)
         prefix
         identity
@@ -123,22 +136,30 @@ module internal PrefixPaths =
             ("dosdevices" :: (string (Char.ToLowerInvariant value[0]) + ":") :: parts)
 
         match user with
+        | None when allowExternal -> ()
         | None ->
             raise (IOException "The prefix registry does not identify its Windows user profile.")
         | Some profile ->
-            let _, exists = resolve prefix identity (parse (expand profile)) false
+            let _, exists = resolve allowExternal prefix identity (parse (expand profile)) false
 
             if not exists then
                 raise (IOException "The prefix Windows user profile folder was not found.")
 
         let shell name =
-            registry
-                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
-                name
-            |> Option.orElseWith (fun () ->
+            let absolute =
                 registry
                     "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"
-                    name)
+                    name
+
+            let expandable =
+                registry
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+                    name
+
+            if allowExternal && user.IsNone then
+                absolute |> Option.orElse expandable
+            else
+                expandable |> Option.orElse absolute
 
         let locate label key components file =
             let mutable windows = None
@@ -158,7 +179,10 @@ module internal PrefixPaths =
                             + String.Join("\\", (components: string list))
 
                         windows <- Some combined
-                        let path, exists = resolve prefix identity (parse combined) file
+
+                        let path, exists =
+                            resolve allowExternal prefix identity (parse combined) file
+
                         Location.Located(path, exists)
                 with :? IOException as e ->
                     Location.Unavailable e.Message
@@ -172,3 +196,5 @@ module internal PrefixPaths =
           yield locate "Local AppData" "Local AppData" definition.LocalAppData false
           for name in definition.IniFiles do
               yield locate name "Personal" (definition.Documents @ [ name ]) true ]
+
+    let locations = locationsWith false

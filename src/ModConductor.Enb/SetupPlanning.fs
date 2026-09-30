@@ -67,7 +67,7 @@ module EnbSetupPlanning =
         elif String.IsNullOrWhiteSpace plan.PreservedRuntime then
             Error(
                 EnbProblem.IncompatibleRuntime
-                    "Select a checked Windows or Proton runtime before ENB setup."
+                    "Select a checked Windows, Proton or Wine runtime before ENB setup."
             )
         else
             Ok plan

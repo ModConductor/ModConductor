@@ -9,7 +9,7 @@ service GameContextOperations {
   rpc RefreshGameContext(RefreshGameContextRequest) returns (GameContextReply);
 }
 message ReadGameContextRequest { string workspace_id = 1; string profile_id = 2; }
-message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; ProtonSelectionInfo proton = 4; string profile_id = 5; string game_id = 6; }
+message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; ProtonSelectionInfo proton = 4; string profile_id = 5; string game_id = 6; WineSelectionInfo wine = 7; }
 message RefreshGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string profile_id = 3; }
 message GameDefinitionInfo {
   string definition_id = 1;
@@ -21,7 +21,7 @@ message GameDefinitionInfo {
   repeated GameCapabilityInfo capabilities = 7;
 }
 message UnavailableGameCapability { string name = 1; string reason = 2; }
-enum GameContextPlatform { GAME_CONTEXT_PLATFORM_UNSPECIFIED = 0; GAME_CONTEXT_PLATFORM_WINDOWS = 1; GAME_CONTEXT_PLATFORM_PROTON = 2; }
+enum GameContextPlatform { GAME_CONTEXT_PLATFORM_UNSPECIFIED = 0; GAME_CONTEXT_PLATFORM_WINDOWS = 1; GAME_CONTEXT_PLATFORM_PROTON = 2; GAME_CONTEXT_PLATFORM_WINE = 3; }
 enum GameCapabilityKind {
   GAME_CAPABILITY_KIND_UNSPECIFIED = 0;
   GAME_CAPABILITY_KIND_CORE_OUTCOME = 1;
@@ -69,6 +69,7 @@ message GameInstallationEvidence {
   string definition_id = 12;
   uint32 definition_revision = 13;
   ProtonContextEvidence proton = 14;
+  WineContextEvidence wine = 15;
 }
 message GameBindingInfo {
   string binding_id = 1;
@@ -77,6 +78,7 @@ message GameBindingInfo {
   bool needs_check = 4;
   optional string failure = 5;
   ProtonSelectionInfo proton = 6;
+  WineSelectionInfo wine = 7;
 }
 message GameContextState {
   string workspace_id = 1;
@@ -95,3 +97,6 @@ enum GameContextFaultCode {
 }
 message GameContextFault { GameContextFaultCode code = 1; string detail = 2; GameInstallationEvidence candidate = 3; }
 message GameContextReply { oneof outcome { GameContextState state = 1; GameContextFault fault = 2; } }
+
+message WineSelectionInfo { string executable = 1; string prefix = 2; }
+message WineContextEvidence { WineSelectionInfo selection = 1; }

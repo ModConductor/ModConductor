@@ -23,6 +23,11 @@ let private writeJson includeNativeAot observe =
 
 let private run (args: string array) =
     match args with
+    | [| "--standalone-wine-runtime"; area; wine; prefix; tool |] ->
+        writeJson true (fun writer ->
+            NonSteamWineRuntimeFixtures.observe writer area wine prefix tool)
+    | [| "--non-steam-contexts"; path |] ->
+        writeJson true (fun writer -> NonSteamContextFixtures.observe writer path)
     | [| "--native-tool-grandchild" |] -> NativeToolFixtures.grandchild ()
     | [| "--native-tool-child"; path |] -> NativeToolFixtures.child path
     | [| "--native-tool"; path |] ->

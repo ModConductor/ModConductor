@@ -64,8 +64,7 @@ module SkseProblem =
     let message =
         function
         | SkseProblem.GameUnavailable -> "Select and refresh the Skyrim installation."
-        | SkseProblem.UnsupportedStorefront ->
-            "SKSE setup supports Skyrim Special Edition from Steam."
+        | SkseProblem.UnsupportedStorefront -> "No SKSE build supports this Skyrim edition."
         | SkseProblem.UnknownCompatibility ->
             "No SKSE release declares support for this Skyrim version. No files were changed."
         | SkseProblem.SelectionChanged ->

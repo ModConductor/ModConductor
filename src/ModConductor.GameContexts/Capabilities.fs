@@ -50,8 +50,14 @@ type CompiledCapability =
 
 module CapabilityPolicy =
     let private skyrimBothPlatforms =
-        [ { DefinitionId = Skyrim.definition.Id
-            Platforms = [ ContextPlatform.Windows; ContextPlatform.Proton ] } ]
+        [ for definition in [ Skyrim.definition; Skyrim.gog; Skyrim.direct ] do
+              yield
+                  { DefinitionId = definition.Id
+                    Platforms =
+                      if definition.Id = GameId.SkyrimSpecialEditionSteam then
+                          [ ContextPlatform.Windows; ContextPlatform.Proton ]
+                      else
+                          [ ContextPlatform.Windows; ContextPlatform.Wine ] } ]
 
     let private catalog =
         [ { Id = CapabilityId.GameInstallationValidation

@@ -39,6 +39,7 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   final _play = GamePlayController();
   final _profileData = ProfileDataController();
   bool _skseLaunchCheckStarted = false;
+  int _skseCheckEpoch = 0;
   final _skseProfilesWithoutInstall = <String>{};
   SkyrimSetupClient? _setupEventClient;
   StreamSubscription<SkyrimSetupStatus>? _setupEvents;

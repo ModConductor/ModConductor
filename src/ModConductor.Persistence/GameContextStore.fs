@@ -19,7 +19,7 @@ module internal GameContextRows =
                 Sqlite.command
                     connection
                     transaction
-                    "SELECT game_id,id,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile"
+                    "SELECT game_id,id,path,revision,evidence,checked_owner,failure,proton_selection,wine_selection FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile"
                     [ "$workspace", box (string workspace); "$profile", box (string profile) ]
 
             use row = query.ExecuteReader()
@@ -42,6 +42,11 @@ module internal GameContextRows =
                                     None
                                 else
                                     Some(ProtonEncoding.decodeSelection (row.GetString 7))
+                              Wine =
+                                if row.IsDBNull 8 then
+                                    None
+                                else
+                                    Some(WineEncoding.decodeSelection (row.GetString 8))
                               Evidence = GameContextEncoding.decode (row.GetString 4)
                               NeedsCheck = row.GetString 5 <> owner || not (row.IsDBNull 6)
                               Failure = if row.IsDBNull 6 then None else Some(row.GetString 6) } }
@@ -56,7 +61,7 @@ module internal GameContextRows =
         Sqlite.execute
             connection
             transaction
-            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection) VALUES($profile,$workspace,$game,$id,$path,$revision,$evidence,$owner,$failure,$proton) ON CONFLICT(profile_id) DO UPDATE SET game_id=excluded.game_id,path=excluded.path,revision=excluded.revision,evidence=excluded.evidence,checked_owner=excluded.checked_owner,failure=excluded.failure,proton_selection=excluded.proton_selection"
+            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection,wine_selection) VALUES($profile,$workspace,$game,$id,$path,$revision,$evidence,$owner,$failure,$proton,$wine) ON CONFLICT(profile_id) DO UPDATE SET id=excluded.id,game_id=excluded.game_id,path=excluded.path,revision=excluded.revision,evidence=excluded.evidence,checked_owner=excluded.checked_owner,failure=excluded.failure,proton_selection=excluded.proton_selection,wine_selection=excluded.wine_selection"
             [ "$workspace", box (string workspace)
               "$profile", box (string profile)
               "$game", box (GameId.value binding.GameId)
@@ -68,6 +73,10 @@ module internal GameContextRows =
               "$proton",
               binding.Proton
               |> Option.map (ProtonEncoding.encodeSelection >> box)
+              |> Option.defaultValue (box DBNull.Value)
+              "$wine",
+              binding.Wine
+              |> Option.map (WineEncoding.encodeSelection >> box)
               |> Option.defaultValue (box DBNull.Value)
               "$failure",
               binding.Failure |> Option.map box |> Option.defaultValue (box DBNull.Value) ]
@@ -129,7 +138,8 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                             |> Option.map (fun b ->
                                 { GameId = b.GameId
                                   Path = b.Path
-                                  Proton = b.Proton }))
+                                  Proton = b.Proton
+                                  Wine = b.Wine }))
 
                     match selection with
                     | None -> return Error ContextError.NotFound
@@ -139,22 +149,47 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
 
                         match owned with
                         | Ok receipt when receipt.Phase = RootCreationPhase.Complete ->
-                            let definition =
-                                match selection.GameId with
-                                | GameId.SkyrimSpecialEditionSteam -> Skyrim.definition
+                            let definition = Skyrim.forGame selection.GameId
 
                             let! installation, evidence =
                                 Task.Run(fun () ->
                                     let installation =
                                         InstallationValidation.inspect definition path
 
+                                    let wine =
+                                        selection.Wine
+                                        |> Option.filter (fun value ->
+                                            value.Executable <> "" && value.Prefix <> "")
+
                                     let evidence =
-                                        match selection.Proton with
-                                        | Some proton when installation.Valid ->
+                                        match selection.GameId, selection.Proton, wine with
+                                        | GameId.SkyrimSpecialEditionSteam, Some proton, None when
+                                            installation.Valid
+                                            ->
                                             ModConductor.ProtonContexts.Validation.inspect
                                                 installation
                                                 proton
-                                        | _ -> installation
+                                        | GameId.SkyrimSpecialEditionSteam, None, None ->
+                                            installation
+                                        | (GameId.SkyrimSpecialEditionDirect | GameId.SkyrimSpecialEditionGog),
+                                          None,
+                                          Some wine when
+                                            installation.Valid && OperatingSystem.IsLinux()
+                                            ->
+                                            ModConductor.WineContexts.WineValidation.inspect
+                                                installation
+                                                wine
+                                        | (GameId.SkyrimSpecialEditionDirect | GameId.SkyrimSpecialEditionGog),
+                                          None,
+                                          None -> installation
+                                        | _ ->
+                                            { installation with
+                                                Problems =
+                                                    installation.Problems
+                                                    @ [ { Path = path
+                                                          Detail =
+                                                            "Select Proton for Steam on Linux, or Wine for a non-Steam installation on Linux." } ] }
+
 
                                     installation, evidence)
 
@@ -221,6 +256,13 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                             |> Option.map _.Selection
                                                         else
                                                             selection.Proton
+                                                      Wine =
+                                                        if evidence.Valid then
+                                                            evidence.Wine
+                                                            |> Option.map _.Selection
+                                                            |> Option.orElse selection.Wine
+                                                        else
+                                                            selection.Wine
                                                       Evidence =
                                                         if evidence.Valid then
                                                             evidence

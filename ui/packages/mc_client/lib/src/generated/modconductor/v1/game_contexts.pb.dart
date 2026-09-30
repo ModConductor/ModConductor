@@ -98,6 +98,7 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
     $1.ProtonSelectionInfo? proton,
     $core.String? profileId,
     $core.String? gameId,
+    WineSelectionInfo? wine,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
@@ -106,6 +107,7 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
     if (proton != null) result.proton = proton;
     if (profileId != null) result.profileId = profileId;
     if (gameId != null) result.gameId = gameId;
+    if (wine != null) result.wine = wine;
     return result;
   }
 
@@ -132,6 +134,8 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
         subBuilder: $1.ProtonSelectionInfo.create)
     ..aOS(5, _omitFieldNames ? '' : 'profileId')
     ..aOS(6, _omitFieldNames ? '' : 'gameId')
+    ..aOM<WineSelectionInfo>(7, _omitFieldNames ? '' : 'wine',
+        subBuilder: WineSelectionInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -209,6 +213,17 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
   $core.bool hasGameId() => $_has(5);
   @$pb.TagNumber(6)
   void clearGameId() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  WineSelectionInfo get wine => $_getN(6);
+  @$pb.TagNumber(7)
+  set wine(WineSelectionInfo value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasWine() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearWine() => $_clearField(7);
+  @$pb.TagNumber(7)
+  WineSelectionInfo ensureWine() => $_ensure(6);
 }
 
 class RefreshGameContextRequest extends $pb.GeneratedMessage {
@@ -1016,6 +1031,7 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
     $core.String? definitionId,
     $core.int? definitionRevision,
     $1.ProtonContextEvidence? proton,
+    WineContextEvidence? wine,
   }) {
     final result = create();
     if (platform != null) result.platform = platform;
@@ -1033,6 +1049,7 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
     if (definitionRevision != null)
       result.definitionRevision = definitionRevision;
     if (proton != null) result.proton = proton;
+    if (wine != null) result.wine = wine;
     return result;
   }
 
@@ -1072,6 +1089,8 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
         fieldType: $pb.PbFieldType.OU3)
     ..aOM<$1.ProtonContextEvidence>(14, _omitFieldNames ? '' : 'proton',
         subBuilder: $1.ProtonContextEvidence.create)
+    ..aOM<WineContextEvidence>(15, _omitFieldNames ? '' : 'wine',
+        subBuilder: WineContextEvidence.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1223,6 +1242,17 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
   void clearProton() => $_clearField(14);
   @$pb.TagNumber(14)
   $1.ProtonContextEvidence ensureProton() => $_ensure(13);
+
+  @$pb.TagNumber(15)
+  WineContextEvidence get wine => $_getN(14);
+  @$pb.TagNumber(15)
+  set wine(WineContextEvidence value) => $_setField(15, value);
+  @$pb.TagNumber(15)
+  $core.bool hasWine() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearWine() => $_clearField(15);
+  @$pb.TagNumber(15)
+  WineContextEvidence ensureWine() => $_ensure(14);
 }
 
 class GameBindingInfo extends $pb.GeneratedMessage {
@@ -1233,6 +1263,7 @@ class GameBindingInfo extends $pb.GeneratedMessage {
     $core.bool? needsCheck,
     $core.String? failure,
     $1.ProtonSelectionInfo? proton,
+    WineSelectionInfo? wine,
   }) {
     final result = create();
     if (bindingId != null) result.bindingId = bindingId;
@@ -1241,6 +1272,7 @@ class GameBindingInfo extends $pb.GeneratedMessage {
     if (needsCheck != null) result.needsCheck = needsCheck;
     if (failure != null) result.failure = failure;
     if (proton != null) result.proton = proton;
+    if (wine != null) result.wine = wine;
     return result;
   }
 
@@ -1266,6 +1298,8 @@ class GameBindingInfo extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'failure')
     ..aOM<$1.ProtonSelectionInfo>(6, _omitFieldNames ? '' : 'proton',
         subBuilder: $1.ProtonSelectionInfo.create)
+    ..aOM<WineSelectionInfo>(7, _omitFieldNames ? '' : 'wine',
+        subBuilder: WineSelectionInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1344,6 +1378,17 @@ class GameBindingInfo extends $pb.GeneratedMessage {
   void clearProton() => $_clearField(6);
   @$pb.TagNumber(6)
   $1.ProtonSelectionInfo ensureProton() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  WineSelectionInfo get wine => $_getN(6);
+  @$pb.TagNumber(7)
+  set wine(WineSelectionInfo value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasWine() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearWine() => $_clearField(7);
+  @$pb.TagNumber(7)
+  WineSelectionInfo ensureWine() => $_ensure(6);
 }
 
 class GameContextState extends $pb.GeneratedMessage {
@@ -1628,6 +1673,131 @@ class GameContextReply extends $pb.GeneratedMessage {
   void clearFault() => $_clearField(2);
   @$pb.TagNumber(2)
   GameContextFault ensureFault() => $_ensure(1);
+}
+
+class WineSelectionInfo extends $pb.GeneratedMessage {
+  factory WineSelectionInfo({
+    $core.String? executable,
+    $core.String? prefix,
+  }) {
+    final result = create();
+    if (executable != null) result.executable = executable;
+    if (prefix != null) result.prefix = prefix;
+    return result;
+  }
+
+  WineSelectionInfo._();
+
+  factory WineSelectionInfo.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WineSelectionInfo.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WineSelectionInfo',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'executable')
+    ..aOS(2, _omitFieldNames ? '' : 'prefix')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WineSelectionInfo clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WineSelectionInfo copyWith(void Function(WineSelectionInfo) updates) =>
+      super.copyWith((message) => updates(message as WineSelectionInfo))
+          as WineSelectionInfo;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WineSelectionInfo create() => WineSelectionInfo._();
+  @$core.override
+  WineSelectionInfo createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WineSelectionInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WineSelectionInfo>(create);
+  static WineSelectionInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get executable => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set executable($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExecutable() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExecutable() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get prefix => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set prefix($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPrefix() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPrefix() => $_clearField(2);
+}
+
+class WineContextEvidence extends $pb.GeneratedMessage {
+  factory WineContextEvidence({
+    WineSelectionInfo? selection,
+  }) {
+    final result = create();
+    if (selection != null) result.selection = selection;
+    return result;
+  }
+
+  WineContextEvidence._();
+
+  factory WineContextEvidence.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WineContextEvidence.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WineContextEvidence',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<WineSelectionInfo>(1, _omitFieldNames ? '' : 'selection',
+        subBuilder: WineSelectionInfo.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WineContextEvidence clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WineContextEvidence copyWith(void Function(WineContextEvidence) updates) =>
+      super.copyWith((message) => updates(message as WineContextEvidence))
+          as WineContextEvidence;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WineContextEvidence create() => WineContextEvidence._();
+  @$core.override
+  WineContextEvidence createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WineContextEvidence getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WineContextEvidence>(create);
+  static WineContextEvidence? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WineSelectionInfo get selection => $_getN(0);
+  @$pb.TagNumber(1)
+  set selection(WineSelectionInfo value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSelection() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSelection() => $_clearField(1);
+  @$pb.TagNumber(1)
+  WineSelectionInfo ensureSelection() => $_ensure(0);
 }
 
 const $core.bool _omitFieldNames =

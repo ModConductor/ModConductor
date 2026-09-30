@@ -183,7 +183,8 @@ module internal SkyrimSetupViews =
                    detail.Contains("first run", StringComparison.OrdinalIgnoreCase))
 
         match binding.Evidence.Platform with
-        | ContextPlatform.Windows -> explicitlyMissing
+        | ContextPlatform.Windows
+        | ContextPlatform.Wine -> explicitlyMissing
         | ContextPlatform.Proton ->
             explicitlyMissing
             || (binding.NeedsCheck

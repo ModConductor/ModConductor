@@ -225,6 +225,7 @@ module internal GenerationFixtures =
             0L,
             { GameId = GameId.SkyrimSpecialEditionSteam
               Path = gamePath
+              Wine = None
               Proton = if OperatingSystem.IsLinux() then Some proton else None }
         )
         |> wait

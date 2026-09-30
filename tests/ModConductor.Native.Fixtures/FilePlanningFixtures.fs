@@ -162,6 +162,7 @@ module FilePlanningFixtures =
             let selection =
                 { GameId = GameId.SkyrimSpecialEditionSteam
                   Path = game
+                  Wine = None
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
 
             for profile in [ first; second ] do

@@ -151,11 +151,11 @@ mixin _ShellContent
             steamDiscovery: widget.steamDiscovery,
             protonContexts: widget.protonContexts,
             chooseDirectory: widget.chooseGameDirectory,
+            chooseExecutable: widget.chooseExecutable,
             footer:
                 widget.skyrimSetup == null ||
                     workspace.selectedProfile == null ||
-                    _game.state?.binding?.evidence.definitionId !=
-                        'skyrim-se-steam'
+                    !_hasSkyrimGame
                 ? null
                 : Padding(
                     padding: const EdgeInsets.only(top: McSpacing.large),

@@ -69,10 +69,7 @@ module FnisCatalogue =
         | None -> Error FnisProblem.GameUnavailable
         | Some binding when binding.NeedsCheck || not binding.Evidence.Valid ->
             Error FnisProblem.GameUnavailable
-        | Some binding when
-            binding.Evidence.DefinitionId <> Skyrim.definition.Id
-            || Skyrim.definition.Storefront <> "Steam"
-            ->
+        | Some binding when not (ContextRuntime.ready binding.Evidence) ->
             Error FnisProblem.UnsupportedStorefront
         | Some _ -> Ok()
 

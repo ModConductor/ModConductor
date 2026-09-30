@@ -2,7 +2,7 @@ namespace ModConductor.Persistence
 
 module internal Schema =
     [<Literal>]
-    let CurrentVersion = 1L
+    let CurrentVersion = 2L
 
     [<Literal>]
     let ApplicationId = 1296253774L
@@ -250,7 +250,8 @@ CREATE TABLE game_contexts(
                     evidence TEXT NOT NULL,
                     checked_owner TEXT NOT NULL,
                     failure TEXT,
-                    proton_selection TEXT
+                    proton_selection TEXT,
+                    wine_selection TEXT
                 );
 CREATE TABLE hidden_mod_files(workspace_id TEXT NOT NULL REFERENCES workspaces(id),mod_id TEXT NOT NULL REFERENCES mods(id),version_id TEXT NOT NULL REFERENCES mod_versions(id),path TEXT NOT NULL,hidden INTEGER NOT NULL CHECK(hidden IN (0,1)),PRIMARY KEY(workspace_id,mod_id,version_id,path));
 CREATE TABLE installation_destinations(
@@ -405,5 +406,5 @@ CREATE UNIQUE INDEX workspace_root_identity ON workspace_roots(device_kind,devic
 CREATE TRIGGER mod_catalogue_insert AFTER INSERT ON mods BEGIN UPDATE workspaces SET catalogue_revision=catalogue_revision+1 WHERE id=NEW.workspace_id; END;
 CREATE TRIGGER mod_catalogue_update AFTER UPDATE ON mods BEGIN UPDATE workspaces SET catalogue_revision=catalogue_revision+1 WHERE id=NEW.workspace_id; END;
 PRAGMA application_id=1296253774;
-PRAGMA user_version=1;
+PRAGMA user_version=2;
         """

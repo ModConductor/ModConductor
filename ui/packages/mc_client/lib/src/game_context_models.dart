@@ -111,7 +111,39 @@ class GameDefinitionInfo {
   }
 }
 
-enum GameContextPlatform { windows, proton }
+enum GameContextPlatform { windows, proton, wine }
+
+enum GameInstallationSource {
+  steam('skyrim-se-steam', 'Steam'),
+  gog('skyrim-se-gog', 'GOG Windows'),
+  direct('skyrim-se-direct', 'DRM-free Windows');
+
+  const GameInstallationSource(this.gameId, this.label);
+  final String gameId;
+  final String label;
+
+  static GameInstallationSource fromGameId(String? id) => switch (id) {
+    'skyrim-se-gog' => gog,
+    'skyrim-se-direct' => direct,
+    _ => steam,
+  };
+}
+
+class WineSelection {
+  const WineSelection({required this.executable, required this.prefix});
+  final String executable;
+  final String prefix;
+
+  bool get complete => executable.isNotEmpty && prefix.isNotEmpty;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WineSelection &&
+      executable == other.executable &&
+      prefix == other.prefix;
+  @override
+  int get hashCode => Object.hash(executable, prefix);
+}
 
 sealed class GameLocation {
   const GameLocation();
@@ -165,6 +197,7 @@ class GameInstallationEvidence {
     required this.checkedAt,
     required this.fingerprint,
     this.proton,
+    this.wine,
   });
   final String definitionId;
   final int definitionRevision;
@@ -180,6 +213,13 @@ class GameInstallationEvidence {
   final DateTime checkedAt;
   final String fingerprint;
   final ProtonEvidence? proton;
+  final WineSelection? wine;
+
+  bool get runtimeReady => switch (platform) {
+    GameContextPlatform.windows => true,
+    GameContextPlatform.proton => proton != null,
+    GameContextPlatform.wine => wine != null,
+  };
 }
 
 class GameBindingInfo {
@@ -190,6 +230,7 @@ class GameBindingInfo {
     required this.needsCheck,
     this.failure,
     this.proton,
+    this.wine,
   });
   final String id;
   final String path;
@@ -197,6 +238,7 @@ class GameBindingInfo {
   final bool needsCheck;
   final String? failure;
   final ProtonSelection? proton;
+  final WineSelection? wine;
 }
 
 class GameContextState {

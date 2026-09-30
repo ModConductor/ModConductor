@@ -65,6 +65,7 @@ type NativeObservationSetup() =
         | "file-plans" -> info.ArgumentList.Add "--file-plans"
         | "proton-contexts" -> info.ArgumentList.Add "--proton-contexts"
         | "steam-discovery" -> info.ArgumentList.Add "--steam-discovery"
+        | "non-steam-contexts" -> info.ArgumentList.Add "--non-steam-contexts"
         | "game-contexts" -> info.ArgumentList.Add "--game-contexts"
         | "profile-transport" -> info.ArgumentList.Add "--profile-transport"
         | "planner" -> info.ArgumentList.Add "--planner"

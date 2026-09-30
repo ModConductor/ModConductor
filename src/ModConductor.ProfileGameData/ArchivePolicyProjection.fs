@@ -108,7 +108,7 @@ module internal ArchivePolicyProjection =
 
     let private settings (scope: ProfileDataScope) =
         match scope.Game.Binding with
-        | Some value when value.Evidence.DefinitionId = Skyrim.definition.Id ->
+        | Some _ ->
             match scope.Profile with
             | Some profile when
                 profile.Options.Settings

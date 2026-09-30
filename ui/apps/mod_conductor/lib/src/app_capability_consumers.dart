@@ -12,7 +12,15 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
       _play.invalidate();
       _profileData.invalidate();
     }
-    if (revision != _contextRevision) _play.invalidate();
+    if (revision != _contextRevision) {
+      _play.invalidate();
+      _skseCheckEpoch++;
+      _skseLaunchCheckStarted = false;
+      final workspace = _workspaces.workspace;
+      _skseProfilesWithoutInstall.remove(
+        '${workspace?.id}:${workspace?.selectedProfile?.id}',
+      );
+    }
     _contextRevision = revision;
     _startSkseLaunchCheck();
     _syncCapabilityConsumers();
@@ -62,16 +70,20 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
       return;
     }
     _skseLaunchCheckStarted = true;
-    unawaited(_checkSkseUpdate(skse, workspace.id, profile.id));
+    unawaited(
+      _checkSkseUpdate(skse, workspace.id, profile.id, _skseCheckEpoch),
+    );
   }
 
   Future<void> _checkSkseUpdate(
     SkseClient client,
     String workspaceId,
     String profileId,
+    int epoch,
   ) async {
     try {
       final checked = await client.checkUpdate(workspaceId, profileId);
+      if (!mounted || epoch != _skseCheckEpoch) return;
       if (checked.phase == SkseStatusPhase.available) {
         _skseProfilesWithoutInstall.add('$workspaceId:$profileId');
         _skseLaunchCheckStarted = false;

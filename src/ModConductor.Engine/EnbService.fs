@@ -59,11 +59,7 @@ type EnbCoordinator
                     && context.Binding.IsSome
                     && not context.Binding.Value.NeedsCheck
                     && context.Binding.Value.Evidence.Valid
-                    && context.Binding.Value.Evidence.DefinitionId = Skyrim.definition.Id
-                    && Skyrim.definition.Storefront = "Steam"
-                    && (context.Binding.Value.Evidence.Platform = ContextPlatform.Windows
-                        || (context.Binding.Value.Evidence.Platform = ContextPlatform.Proton
-                            && context.Binding.Value.Evidence.Proton.IsSome))
+                    && ContextRuntime.ready context.Binding.Value.Evidence
                     ->
                     return Ok()
                 | _ -> return Error EnbProblem.GameUnavailable

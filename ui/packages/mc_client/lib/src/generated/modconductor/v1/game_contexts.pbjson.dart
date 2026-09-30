@@ -22,6 +22,7 @@ const GameContextPlatform$json = {
     {'1': 'GAME_CONTEXT_PLATFORM_UNSPECIFIED', '2': 0},
     {'1': 'GAME_CONTEXT_PLATFORM_WINDOWS', '2': 1},
     {'1': 'GAME_CONTEXT_PLATFORM_PROTON', '2': 2},
+    {'1': 'GAME_CONTEXT_PLATFORM_WINE', '2': 3},
   ],
 };
 
@@ -29,7 +30,7 @@ const GameContextPlatform$json = {
 final $typed_data.Uint8List gameContextPlatformDescriptor = $convert.base64Decode(
     'ChNHYW1lQ29udGV4dFBsYXRmb3JtEiUKIUdBTUVfQ09OVEVYVF9QTEFURk9STV9VTlNQRUNJRk'
     'lFRBAAEiEKHUdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5ET1dTEAESIAocR0FNRV9DT05URVhU'
-    'X1BMQVRGT1JNX1BST1RPThAC');
+    'X1BMQVRGT1JNX1BST1RPThACEh4KGkdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5FEAM=');
 
 @$core.Deprecated('Use gameCapabilityKindDescriptor instead')
 const GameCapabilityKind$json = {
@@ -128,6 +129,14 @@ const SaveGameContextRequest$json = {
     },
     {'1': 'profile_id', '3': 5, '4': 1, '5': 9, '10': 'profileId'},
     {'1': 'game_id', '3': 6, '4': 1, '5': 9, '10': 'gameId'},
+    {
+      '1': 'wine',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WineSelectionInfo',
+      '10': 'wine'
+    },
   ],
 };
 
@@ -137,7 +146,8 @@ final $typed_data.Uint8List saveGameContextRequestDescriptor = $convert.base64De
     'NlSWQSKwoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKARSEGV4cGVjdGVkUmV2aXNpb24SEgoEcGF0'
     'aBgDIAEoCVIEcGF0aBI8CgZwcm90b24YBCABKAsyJC5tb2Rjb25kdWN0b3IudjEuUHJvdG9uU2'
     'VsZWN0aW9uSW5mb1IGcHJvdG9uEh0KCnByb2ZpbGVfaWQYBSABKAlSCXByb2ZpbGVJZBIXCgdn'
-    'YW1lX2lkGAYgASgJUgZnYW1lSWQ=');
+    'YW1lX2lkGAYgASgJUgZnYW1lSWQSNgoEd2luZRgHIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5XaW'
+    '5lU2VsZWN0aW9uSW5mb1IEd2luZQ==');
 
 @$core.Deprecated('Use refreshGameContextRequestDescriptor instead')
 const RefreshGameContextRequest$json = {
@@ -465,6 +475,14 @@ const GameInstallationEvidence$json = {
       '6': '.modconductor.v1.ProtonContextEvidence',
       '10': 'proton'
     },
+    {
+      '1': 'wine',
+      '3': 15,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WineContextEvidence',
+      '10': 'wine'
+    },
   ],
   '8': [
     {'1': '_data_path'},
@@ -487,8 +505,9 @@ final $typed_data.Uint8List gameInstallationEvidenceDescriptor = $convert.base64
     'a2VkQXRVbml4TXMSIAoLZmluZ2VycHJpbnQYCyABKAlSC2ZpbmdlcnByaW50EiMKDWRlZmluaX'
     'Rpb25faWQYDCABKAlSDGRlZmluaXRpb25JZBIvChNkZWZpbml0aW9uX3JldmlzaW9uGA0gASgN'
     'UhJkZWZpbml0aW9uUmV2aXNpb24SPgoGcHJvdG9uGA4gASgLMiYubW9kY29uZHVjdG9yLnYxLl'
-    'Byb3RvbkNvbnRleHRFdmlkZW5jZVIGcHJvdG9uQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVy'
-    'X3BhdGg=');
+    'Byb3RvbkNvbnRleHRFdmlkZW5jZVIGcHJvdG9uEjgKBHdpbmUYDyABKAsyJC5tb2Rjb25kdWN0'
+    'b3IudjEuV2luZUNvbnRleHRFdmlkZW5jZVIEd2luZUIMCgpfZGF0YV9wYXRoQhAKDl9sYXVuY2'
+    'hlcl9wYXRo');
 
 @$core.Deprecated('Use gameBindingInfoDescriptor instead')
 const GameBindingInfo$json = {
@@ -522,6 +541,14 @@ const GameBindingInfo$json = {
       '6': '.modconductor.v1.ProtonSelectionInfo',
       '10': 'proton'
     },
+    {
+      '1': 'wine',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WineSelectionInfo',
+      '10': 'wine'
+    },
   ],
   '8': [
     {'1': '_failure'},
@@ -534,8 +561,8 @@ final $typed_data.Uint8List gameBindingInfoDescriptor = $convert.base64Decode(
     'gYAiABKAlSBHBhdGgSRQoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUlu'
     'c3RhbGxhdGlvbkV2aWRlbmNlUghldmlkZW5jZRIfCgtuZWVkc19jaGVjaxgEIAEoCFIKbmVlZH'
     'NDaGVjaxIdCgdmYWlsdXJlGAUgASgJSABSB2ZhaWx1cmWIAQESPAoGcHJvdG9uGAYgASgLMiQu'
-    'bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm9SBnByb3RvbkIKCghfZmFpbHVyZQ'
-    '==');
+    'bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm9SBnByb3RvbhI2CgR3aW5lGAcgAS'
+    'gLMiIubW9kY29uZHVjdG9yLnYxLldpbmVTZWxlY3Rpb25JbmZvUgR3aW5lQgoKCF9mYWlsdXJl');
 
 @$core.Deprecated('Use gameContextStateDescriptor instead')
 const GameContextState$json = {
@@ -635,3 +662,37 @@ final $typed_data.Uint8List gameContextReplyDescriptor = $convert.base64Decode(
     'ChBHYW1lQ29udGV4dFJlcGx5EjkKBXN0YXRlGAEgASgLMiEubW9kY29uZHVjdG9yLnYxLkdhbW'
     'VDb250ZXh0U3RhdGVIAFIFc3RhdGUSOQoFZmF1bHQYAiABKAsyIS5tb2Rjb25kdWN0b3IudjEu'
     'R2FtZUNvbnRleHRGYXVsdEgAUgVmYXVsdEIJCgdvdXRjb21l');
+
+@$core.Deprecated('Use wineSelectionInfoDescriptor instead')
+const WineSelectionInfo$json = {
+  '1': 'WineSelectionInfo',
+  '2': [
+    {'1': 'executable', '3': 1, '4': 1, '5': 9, '10': 'executable'},
+    {'1': 'prefix', '3': 2, '4': 1, '5': 9, '10': 'prefix'},
+  ],
+};
+
+/// Descriptor for `WineSelectionInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wineSelectionInfoDescriptor = $convert.base64Decode(
+    'ChFXaW5lU2VsZWN0aW9uSW5mbxIeCgpleGVjdXRhYmxlGAEgASgJUgpleGVjdXRhYmxlEhYKBn'
+    'ByZWZpeBgCIAEoCVIGcHJlZml4');
+
+@$core.Deprecated('Use wineContextEvidenceDescriptor instead')
+const WineContextEvidence$json = {
+  '1': 'WineContextEvidence',
+  '2': [
+    {
+      '1': 'selection',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WineSelectionInfo',
+      '10': 'selection'
+    },
+  ],
+};
+
+/// Descriptor for `WineContextEvidence`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wineContextEvidenceDescriptor = $convert.base64Decode(
+    'ChNXaW5lQ29udGV4dEV2aWRlbmNlEkAKCXNlbGVjdGlvbhgBIAEoCzIiLm1vZGNvbmR1Y3Rvci'
+    '52MS5XaW5lU2VsZWN0aW9uSW5mb1IJc2VsZWN0aW9u');

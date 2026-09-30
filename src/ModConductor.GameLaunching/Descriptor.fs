@@ -63,10 +63,23 @@ module internal Descriptor =
         match state.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             let evidence = binding.Evidence
-            let app = string Skyrim.definition.SteamAppId
+            let definition = Skyrim.forGame binding.GameId
+            let app = string definition.SteamAppId
 
             let environment =
-                [ "SteamAppId", Some app; "SteamGameId", Some app ]
+                (if binding.GameId = GameId.SkyrimSpecialEditionSteam then
+                     [ "SteamAppId", Some app; "SteamGameId", Some app ]
+                 else
+                     [ "SteamAppId"
+                       "SteamGameId"
+                       "STEAM_COMPAT_APP_ID"
+                       "STEAM_COMPAT_DATA_PATH"
+                       "STEAM_COMPAT_CLIENT_INSTALL_PATH"
+                       "STEAM_COMPAT_INSTALL_PATH"
+                       "STEAM_COMPAT_LIBRARY_PATHS"
+                       "STEAM_COMPAT_TOOL_PATHS"
+                       "WINEPREFIX" ]
+                     |> List.map (fun name -> name, None))
                 @ (configuration |> Option.map _.Environment |> Option.defaultValue [])
 
             let selected =
@@ -120,6 +133,19 @@ module internal Descriptor =
                                     (launch.Libraries @ [ runnableRoot ])
                             )
                             "STEAM_COMPAT_TOOL_PATHS", Some proton.Selection.RuntimeDirectory ] })
+            | Ok executable, ContextPlatform.Wine, _ when hostLinux && evidence.Wine.IsSome ->
+                let wine = evidence.Wine.Value
+
+                Ok(
+                    binding.Id,
+                    "Wine",
+                    { Executable = wine.Selection.Executable
+                      Arguments = [ executable ]
+                      WorkingDirectory = runnableRoot
+                      Environment = environment @ [ "WINEPREFIX", Some wine.Selection.Prefix ] }
+                )
+            | Ok _, ContextPlatform.Wine, _ ->
+                Error "Select a checked Wine executable and existing prefix on Linux."
             | Ok _, ContextPlatform.Windows, _ ->
                 Error "This game uses Proton on Linux. Select and refresh its Proton context."
             | Ok _, ContextPlatform.Proton, _ ->
@@ -144,7 +170,8 @@ module internal Descriptor =
             { launch with
                 Executable = tool
                 Arguments = arguments }
-        | ContextPlatform.Proton ->
+        | ContextPlatform.Proton
+        | ContextPlatform.Wine ->
             { launch with
                 Arguments =
                     match List.rev launch.Arguments with

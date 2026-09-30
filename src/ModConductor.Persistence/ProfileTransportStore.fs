@@ -179,7 +179,7 @@ type ProfileTransportStore
                     && (baseValue.Selected |> List.forall (fun file -> file.ArchiveIndex >= 0))))
 
         if
-            profile.Game <> GameId.value GameId.SkyrimSpecialEditionSteam
+            GameId.tryParse profile.Game |> Option.isNone
             || profile.Mods.Length > 100000
             || profile.Mods
                |> List.mapi (fun index modItem -> index = modItem.Priority)
@@ -255,7 +255,7 @@ type ProfileTransportStore
                         Sqlite.execute
                             connection
                             transaction
-                            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection) SELECT $new,workspace_id,game_id,$binding,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE profile_id=$source AND workspace_id=$workspace"
+                            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection,wine_selection) SELECT $new,workspace_id,game_id,$binding,path,revision,evidence,checked_owner,failure,proton_selection,wine_selection FROM game_contexts WHERE profile_id=$source AND workspace_id=$workspace"
                             [ "$new", box (string id)
                               "$binding", box (string (Guid.NewGuid()))
                               "$source", box (string source.Value)

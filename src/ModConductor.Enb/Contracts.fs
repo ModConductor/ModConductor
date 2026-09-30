@@ -74,7 +74,7 @@ module EnbProblem =
             "Lean ENB setup is disabled until its installation and integration terms are approved."
         | EnbProblem.GameUnavailable -> "Select and refresh the Skyrim installation."
         | EnbProblem.UnsupportedStorefront ->
-            "ENB setup supports Skyrim Special Edition from Steam."
+            "ENB setup supports a checked Skyrim Special Edition installation."
         | EnbProblem.SignInRequired -> "Sign in to Nexus Mods to obtain Lean ENB and its companion."
         | EnbProblem.SourceUnavailable detail -> detail
         | EnbProblem.InvalidArchive detail -> detail

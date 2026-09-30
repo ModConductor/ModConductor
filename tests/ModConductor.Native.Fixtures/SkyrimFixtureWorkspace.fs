@@ -62,6 +62,7 @@ module SkyrimFixtureWorkspace =
                 0L,
                 { GameId = GameId.SkyrimSpecialEditionSteam
                   Path = game
+                  Wine = None
                   Proton =
                     if includeProton && OperatingSystem.IsLinux() then
                         Some proton

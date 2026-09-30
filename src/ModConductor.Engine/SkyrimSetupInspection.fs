@@ -309,7 +309,7 @@ type internal SkyrimSetupInspection
                     unavailable
                         selection
                         "Skyrim setup is unavailable"
-                        "Select and refresh the Skyrim Special Edition Steam installation."
+                        "Select and refresh the Skyrim Special Edition installation."
             | Ok context ->
                 match context.Binding with
                 | Some binding when
@@ -322,6 +322,14 @@ type internal SkyrimSetupInspection
                             selection
                             "Proton is not selected"
                             "Select Proton in the game installation. Then select Refresh."
+                | Some binding when
+                    binding.Evidence.Platform = ContextPlatform.Wine && binding.Wine.IsNone
+                    ->
+                    return
+                        unavailable
+                            selection
+                            "Wine is not selected"
+                            "Select the Wine executable and existing prefix in the game installation."
                 | Some binding when missingFirstRun binding ->
                     return
                         unavailable selection "Skyrim needs its first Steam run" firstRunInstruction
@@ -330,17 +338,17 @@ type internal SkyrimSetupInspection
                         unavailable
                             selection
                             "Skyrim setup is unavailable"
-                            "Select and refresh the Skyrim Special Edition Steam installation."
+                            "Select and refresh the Skyrim Special Edition installation."
                 | Some binding when
                     binding.NeedsCheck
                     || not binding.Evidence.Valid
-                    || binding.Evidence.DefinitionId <> Skyrim.definition.Id
+                    || not (ContextRuntime.ready binding.Evidence)
                     ->
                     return
                         unavailable
                             selection
                             "Skyrim setup is unavailable"
-                            "Refresh the selected Skyrim Special Edition Steam installation."
+                            "Refresh the selected Skyrim Special Edition installation."
                 | Some _ ->
                     let! deployed = store.Deployments.Read profile
 

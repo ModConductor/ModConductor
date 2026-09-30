@@ -15,6 +15,10 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
 
   bool _supports(GameCapabilityId id) {
     if (!_gameReady) return false;
+    if (id != GameCapabilityId.gameInstallationValidation &&
+        !_game.state!.binding!.evidence.runtimeReady) {
+      return false;
+    }
     final state = _game.state!;
     final definition = state.definition!;
     final platform = state.binding!.evidence.platform;
@@ -24,7 +28,9 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
   }
 
   bool get _supportsSkyrim => _supports(GameCapabilityId.skyrimSpecialEdition);
-  bool get _hasSkyrimGame => _game.state?.definition?.id == 'skyrim-se-steam';
+  bool get _hasSkyrimGame => GameInstallationSource.values.any(
+    (source) => source.gameId == _game.state?.definition?.id,
+  );
   bool get _supportsArchives => _supports(GameCapabilityId.archiveInspection);
   bool get _supportsInstallation =>
       _supports(GameCapabilityId.gameInstallationValidation);

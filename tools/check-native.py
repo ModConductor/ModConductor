@@ -12,7 +12,7 @@ import time
 
 SCOPES = (
     'all', 'platform', 'storage', 'workspaces', 'library', 'selection',
-    'organization', 'planner', 'game-contexts',
+    'organization', 'planner', 'game-contexts', 'non-steam-contexts',
     'steam-discovery', 'proton-contexts', 'file-plans', 'deployment-recovery',
     'generations', 'deployment-backend', 'components', 'skse', 'skyrim-setup',
     'enb', 'fnis', 'generated-outputs', 'executables', 'game-launch',

@@ -27,97 +27,104 @@ namespace ModConductor.Protocol.V1 {
             "CiNtb2Rjb25kdWN0b3IvdjEvZ2FtZV9jb250ZXh0cy5wcm90bxIPbW9kY29u",
             "ZHVjdG9yLnYxGiVtb2Rjb25kdWN0b3IvdjEvcHJvdG9uX2NvbnRleHRzLnBy",
             "b3RvIkIKFlJlYWRHYW1lQ29udGV4dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lk",
-            "GAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkisgEKFlNhdmVHYW1lQ29udGV4",
+            "GAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAki5AEKFlNhdmVHYW1lQ29udGV4",
             "dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3Jl",
             "dmlzaW9uGAIgASgEEgwKBHBhdGgYAyABKAkSNAoGcHJvdG9uGAQgASgLMiQu",
             "bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm8SEgoKcHJvZmls",
-            "ZV9pZBgFIAEoCRIPCgdnYW1lX2lkGAYgASgJImAKGVJlZnJlc2hHYW1lQ29u",
-            "dGV4dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVk",
-            "X3JldmlzaW9uGAIgASgEEhIKCnByb2ZpbGVfaWQYAyABKAkihwIKEkdhbWVE",
-            "ZWZpbml0aW9uSW5mbxIVCg1kZWZpbml0aW9uX2lkGAEgASgJEhAKCHJldmlz",
-            "aW9uGAIgASgNEgwKBG5hbWUYAyABKAkSEgoKc3RvcmVmcm9udBgEIAEoCRId",
-            "ChVkZWNsYXJlZF9zdGVhbV9hcHBfaWQYBSABKA0STAoYdW5hdmFpbGFibGVf",
-            "Y2FwYWJpbGl0aWVzGAYgAygLMioubW9kY29uZHVjdG9yLnYxLlVuYXZhaWxh",
-            "YmxlR2FtZUNhcGFiaWxpdHkSOQoMY2FwYWJpbGl0aWVzGAcgAygLMiMubW9k",
-            "Y29uZHVjdG9yLnYxLkdhbWVDYXBhYmlsaXR5SW5mbyI5ChlVbmF2YWlsYWJs",
-            "ZUdhbWVDYXBhYmlsaXR5EgwKBG5hbWUYASABKAkSDgoGcmVhc29uGAIgASgJ",
-            "ImcKFUdhbWVDYXBhYmlsaXR5Q29udGV4dBIVCg1kZWZpbml0aW9uX2lkGAEg",
-            "ASgJEjcKCXBsYXRmb3JtcxgCIAMoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "Q29udGV4dFBsYXRmb3JtIpkCChJHYW1lQ2FwYWJpbGl0eUluZm8SFQoNY2Fw",
-            "YWJpbGl0eV9pZBgBIAEoCRIQCghyZXZpc2lvbhgCIAEoDRIMCgRuYW1lGAMg",
-            "ASgJEjEKBGtpbmQYBCABKA4yIy5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFi",
-            "aWxpdHlLaW5kEjgKCGNvbnRleHRzGAUgAygLMiYubW9kY29uZHVjdG9yLnYx",
-            "LkdhbWVDYXBhYmlsaXR5Q29udGV4dBI/CgtkaXNwb3NpdGlvbhgGIAEoDjIq",
-            "Lm1vZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0eURpc3Bvc2l0aW9uEhMK",
-            "BnJlYXNvbhgHIAEoCUgAiAEBQgkKB19yZWFzb24ibQoMR2FtZUxvY2F0aW9u",
-            "EjUKB2xvY2F0ZWQYASABKAsyIi5tb2Rjb25kdWN0b3IudjEuTG9jYXRlZEdh",
-            "bWVGb2xkZXJIABIcChJ1bmF2YWlsYWJsZV9yZWFzb24YAiABKAlIAEIICgZy",
-            "ZXN1bHQiMQoRTG9jYXRlZEdhbWVGb2xkZXISDAoEcGF0aBgBIAEoCRIOCgZl",
-            "eGlzdHMYAiABKAgidQoWR2FtZUV4ZWN1dGFibGVFdmlkZW5jZRIMCgRwYXRo",
-            "GAEgASgJEg4KBnNoYTI1NhgCIAEoCRIOCgZsZW5ndGgYAyABKAQSFAoMZmls",
-            "ZV92ZXJzaW9uGAQgASgJEhcKD3Byb2R1Y3RfdmVyc2lvbhgFIAEoCSI1ChVH",
-            "YW1lVmFsaWRhdGlvblByb2JsZW0SDAoEcGF0aBgBIAEoCRIOCgZkZXRhaWwY",
-            "AiABKAki5AQKGEdhbWVJbnN0YWxsYXRpb25FdmlkZW5jZRI2CghwbGF0Zm9y",
-            "bRgBIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFBsYXRmb3Jt",
-            "EhEKCXJvb3RfcGF0aBgCIAEoCRIWCglkYXRhX3BhdGgYAyABKAlIAIgBARI7",
-            "CgpleGVjdXRhYmxlGAQgASgLMicubW9kY29uZHVjdG9yLnYxLkdhbWVFeGVj",
-            "dXRhYmxlRXZpZGVuY2USGgoNbGF1bmNoZXJfcGF0aBgFIAEoCUgBiAEBEjAK",
-            "CWRvY3VtZW50cxgGIAEoCzIdLm1vZGNvbmR1Y3Rvci52MS5HYW1lTG9jYXRp",
-            "b24SLAoFc2F2ZXMYByABKAsyHS5tb2Rjb25kdWN0b3IudjEuR2FtZUxvY2F0",
-            "aW9uEjUKDmxvY2FsX2FwcF9kYXRhGAggASgLMh0ubW9kY29uZHVjdG9yLnYx",
-            "LkdhbWVMb2NhdGlvbhI4Cghwcm9ibGVtcxgJIAMoCzImLm1vZGNvbmR1Y3Rv",
-            "ci52MS5HYW1lVmFsaWRhdGlvblByb2JsZW0SGgoSY2hlY2tlZF9hdF91bml4",
-            "X21zGAogASgDEhMKC2ZpbmdlcnByaW50GAsgASgJEhUKDWRlZmluaXRpb25f",
-            "aWQYDCABKAkSGwoTZGVmaW5pdGlvbl9yZXZpc2lvbhgNIAEoDRI2CgZwcm90",
-            "b24YDiABKAsyJi5tb2Rjb25kdWN0b3IudjEuUHJvdG9uQ29udGV4dEV2aWRl",
-            "bmNlQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVyX3BhdGgi3QEKD0dhbWVC",
-            "aW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJEgwKBHBhdGgYAiABKAkS",
-            "OwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUluc3Rh",
-            "bGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNrGAQgASgIEhQKB2ZhaWx1",
-            "cmUYBSABKAlIAIgBARI0CgZwcm90b24YBiABKAsyJC5tb2Rjb25kdWN0b3Iu",
-            "djEuUHJvdG9uU2VsZWN0aW9uSW5mb0IKCghfZmFpbHVyZSK6AQoQR2FtZUNv",
-            "bnRleHRTdGF0ZRIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEAoIcmV2aXNpb24Y",
-            "AiABKAQSNwoKZGVmaW5pdGlvbhgDIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5H",
-            "YW1lRGVmaW5pdGlvbkluZm8SMQoHYmluZGluZxgEIAEoCzIgLm1vZGNvbmR1",
-            "Y3Rvci52MS5HYW1lQmluZGluZ0luZm8SEgoKcHJvZmlsZV9pZBgFIAEoCSKV",
-            "AQoQR2FtZUNvbnRleHRGYXVsdBIzCgRjb2RlGAEgASgOMiUubW9kY29uZHVj",
-            "dG9yLnYxLkdhbWVDb250ZXh0RmF1bHRDb2RlEg4KBmRldGFpbBgCIAEoCRI8",
-            "CgljYW5kaWRhdGUYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUluc3Rh",
-            "bGxhdGlvbkV2aWRlbmNlIoUBChBHYW1lQ29udGV4dFJlcGx5EjIKBXN0YXRl",
-            "GAEgASgLMiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0U3RhdGVIABIy",
-            "CgVmYXVsdBgCIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dEZh",
-            "dWx0SABCCQoHb3V0Y29tZSqBAQoTR2FtZUNvbnRleHRQbGF0Zm9ybRIlCiFH",
-            "QU1FX0NPTlRFWFRfUExBVEZPUk1fVU5TUEVDSUZJRUQQABIhCh1HQU1FX0NP",
-            "TlRFWFRfUExBVEZPUk1fV0lORE9XUxABEiAKHEdBTUVfQ09OVEVYVF9QTEFU",
-            "Rk9STV9QUk9UT04QAirfAQoSR2FtZUNhcGFiaWxpdHlLaW5kEiQKIEdBTUVf",
-            "Q0FQQUJJTElUWV9LSU5EX1VOU1BFQ0lGSUVEEAASJQohR0FNRV9DQVBBQklM",
-            "SVRZX0tJTkRfQ09SRV9PVVRDT01FEAESJQohR0FNRV9DQVBBQklMSVRZX0tJ",
-            "TkRfR0FNRV9BREFQVEVSEAISKAokR0FNRV9DQVBBQklMSVRZX0tJTkRfT1BU",
-            "SU9OQUxfTEVHQUNZEAMSKwonR0FNRV9DQVBBQklMSVRZX0tJTkRfT0JTT0xF",
-            "VEVfTUVDSEFOSVNNEAQqzQEKGUdhbWVDYXBhYmlsaXR5RGlzcG9zaXRpb24S",
-            "KwonR0FNRV9DQVBBQklMSVRZX0RJU1BPU0lUSU9OX1VOU1BFQ0lGSUVEEAAS",
-            "KQolR0FNRV9DQVBBQklMSVRZX0RJU1BPU0lUSU9OX0FWQUlMQUJMRRABEisK",
-            "J0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9VTkFWQUlMQUJMRRACEisK",
-            "J0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9VTlNVUFBPUlRFRBADKvsB",
-            "ChRHYW1lQ29udGV4dEZhdWx0Q29kZRIiCh5HQU1FX0NPTlRFWFRfRkFVTFRf",
-            "VU5TUEVDSUZJRUQQABIgChxHQU1FX0NPTlRFWFRfRkFVTFRfTk9UX0ZPVU5E",
-            "EAESJQohR0FNRV9DT05URVhUX0ZBVUxUX1NUQUxFX1JFVklTSU9OEAISLAoo",
-            "R0FNRV9DT05URVhUX0ZBVUxUX1dPUktTUEFDRV9VTkFWQUlMQUJMRRADEisK",
-            "J0dBTUVfQ09OVEVYVF9GQVVMVF9JTlZBTElEX0lOU1RBTExBVElPThAEEhsK",
-            "F0dBTUVfQ09OVEVYVF9GQVVMVF9CVVNZEAUyugIKFUdhbWVDb250ZXh0T3Bl",
-            "cmF0aW9ucxJdCg9SZWFkR2FtZUNvbnRleHQSJy5tb2Rjb25kdWN0b3IudjEu",
-            "UmVhZEdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "Q29udGV4dFJlcGx5El0KD1NhdmVHYW1lQ29udGV4dBInLm1vZGNvbmR1Y3Rv",
-            "ci52MS5TYXZlR2FtZUNvbnRleHRSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYx",
-            "LkdhbWVDb250ZXh0UmVwbHkSYwoSUmVmcmVzaEdhbWVDb250ZXh0EioubW9k",
-            "Y29uZHVjdG9yLnYxLlJlZnJlc2hHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rj",
-            "b25kdWN0b3IudjEuR2FtZUNvbnRleHRSZXBseUIbqgIYTW9kQ29uZHVjdG9y",
-            "LlByb3RvY29sLlYxYgZwcm90bzM="));
+            "ZV9pZBgFIAEoCRIPCgdnYW1lX2lkGAYgASgJEjAKBHdpbmUYByABKAsyIi5t",
+            "b2Rjb25kdWN0b3IudjEuV2luZVNlbGVjdGlvbkluZm8iYAoZUmVmcmVzaEdh",
+            "bWVDb250ZXh0UmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSGQoRZXhw",
+            "ZWN0ZWRfcmV2aXNpb24YAiABKAQSEgoKcHJvZmlsZV9pZBgDIAEoCSKHAgoS",
+            "R2FtZURlZmluaXRpb25JbmZvEhUKDWRlZmluaXRpb25faWQYASABKAkSEAoI",
+            "cmV2aXNpb24YAiABKA0SDAoEbmFtZRgDIAEoCRISCgpzdG9yZWZyb250GAQg",
+            "ASgJEh0KFWRlY2xhcmVkX3N0ZWFtX2FwcF9pZBgFIAEoDRJMChh1bmF2YWls",
+            "YWJsZV9jYXBhYmlsaXRpZXMYBiADKAsyKi5tb2Rjb25kdWN0b3IudjEuVW5h",
+            "dmFpbGFibGVHYW1lQ2FwYWJpbGl0eRI5CgxjYXBhYmlsaXRpZXMYByADKAsy",
+            "Iy5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFiaWxpdHlJbmZvIjkKGVVuYXZh",
+            "aWxhYmxlR2FtZUNhcGFiaWxpdHkSDAoEbmFtZRgBIAEoCRIOCgZyZWFzb24Y",
+            "AiABKAkiZwoVR2FtZUNhcGFiaWxpdHlDb250ZXh0EhUKDWRlZmluaXRpb25f",
+            "aWQYASABKAkSNwoJcGxhdGZvcm1zGAIgAygOMiQubW9kY29uZHVjdG9yLnYx",
+            "LkdhbWVDb250ZXh0UGxhdGZvcm0imQIKEkdhbWVDYXBhYmlsaXR5SW5mbxIV",
+            "Cg1jYXBhYmlsaXR5X2lkGAEgASgJEhAKCHJldmlzaW9uGAIgASgNEgwKBG5h",
+            "bWUYAyABKAkSMQoEa2luZBgEIAEoDjIjLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
+            "Q2FwYWJpbGl0eUtpbmQSOAoIY29udGV4dHMYBSADKAsyJi5tb2Rjb25kdWN0",
+            "b3IudjEuR2FtZUNhcGFiaWxpdHlDb250ZXh0Ej8KC2Rpc3Bvc2l0aW9uGAYg",
+            "ASgOMioubW9kY29uZHVjdG9yLnYxLkdhbWVDYXBhYmlsaXR5RGlzcG9zaXRp",
+            "b24SEwoGcmVhc29uGAcgASgJSACIAQFCCQoHX3JlYXNvbiJtCgxHYW1lTG9j",
+            "YXRpb24SNQoHbG9jYXRlZBgBIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5Mb2Nh",
+            "dGVkR2FtZUZvbGRlckgAEhwKEnVuYXZhaWxhYmxlX3JlYXNvbhgCIAEoCUgA",
+            "QggKBnJlc3VsdCIxChFMb2NhdGVkR2FtZUZvbGRlchIMCgRwYXRoGAEgASgJ",
+            "Eg4KBmV4aXN0cxgCIAEoCCJ1ChZHYW1lRXhlY3V0YWJsZUV2aWRlbmNlEgwK",
+            "BHBhdGgYASABKAkSDgoGc2hhMjU2GAIgASgJEg4KBmxlbmd0aBgDIAEoBBIU",
+            "CgxmaWxlX3ZlcnNpb24YBCABKAkSFwoPcHJvZHVjdF92ZXJzaW9uGAUgASgJ",
+            "IjUKFUdhbWVWYWxpZGF0aW9uUHJvYmxlbRIMCgRwYXRoGAEgASgJEg4KBmRl",
+            "dGFpbBgCIAEoCSKYBQoYR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlEjYKCHBs",
+            "YXRmb3JtGAEgASgOMiQubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0UGxh",
+            "dGZvcm0SEQoJcm9vdF9wYXRoGAIgASgJEhYKCWRhdGFfcGF0aBgDIAEoCUgA",
+            "iAEBEjsKCmV4ZWN1dGFibGUYBCABKAsyJy5tb2Rjb25kdWN0b3IudjEuR2Ft",
+            "ZUV4ZWN1dGFibGVFdmlkZW5jZRIaCg1sYXVuY2hlcl9wYXRoGAUgASgJSAGI",
+            "AQESMAoJZG9jdW1lbnRzGAYgASgLMh0ubW9kY29uZHVjdG9yLnYxLkdhbWVM",
+            "b2NhdGlvbhIsCgVzYXZlcxgHIAEoCzIdLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
+            "TG9jYXRpb24SNQoObG9jYWxfYXBwX2RhdGEYCCABKAsyHS5tb2Rjb25kdWN0",
+            "b3IudjEuR2FtZUxvY2F0aW9uEjgKCHByb2JsZW1zGAkgAygLMiYubW9kY29u",
+            "ZHVjdG9yLnYxLkdhbWVWYWxpZGF0aW9uUHJvYmxlbRIaChJjaGVja2VkX2F0",
+            "X3VuaXhfbXMYCiABKAMSEwoLZmluZ2VycHJpbnQYCyABKAkSFQoNZGVmaW5p",
+            "dGlvbl9pZBgMIAEoCRIbChNkZWZpbml0aW9uX3JldmlzaW9uGA0gASgNEjYK",
+            "BnByb3RvbhgOIAEoCzImLm1vZGNvbmR1Y3Rvci52MS5Qcm90b25Db250ZXh0",
+            "RXZpZGVuY2USMgoEd2luZRgPIAEoCzIkLm1vZGNvbmR1Y3Rvci52MS5XaW5l",
+            "Q29udGV4dEV2aWRlbmNlQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVyX3Bh",
+            "dGgijwIKD0dhbWVCaW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJEgwK",
+            "BHBhdGgYAiABKAkSOwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3Iu",
+            "djEuR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNrGAQg",
+            "ASgIEhQKB2ZhaWx1cmUYBSABKAlIAIgBARI0CgZwcm90b24YBiABKAsyJC5t",
+            "b2Rjb25kdWN0b3IudjEuUHJvdG9uU2VsZWN0aW9uSW5mbxIwCgR3aW5lGAcg",
+            "ASgLMiIubW9kY29uZHVjdG9yLnYxLldpbmVTZWxlY3Rpb25JbmZvQgoKCF9m",
+            "YWlsdXJlIroBChBHYW1lQ29udGV4dFN0YXRlEhQKDHdvcmtzcGFjZV9pZBgB",
+            "IAEoCRIQCghyZXZpc2lvbhgCIAEoBBI3CgpkZWZpbml0aW9uGAMgASgLMiMu",
+            "bW9kY29uZHVjdG9yLnYxLkdhbWVEZWZpbml0aW9uSW5mbxIxCgdiaW5kaW5n",
+            "GAQgASgLMiAubW9kY29uZHVjdG9yLnYxLkdhbWVCaW5kaW5nSW5mbxISCgpw",
+            "cm9maWxlX2lkGAUgASgJIpUBChBHYW1lQ29udGV4dEZhdWx0EjMKBGNvZGUY",
+            "ASABKA4yJS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRGYXVsdENvZGUS",
+            "DgoGZGV0YWlsGAIgASgJEjwKCWNhbmRpZGF0ZRgDIAEoCzIpLm1vZGNvbmR1",
+            "Y3Rvci52MS5HYW1lSW5zdGFsbGF0aW9uRXZpZGVuY2UihQEKEEdhbWVDb250",
+            "ZXh0UmVwbHkSMgoFc3RhdGUYASABKAsyIS5tb2Rjb25kdWN0b3IudjEuR2Ft",
+            "ZUNvbnRleHRTdGF0ZUgAEjIKBWZhdWx0GAIgASgLMiEubW9kY29uZHVjdG9y",
+            "LnYxLkdhbWVDb250ZXh0RmF1bHRIAEIJCgdvdXRjb21lIjcKEVdpbmVTZWxl",
+            "Y3Rpb25JbmZvEhIKCmV4ZWN1dGFibGUYASABKAkSDgoGcHJlZml4GAIgASgJ",
+            "IkwKE1dpbmVDb250ZXh0RXZpZGVuY2USNQoJc2VsZWN0aW9uGAEgASgLMiIu",
+            "bW9kY29uZHVjdG9yLnYxLldpbmVTZWxlY3Rpb25JbmZvKqEBChNHYW1lQ29u",
+            "dGV4dFBsYXRmb3JtEiUKIUdBTUVfQ09OVEVYVF9QTEFURk9STV9VTlNQRUNJ",
+            "RklFRBAAEiEKHUdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5ET1dTEAESIAoc",
+            "R0FNRV9DT05URVhUX1BMQVRGT1JNX1BST1RPThACEh4KGkdBTUVfQ09OVEVY",
+            "VF9QTEFURk9STV9XSU5FEAMq3wEKEkdhbWVDYXBhYmlsaXR5S2luZBIkCiBH",
+            "QU1FX0NBUEFCSUxJVFlfS0lORF9VTlNQRUNJRklFRBAAEiUKIUdBTUVfQ0FQ",
+            "QUJJTElUWV9LSU5EX0NPUkVfT1VUQ09NRRABEiUKIUdBTUVfQ0FQQUJJTElU",
+            "WV9LSU5EX0dBTUVfQURBUFRFUhACEigKJEdBTUVfQ0FQQUJJTElUWV9LSU5E",
+            "X09QVElPTkFMX0xFR0FDWRADEisKJ0dBTUVfQ0FQQUJJTElUWV9LSU5EX09C",
+            "U09MRVRFX01FQ0hBTklTTRAEKs0BChlHYW1lQ2FwYWJpbGl0eURpc3Bvc2l0",
+            "aW9uEisKJ0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9VTlNQRUNJRklF",
+            "RBAAEikKJUdBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9BVkFJTEFCTEUQ",
+            "ARIrCidHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5BVkFJTEFCTEUQ",
+            "AhIrCidHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5TVVBQT1JURUQQ",
+            "Ayr7AQoUR2FtZUNvbnRleHRGYXVsdENvZGUSIgoeR0FNRV9DT05URVhUX0ZB",
+            "VUxUX1VOU1BFQ0lGSUVEEAASIAocR0FNRV9DT05URVhUX0ZBVUxUX05PVF9G",
+            "T1VORBABEiUKIUdBTUVfQ09OVEVYVF9GQVVMVF9TVEFMRV9SRVZJU0lPThAC",
+            "EiwKKEdBTUVfQ09OVEVYVF9GQVVMVF9XT1JLU1BBQ0VfVU5BVkFJTEFCTEUQ",
+            "AxIrCidHQU1FX0NPTlRFWFRfRkFVTFRfSU5WQUxJRF9JTlNUQUxMQVRJT04Q",
+            "BBIbChdHQU1FX0NPTlRFWFRfRkFVTFRfQlVTWRAFMroCChVHYW1lQ29udGV4",
+            "dE9wZXJhdGlvbnMSXQoPUmVhZEdhbWVDb250ZXh0EicubW9kY29uZHVjdG9y",
+            "LnYxLlJlYWRHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEu",
+            "R2FtZUNvbnRleHRSZXBseRJdCg9TYXZlR2FtZUNvbnRleHQSJy5tb2Rjb25k",
+            "dWN0b3IudjEuU2F2ZUdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lQ29udGV4dFJlcGx5EmMKElJlZnJlc2hHYW1lQ29udGV4dBIq",
+            "Lm1vZGNvbmR1Y3Rvci52MS5SZWZyZXNoR2FtZUNvbnRleHRSZXF1ZXN0GiEu",
+            "bW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0UmVwbHlCG6oCGE1vZENvbmR1",
+            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ProtonContextsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.GameContextPlatform), typeof(global::ModConductor.Protocol.V1.GameCapabilityKind), typeof(global::ModConductor.Protocol.V1.GameCapabilityDisposition), typeof(global::ModConductor.Protocol.V1.GameContextFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadGameContextRequest), global::ModConductor.Protocol.V1.ReadGameContextRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton", "ProfileId", "GameId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton", "ProfileId", "GameId", "Wine" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RefreshGameContextRequest), global::ModConductor.Protocol.V1.RefreshGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities", "Capabilities" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.UnavailableGameCapability), global::ModConductor.Protocol.V1.UnavailableGameCapability.Parser, new[]{ "Name", "Reason" }, null, null, null, null),
@@ -127,11 +134,13 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.LocatedGameFolder), global::ModConductor.Protocol.V1.LocatedGameFolder.Parser, new[]{ "Path", "Exists" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameExecutableEvidence), global::ModConductor.Protocol.V1.GameExecutableEvidence.Parser, new[]{ "Path", "Sha256", "Length", "FileVersion", "ProductVersion" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameValidationProblem), global::ModConductor.Protocol.V1.GameValidationProblem.Parser, new[]{ "Path", "Detail" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameInstallationEvidence), global::ModConductor.Protocol.V1.GameInstallationEvidence.Parser, new[]{ "Platform", "RootPath", "DataPath", "Executable", "LauncherPath", "Documents", "Saves", "LocalAppData", "Problems", "CheckedAtUnixMs", "Fingerprint", "DefinitionId", "DefinitionRevision", "Proton" }, new[]{ "DataPath", "LauncherPath" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameBindingInfo), global::ModConductor.Protocol.V1.GameBindingInfo.Parser, new[]{ "BindingId", "Path", "Evidence", "NeedsCheck", "Failure", "Proton" }, new[]{ "Failure" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameInstallationEvidence), global::ModConductor.Protocol.V1.GameInstallationEvidence.Parser, new[]{ "Platform", "RootPath", "DataPath", "Executable", "LauncherPath", "Documents", "Saves", "LocalAppData", "Problems", "CheckedAtUnixMs", "Fingerprint", "DefinitionId", "DefinitionRevision", "Proton", "Wine" }, new[]{ "DataPath", "LauncherPath" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameBindingInfo), global::ModConductor.Protocol.V1.GameBindingInfo.Parser, new[]{ "BindingId", "Path", "Evidence", "NeedsCheck", "Failure", "Proton", "Wine" }, new[]{ "Failure" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextState), global::ModConductor.Protocol.V1.GameContextState.Parser, new[]{ "WorkspaceId", "Revision", "Definition", "Binding", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextFault), global::ModConductor.Protocol.V1.GameContextFault.Parser, new[]{ "Code", "Detail", "Candidate" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextReply), global::ModConductor.Protocol.V1.GameContextReply.Parser, new[]{ "State", "Fault" }, new[]{ "Outcome" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextReply), global::ModConductor.Protocol.V1.GameContextReply.Parser, new[]{ "State", "Fault" }, new[]{ "Outcome" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.WineSelectionInfo), global::ModConductor.Protocol.V1.WineSelectionInfo.Parser, new[]{ "Executable", "Prefix" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.WineContextEvidence), global::ModConductor.Protocol.V1.WineContextEvidence.Parser, new[]{ "Selection" }, null, null, null, null)
           }));
     }
     #endregion
@@ -142,6 +151,7 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("GAME_CONTEXT_PLATFORM_UNSPECIFIED")] Unspecified = 0,
     [pbr::OriginalName("GAME_CONTEXT_PLATFORM_WINDOWS")] Windows = 1,
     [pbr::OriginalName("GAME_CONTEXT_PLATFORM_PROTON")] Proton = 2,
+    [pbr::OriginalName("GAME_CONTEXT_PLATFORM_WINE")] Wine = 3,
   }
 
   public enum GameCapabilityKind {
@@ -447,6 +457,7 @@ namespace ModConductor.Protocol.V1 {
       proton_ = other.proton_ != null ? other.proton_.Clone() : null;
       profileId_ = other.profileId_;
       gameId_ = other.gameId_;
+      wine_ = other.wine_ != null ? other.wine_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -528,6 +539,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "wine" field.</summary>
+    public const int WineFieldNumber = 7;
+    private global::ModConductor.Protocol.V1.WineSelectionInfo wine_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.WineSelectionInfo Wine {
+      get { return wine_; }
+      set {
+        wine_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -549,6 +572,7 @@ namespace ModConductor.Protocol.V1 {
       if (!object.Equals(Proton, other.Proton)) return false;
       if (ProfileId != other.ProfileId) return false;
       if (GameId != other.GameId) return false;
+      if (!object.Equals(Wine, other.Wine)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -562,6 +586,7 @@ namespace ModConductor.Protocol.V1 {
       if (proton_ != null) hash ^= Proton.GetHashCode();
       if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
       if (GameId.Length != 0) hash ^= GameId.GetHashCode();
+      if (wine_ != null) hash ^= Wine.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -604,6 +629,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(50);
         output.WriteString(GameId);
       }
+      if (wine_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(Wine);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -638,6 +667,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(50);
         output.WriteString(GameId);
       }
+      if (wine_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(Wine);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -665,6 +698,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (GameId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(GameId);
+      }
+      if (wine_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Wine);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -698,6 +734,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.GameId.Length != 0) {
         GameId = other.GameId;
+      }
+      if (other.wine_ != null) {
+        if (wine_ == null) {
+          Wine = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+        }
+        Wine.MergeFrom(other.Wine);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -745,6 +787,13 @@ namespace ModConductor.Protocol.V1 {
             GameId = input.ReadString();
             break;
           }
+          case 58: {
+            if (wine_ == null) {
+              Wine = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+            }
+            input.ReadMessage(Wine);
+            break;
+          }
         }
       }
     #endif
@@ -789,6 +838,13 @@ namespace ModConductor.Protocol.V1 {
           }
           case 50: {
             GameId = input.ReadString();
+            break;
+          }
+          case 58: {
+            if (wine_ == null) {
+              Wine = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+            }
+            input.ReadMessage(Wine);
             break;
           }
         }
@@ -3512,6 +3568,7 @@ namespace ModConductor.Protocol.V1 {
       definitionId_ = other.definitionId_;
       definitionRevision_ = other.definitionRevision_;
       proton_ = other.proton_ != null ? other.proton_.Clone() : null;
+      wine_ = other.wine_ != null ? other.wine_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -3716,6 +3773,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "wine" field.</summary>
+    public const int WineFieldNumber = 15;
+    private global::ModConductor.Protocol.V1.WineContextEvidence wine_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.WineContextEvidence Wine {
+      get { return wine_; }
+      set {
+        wine_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -3745,6 +3814,7 @@ namespace ModConductor.Protocol.V1 {
       if (DefinitionId != other.DefinitionId) return false;
       if (DefinitionRevision != other.DefinitionRevision) return false;
       if (!object.Equals(Proton, other.Proton)) return false;
+      if (!object.Equals(Wine, other.Wine)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -3766,6 +3836,7 @@ namespace ModConductor.Protocol.V1 {
       if (DefinitionId.Length != 0) hash ^= DefinitionId.GetHashCode();
       if (DefinitionRevision != 0) hash ^= DefinitionRevision.GetHashCode();
       if (proton_ != null) hash ^= Proton.GetHashCode();
+      if (wine_ != null) hash ^= Wine.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -3837,6 +3908,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(114);
         output.WriteMessage(Proton);
       }
+      if (wine_ != null) {
+        output.WriteRawTag(122);
+        output.WriteMessage(Wine);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -3900,6 +3975,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(114);
         output.WriteMessage(Proton);
       }
+      if (wine_ != null) {
+        output.WriteRawTag(122);
+        output.WriteMessage(Wine);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -3949,6 +4028,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (proton_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Proton);
+      }
+      if (wine_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Wine);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -4016,6 +4098,12 @@ namespace ModConductor.Protocol.V1 {
           Proton = new global::ModConductor.Protocol.V1.ProtonContextEvidence();
         }
         Proton.MergeFrom(other.Proton);
+      }
+      if (other.wine_ != null) {
+        if (wine_ == null) {
+          Wine = new global::ModConductor.Protocol.V1.WineContextEvidence();
+        }
+        Wine.MergeFrom(other.Wine);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4105,6 +4193,13 @@ namespace ModConductor.Protocol.V1 {
               Proton = new global::ModConductor.Protocol.V1.ProtonContextEvidence();
             }
             input.ReadMessage(Proton);
+            break;
+          }
+          case 122: {
+            if (wine_ == null) {
+              Wine = new global::ModConductor.Protocol.V1.WineContextEvidence();
+            }
+            input.ReadMessage(Wine);
             break;
           }
         }
@@ -4197,6 +4292,13 @@ namespace ModConductor.Protocol.V1 {
             input.ReadMessage(Proton);
             break;
           }
+          case 122: {
+            if (wine_ == null) {
+              Wine = new global::ModConductor.Protocol.V1.WineContextEvidence();
+            }
+            input.ReadMessage(Wine);
+            break;
+          }
         }
       }
     }
@@ -4245,6 +4347,7 @@ namespace ModConductor.Protocol.V1 {
       needsCheck_ = other.needsCheck_;
       failure_ = other.failure_;
       proton_ = other.proton_ != null ? other.proton_.Clone() : null;
+      wine_ = other.wine_ != null ? other.wine_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -4340,6 +4443,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "wine" field.</summary>
+    public const int WineFieldNumber = 7;
+    private global::ModConductor.Protocol.V1.WineSelectionInfo wine_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.WineSelectionInfo Wine {
+      get { return wine_; }
+      set {
+        wine_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -4361,6 +4476,7 @@ namespace ModConductor.Protocol.V1 {
       if (NeedsCheck != other.NeedsCheck) return false;
       if (Failure != other.Failure) return false;
       if (!object.Equals(Proton, other.Proton)) return false;
+      if (!object.Equals(Wine, other.Wine)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -4374,6 +4490,7 @@ namespace ModConductor.Protocol.V1 {
       if (NeedsCheck != false) hash ^= NeedsCheck.GetHashCode();
       if (HasFailure) hash ^= Failure.GetHashCode();
       if (proton_ != null) hash ^= Proton.GetHashCode();
+      if (wine_ != null) hash ^= Wine.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -4416,6 +4533,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(50);
         output.WriteMessage(Proton);
       }
+      if (wine_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(Wine);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -4450,6 +4571,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(50);
         output.WriteMessage(Proton);
       }
+      if (wine_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(Wine);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -4477,6 +4602,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (proton_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Proton);
+      }
+      if (wine_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Wine);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -4513,6 +4641,12 @@ namespace ModConductor.Protocol.V1 {
           Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
         }
         Proton.MergeFrom(other.Proton);
+      }
+      if (other.wine_ != null) {
+        if (wine_ == null) {
+          Wine = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+        }
+        Wine.MergeFrom(other.Wine);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4563,6 +4697,13 @@ namespace ModConductor.Protocol.V1 {
             input.ReadMessage(Proton);
             break;
           }
+          case 58: {
+            if (wine_ == null) {
+              Wine = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+            }
+            input.ReadMessage(Wine);
+            break;
+          }
         }
       }
     #endif
@@ -4610,6 +4751,13 @@ namespace ModConductor.Protocol.V1 {
               Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
             }
             input.ReadMessage(Proton);
+            break;
+          }
+          case 58: {
+            if (wine_ == null) {
+              Wine = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+            }
+            input.ReadMessage(Wine);
             break;
           }
         }
@@ -5549,6 +5697,448 @@ namespace ModConductor.Protocol.V1 {
             }
             input.ReadMessage(subBuilder);
             Fault = subBuilder;
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class WineSelectionInfo : pb::IMessage<WineSelectionInfo>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<WineSelectionInfo> _parser = new pb::MessageParser<WineSelectionInfo>(() => new WineSelectionInfo());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<WineSelectionInfo> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[16]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public WineSelectionInfo() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public WineSelectionInfo(WineSelectionInfo other) : this() {
+      executable_ = other.executable_;
+      prefix_ = other.prefix_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public WineSelectionInfo Clone() {
+      return new WineSelectionInfo(this);
+    }
+
+    /// <summary>Field number for the "executable" field.</summary>
+    public const int ExecutableFieldNumber = 1;
+    private string executable_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Executable {
+      get { return executable_; }
+      set {
+        executable_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "prefix" field.</summary>
+    public const int PrefixFieldNumber = 2;
+    private string prefix_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Prefix {
+      get { return prefix_; }
+      set {
+        prefix_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as WineSelectionInfo);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(WineSelectionInfo other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Executable != other.Executable) return false;
+      if (Prefix != other.Prefix) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Executable.Length != 0) hash ^= Executable.GetHashCode();
+      if (Prefix.Length != 0) hash ^= Prefix.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Executable.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Executable);
+      }
+      if (Prefix.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Prefix);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Executable.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Executable);
+      }
+      if (Prefix.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Prefix);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Executable.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Executable);
+      }
+      if (Prefix.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Prefix);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(WineSelectionInfo other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Executable.Length != 0) {
+        Executable = other.Executable;
+      }
+      if (other.Prefix.Length != 0) {
+        Prefix = other.Prefix;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Executable = input.ReadString();
+            break;
+          }
+          case 18: {
+            Prefix = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Executable = input.ReadString();
+            break;
+          }
+          case 18: {
+            Prefix = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class WineContextEvidence : pb::IMessage<WineContextEvidence>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<WineContextEvidence> _parser = new pb::MessageParser<WineContextEvidence>(() => new WineContextEvidence());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<WineContextEvidence> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[17]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public WineContextEvidence() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public WineContextEvidence(WineContextEvidence other) : this() {
+      selection_ = other.selection_ != null ? other.selection_.Clone() : null;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public WineContextEvidence Clone() {
+      return new WineContextEvidence(this);
+    }
+
+    /// <summary>Field number for the "selection" field.</summary>
+    public const int SelectionFieldNumber = 1;
+    private global::ModConductor.Protocol.V1.WineSelectionInfo selection_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.WineSelectionInfo Selection {
+      get { return selection_; }
+      set {
+        selection_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as WineContextEvidence);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(WineContextEvidence other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Selection, other.Selection)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (selection_ != null) hash ^= Selection.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (selection_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Selection);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (selection_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Selection);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (selection_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Selection);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(WineContextEvidence other) {
+      if (other == null) {
+        return;
+      }
+      if (other.selection_ != null) {
+        if (selection_ == null) {
+          Selection = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+        }
+        Selection.MergeFrom(other.Selection);
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+            }
+            input.ReadMessage(Selection);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.WineSelectionInfo();
+            }
+            input.ReadMessage(Selection);
             break;
           }
         }

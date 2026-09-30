@@ -117,7 +117,7 @@ module FnisProblem =
         function
         | FnisProblem.GameUnavailable -> "Select and refresh the Skyrim installation."
         | FnisProblem.UnsupportedStorefront ->
-            "FNIS setup supports Skyrim Special Edition from Steam."
+            "FNIS setup supports a checked Skyrim Special Edition installation."
         | FnisProblem.SignInRequired -> "Sign in to Nexus Mods."
         | FnisProblem.EntitlementRequired ->
             "Open Nexus Mods, then select Mod Manager Download for FNIS Behavior SE 7.6."

@@ -543,6 +543,7 @@ module SkseCoordinatorFixtures =
                 staleContext.Revision,
                 { GameId = GameId.SkyrimSpecialEditionSteam
                   Path = gamePath
+                  Wine = None
                   Proton = protonSelection }
             )
         |> wait
@@ -781,6 +782,7 @@ module SkseCoordinatorFixtures =
                 context.Revision,
                 { GameId = GameId.SkyrimSpecialEditionSteam
                   Path = game
+                  Wine = None
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait

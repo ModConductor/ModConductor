@@ -46,6 +46,7 @@ module ContextIdentity =
             match evidence.Platform with
             | ContextPlatform.Windows -> 1
             | ContextPlatform.Proton -> 2
+            | ContextPlatform.Wine -> 3
         )
 
         text evidence.RootPath
@@ -120,6 +121,19 @@ module ContextIdentity =
             writer.Write p.Paths.Length
 
             for path in p.Paths do
+                text path.Name
+                text (Option.defaultValue "" path.WindowsPath)
+                location path.HostLocation
+
+        match evidence.Wine with
+        | None -> ()
+        | Some wine ->
+            text wine.Selection.Executable
+            text wine.Selection.Prefix
+            identity (Some wine.PrefixIdentity)
+            identity (Some wine.ExecutableIdentity)
+
+            for path in wine.Paths do
                 text path.Name
                 text (Option.defaultValue "" path.WindowsPath)
                 location path.HostLocation
