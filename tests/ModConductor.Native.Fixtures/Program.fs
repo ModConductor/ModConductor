@@ -171,6 +171,8 @@ let private run (args: string array) =
         ->
         DeploymentLiveFixture.run a b c d e
         0
+    | [| "--workspace-deletion"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> WorkspaceDeletionFixtures.observe writer path)
     | [| "--deployment-backend"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer ->
             DeploymentBackendFixtures.observe writer path

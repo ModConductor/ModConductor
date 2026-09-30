@@ -11,6 +11,7 @@
     <Compile Include="Files.fs" />
     <Compile Include="Records.fs" />
     <Compile Include="Locations.fs" />
+    <Compile Include="WorkspaceSaveTransfer.fs" />
     <Compile Include="Trees.fs" />
     <Compile Include="Effects.fs" />
     <Compile Include="Deletion.fs" />

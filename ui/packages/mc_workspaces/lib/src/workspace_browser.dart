@@ -9,8 +9,10 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 
 import 'controller.dart';
 import 'workspace_dialog.dart';
+import 'workspace_deletion_dialog.dart';
 
 part 'workspace_entry.dart';
+part 'workspace_deletion_actions.dart';
 part 'workspace_shell.dart';
 part 'workspace_workbench.dart';
 part 'workspace_profile_actions.dart';

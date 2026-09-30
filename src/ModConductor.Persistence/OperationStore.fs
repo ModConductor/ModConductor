@@ -119,12 +119,23 @@ type OperationStore
             profileImages
         )
 
+    let workspaceDeletion =
+        WorkspaceDeletionStore(
+            database,
+            deploymentBackend,
+            profileGameData,
+            deploymentBackend.TryAcquireWorkspace,
+            directory
+        )
+
     let workspaces =
         WorkspaceStateStore(
             database,
             workspaceRoots,
             profileMutations.Edit,
-            profileMutations.Resume
+            profileMutations.Resume,
+            workspaceDeletion.Info,
+            workspaceDeletion.Delete
         )
 
     let profileTransport =

@@ -49,6 +49,7 @@ type NativeObservationSetup() =
 
         match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
         | "platform" -> info.ArgumentList.Add "--platform"
+        | "workspace-deletion" -> info.ArgumentList.Add "--workspace-deletion"
         | "workspaces" -> info.ArgumentList.Add "--workspaces"
         | "library" -> info.ArgumentList.Add "--library"
         | "executables" -> info.ArgumentList.Add "--executables"

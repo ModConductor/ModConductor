@@ -13,6 +13,8 @@ service WorkspaceOperations {
   rpc RecentWorkspaces(RecentWorkspacesRequest) returns (RecentWorkspacesReply);
   rpc ReadProfileImage(ReadProfileImageRequest) returns (ProfileImageReply);
   rpc SetProfileImage(SetProfileImageRequest) returns (ProfileImageUpdateReply);
+  rpc ReadWorkspaceDeletion(ReadWorkspaceDeletionRequest) returns (WorkspaceDeletionInfoReply);
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (WorkspaceDeletionReply);
 }
 message ProfileInfo { string profile_id = 1; string name = 2; }
 enum WorkspaceRootIssueReason {
@@ -92,3 +94,9 @@ message SetProfileImageRequest {
   oneof change { string source_path = 3; bool clear = 4; }
 }
 message ProfileImageUpdateReply { oneof outcome { bool saved = 1; WorkspaceFault fault = 2; } }
+
+message ReadWorkspaceDeletionRequest { string workspace_id = 1; }
+message WorkspaceDeletionInfo { bool has_private_saves = 1; repeated string save_destinations = 2; }
+message WorkspaceDeletionInfoReply { oneof outcome { WorkspaceDeletionInfo info = 1; WorkspaceFault fault = 2; } }
+message DeleteWorkspaceRequest { string workspace_id = 1; uint64 expected_revision = 2; bool move_saves = 3; }
+message WorkspaceDeletionReply { oneof outcome { bool deleted = 1; WorkspaceFault fault = 2; } }

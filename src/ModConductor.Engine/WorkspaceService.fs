@@ -209,6 +209,41 @@ type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations, ima
 
     override _.OpenWorkspace(request, _) = selected request.Path state.Open
 
+    override _.ReadWorkspaceDeletion(request, _) =
+        WorkspaceWire.execute (fun () ->
+            task {
+                let! result = state.DeletionInfo(WorkspaceWire.id request.WorkspaceId)
+
+                match result with
+                | Error error ->
+                    return WorkspaceDeletionInfoReply(Fault = WorkspaceWire.fault error)
+                | Ok value ->
+                    let info =
+                        ModConductor.Protocol.V1.WorkspaceDeletionInfo(
+                            HasPrivateSaves = value.HasPrivateSaves
+                        )
+
+                    info.SaveDestinations.AddRange value.SaveDestinations
+                    return WorkspaceDeletionInfoReply(Info = info)
+            })
+
+    override _.DeleteWorkspace(request, context) =
+        WorkspaceWire.execute (fun () ->
+            task {
+                let! result =
+                    state.Delete(
+                        WorkspaceWire.id request.WorkspaceId,
+                        WorkspaceWire.revision request.ExpectedRevision,
+                        request.MoveSaves,
+                        context.CancellationToken
+                    )
+
+                return
+                    match result with
+                    | Ok() -> WorkspaceDeletionReply(Deleted = true)
+                    | Error error -> WorkspaceDeletionReply(Fault = WorkspaceWire.fault error)
+            })
+
     override _.ReadWorkspace(request, _) =
         WorkspaceWire.execute (fun () ->
             task {

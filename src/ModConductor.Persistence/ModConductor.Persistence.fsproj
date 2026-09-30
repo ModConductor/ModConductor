@@ -133,6 +133,10 @@
     <Compile Include="SkseWorkflow.fs" />
     <Compile Include="FnisComponentInstaller.fs" />
     <Compile Include="FnisWorkflow.fs" />
+    <Compile Include="WorkspaceDeletionRows.fs" />
+    <Compile Include="WorkspaceDeletionFiles.fs" />
+    <Compile Include="WorkspaceDeletionPreparation.fs" />
+    <Compile Include="WorkspaceDeletionStore.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.Skse/ModConductor.Skse.fsproj" />

@@ -43,6 +43,7 @@
     <Compile Include="ArchivePolicyFixtures.fs" />
     <Compile Include="NonSteamContextFixtures.fs" />
     <Compile Include="NonSteamWineRuntimeFixtures.fs" />
+    <Compile Include="WorkspaceDeletionFixtures.fs" />
     <Compile Include="FixtureHostDefault.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />

@@ -692,3 +692,121 @@ final $typed_data.Uint8List profileImageUpdateReplyDescriptor = $convert.base64D
     'ChdQcm9maWxlSW1hZ2VVcGRhdGVSZXBseRIWCgVzYXZlZBgBIAEoCEgAUgVzYXZlZBI3CgVmYX'
     'VsdBgCIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Xb3Jrc3BhY2VGYXVsdEgAUgVmYXVsdEIJCgdv'
     'dXRjb21l');
+
+@$core.Deprecated('Use readWorkspaceDeletionRequestDescriptor instead')
+const ReadWorkspaceDeletionRequest$json = {
+  '1': 'ReadWorkspaceDeletionRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+  ],
+};
+
+/// Descriptor for `ReadWorkspaceDeletionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readWorkspaceDeletionRequestDescriptor =
+    $convert.base64Decode(
+        'ChxSZWFkV29ya3NwYWNlRGVsZXRpb25SZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd2'
+        '9ya3NwYWNlSWQ=');
+
+@$core.Deprecated('Use workspaceDeletionInfoDescriptor instead')
+const WorkspaceDeletionInfo$json = {
+  '1': 'WorkspaceDeletionInfo',
+  '2': [
+    {'1': 'has_private_saves', '3': 1, '4': 1, '5': 8, '10': 'hasPrivateSaves'},
+    {
+      '1': 'save_destinations',
+      '3': 2,
+      '4': 3,
+      '5': 9,
+      '10': 'saveDestinations'
+    },
+  ],
+};
+
+/// Descriptor for `WorkspaceDeletionInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workspaceDeletionInfoDescriptor = $convert.base64Decode(
+    'ChVXb3Jrc3BhY2VEZWxldGlvbkluZm8SKgoRaGFzX3ByaXZhdGVfc2F2ZXMYASABKAhSD2hhc1'
+    'ByaXZhdGVTYXZlcxIrChFzYXZlX2Rlc3RpbmF0aW9ucxgCIAMoCVIQc2F2ZURlc3RpbmF0aW9u'
+    'cw==');
+
+@$core.Deprecated('Use workspaceDeletionInfoReplyDescriptor instead')
+const WorkspaceDeletionInfoReply$json = {
+  '1': 'WorkspaceDeletionInfoReply',
+  '2': [
+    {
+      '1': 'info',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WorkspaceDeletionInfo',
+      '9': 0,
+      '10': 'info'
+    },
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WorkspaceFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `WorkspaceDeletionInfoReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workspaceDeletionInfoReplyDescriptor =
+    $convert.base64Decode(
+        'ChpXb3Jrc3BhY2VEZWxldGlvbkluZm9SZXBseRI8CgRpbmZvGAEgASgLMiYubW9kY29uZHVjdG'
+        '9yLnYxLldvcmtzcGFjZURlbGV0aW9uSW5mb0gAUgRpbmZvEjcKBWZhdWx0GAIgASgLMh8ubW9k'
+        'Y29uZHVjdG9yLnYxLldvcmtzcGFjZUZhdWx0SABSBWZhdWx0QgkKB291dGNvbWU=');
+
+@$core.Deprecated('Use deleteWorkspaceRequestDescriptor instead')
+const DeleteWorkspaceRequest$json = {
+  '1': 'DeleteWorkspaceRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {
+      '1': 'expected_revision',
+      '3': 2,
+      '4': 1,
+      '5': 4,
+      '10': 'expectedRevision'
+    },
+    {'1': 'move_saves', '3': 3, '4': 1, '5': 8, '10': 'moveSaves'},
+  ],
+};
+
+/// Descriptor for `DeleteWorkspaceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteWorkspaceRequestDescriptor = $convert.base64Decode(
+    'ChZEZWxldGVXb3Jrc3BhY2VSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
+    'NlSWQSKwoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKARSEGV4cGVjdGVkUmV2aXNpb24SHQoKbW92'
+    'ZV9zYXZlcxgDIAEoCFIJbW92ZVNhdmVz');
+
+@$core.Deprecated('Use workspaceDeletionReplyDescriptor instead')
+const WorkspaceDeletionReply$json = {
+  '1': 'WorkspaceDeletionReply',
+  '2': [
+    {'1': 'deleted', '3': 1, '4': 1, '5': 8, '9': 0, '10': 'deleted'},
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WorkspaceFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `WorkspaceDeletionReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workspaceDeletionReplyDescriptor = $convert.base64Decode(
+    'ChZXb3Jrc3BhY2VEZWxldGlvblJlcGx5EhoKB2RlbGV0ZWQYASABKAhIAFIHZGVsZXRlZBI3Cg'
+    'VmYXVsdBgCIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Xb3Jrc3BhY2VGYXVsdEgAUgVmYXVsdEIJ'
+    'CgdvdXRjb21l');

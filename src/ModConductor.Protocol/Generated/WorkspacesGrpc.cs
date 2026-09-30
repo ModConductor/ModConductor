@@ -75,6 +75,14 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SetProfileImageRequest> __Marshaller_modconductor_v1_SetProfileImageRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SetProfileImageRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileImageUpdateReply> __Marshaller_modconductor_v1_ProfileImageUpdateReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileImageUpdateReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest> __Marshaller_modconductor_v1_ReadWorkspaceDeletionRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply> __Marshaller_modconductor_v1_WorkspaceDeletionInfoReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DeleteWorkspaceRequest> __Marshaller_modconductor_v1_DeleteWorkspaceRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DeleteWorkspaceRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.WorkspaceDeletionReply> __Marshaller_modconductor_v1_WorkspaceDeletionReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.WorkspaceDeletionReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.CreateWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply> __Method_CreateWorkspace = new grpc::Method<global::ModConductor.Protocol.V1.CreateWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(
@@ -156,6 +164,22 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_SetProfileImageRequest,
         __Marshaller_modconductor_v1_ProfileImageUpdateReply);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest, global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply> __Method_ReadWorkspaceDeletion = new grpc::Method<global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest, global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReadWorkspaceDeletion",
+        __Marshaller_modconductor_v1_ReadWorkspaceDeletionRequest,
+        __Marshaller_modconductor_v1_WorkspaceDeletionInfoReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.DeleteWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceDeletionReply> __Method_DeleteWorkspace = new grpc::Method<global::ModConductor.Protocol.V1.DeleteWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceDeletionReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "DeleteWorkspace",
+        __Marshaller_modconductor_v1_DeleteWorkspaceRequest,
+        __Marshaller_modconductor_v1_WorkspaceDeletionReply);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -222,6 +246,18 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileImageUpdateReply> SetProfileImage(global::ModConductor.Protocol.V1.SetProfileImageRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply> ReadWorkspaceDeletion(global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.WorkspaceDeletionReply> DeleteWorkspace(global::ModConductor.Protocol.V1.DeleteWorkspaceRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -435,6 +471,46 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_SetProfileImage, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply ReadWorkspaceDeletion(global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadWorkspaceDeletion(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply ReadWorkspaceDeletion(global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReadWorkspaceDeletion, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply> ReadWorkspaceDeletionAsync(global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadWorkspaceDeletionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply> ReadWorkspaceDeletionAsync(global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReadWorkspaceDeletion, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.WorkspaceDeletionReply DeleteWorkspace(global::ModConductor.Protocol.V1.DeleteWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return DeleteWorkspace(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.WorkspaceDeletionReply DeleteWorkspace(global::ModConductor.Protocol.V1.DeleteWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_DeleteWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.WorkspaceDeletionReply> DeleteWorkspaceAsync(global::ModConductor.Protocol.V1.DeleteWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return DeleteWorkspaceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.WorkspaceDeletionReply> DeleteWorkspaceAsync(global::ModConductor.Protocol.V1.DeleteWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_DeleteWorkspace, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override WorkspaceOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -458,7 +534,9 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_CheckWorkspace, serviceImpl.CheckWorkspace)
           .AddMethod(__Method_RecentWorkspaces, serviceImpl.RecentWorkspaces)
           .AddMethod(__Method_ReadProfileImage, serviceImpl.ReadProfileImage)
-          .AddMethod(__Method_SetProfileImage, serviceImpl.SetProfileImage).Build();
+          .AddMethod(__Method_SetProfileImage, serviceImpl.SetProfileImage)
+          .AddMethod(__Method_ReadWorkspaceDeletion, serviceImpl.ReadWorkspaceDeletion)
+          .AddMethod(__Method_DeleteWorkspace, serviceImpl.DeleteWorkspace).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -478,6 +556,8 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_RecentWorkspaces, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.RecentWorkspacesRequest, global::ModConductor.Protocol.V1.RecentWorkspacesReply>(serviceImpl.RecentWorkspaces));
       serviceBinder.AddMethod(__Method_ReadProfileImage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageReply>(serviceImpl.ReadProfileImage));
       serviceBinder.AddMethod(__Method_SetProfileImage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SetProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageUpdateReply>(serviceImpl.SetProfileImage));
+      serviceBinder.AddMethod(__Method_ReadWorkspaceDeletion, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadWorkspaceDeletionRequest, global::ModConductor.Protocol.V1.WorkspaceDeletionInfoReply>(serviceImpl.ReadWorkspaceDeletion));
+      serviceBinder.AddMethod(__Method_DeleteWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.DeleteWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceDeletionReply>(serviceImpl.DeleteWorkspace));
     }
 
   }

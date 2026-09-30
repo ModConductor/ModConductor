@@ -1934,6 +1934,389 @@ class ProfileImageUpdateReply extends $pb.GeneratedMessage {
   WorkspaceFault ensureFault() => $_ensure(1);
 }
 
+class ReadWorkspaceDeletionRequest extends $pb.GeneratedMessage {
+  factory ReadWorkspaceDeletionRequest({
+    $core.String? workspaceId,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    return result;
+  }
+
+  ReadWorkspaceDeletionRequest._();
+
+  factory ReadWorkspaceDeletionRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReadWorkspaceDeletionRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReadWorkspaceDeletionRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadWorkspaceDeletionRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadWorkspaceDeletionRequest copyWith(
+          void Function(ReadWorkspaceDeletionRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ReadWorkspaceDeletionRequest))
+          as ReadWorkspaceDeletionRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadWorkspaceDeletionRequest create() =>
+      ReadWorkspaceDeletionRequest._();
+  @$core.override
+  ReadWorkspaceDeletionRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReadWorkspaceDeletionRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReadWorkspaceDeletionRequest>(create);
+  static ReadWorkspaceDeletionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+}
+
+class WorkspaceDeletionInfo extends $pb.GeneratedMessage {
+  factory WorkspaceDeletionInfo({
+    $core.bool? hasPrivateSaves,
+    $core.Iterable<$core.String>? saveDestinations,
+  }) {
+    final result = create();
+    if (hasPrivateSaves != null) result.hasPrivateSaves = hasPrivateSaves;
+    if (saveDestinations != null)
+      result.saveDestinations.addAll(saveDestinations);
+    return result;
+  }
+
+  WorkspaceDeletionInfo._();
+
+  factory WorkspaceDeletionInfo.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkspaceDeletionInfo.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkspaceDeletionInfo',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'hasPrivateSaves')
+    ..pPS(2, _omitFieldNames ? '' : 'saveDestinations')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkspaceDeletionInfo clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkspaceDeletionInfo copyWith(
+          void Function(WorkspaceDeletionInfo) updates) =>
+      super.copyWith((message) => updates(message as WorkspaceDeletionInfo))
+          as WorkspaceDeletionInfo;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkspaceDeletionInfo create() => WorkspaceDeletionInfo._();
+  @$core.override
+  WorkspaceDeletionInfo createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkspaceDeletionInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkspaceDeletionInfo>(create);
+  static WorkspaceDeletionInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get hasPrivateSaves => $_getBF(0);
+  @$pb.TagNumber(1)
+  set hasPrivateSaves($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasHasPrivateSaves() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHasPrivateSaves() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<$core.String> get saveDestinations => $_getList(1);
+}
+
+enum WorkspaceDeletionInfoReply_Outcome { info, fault, notSet }
+
+class WorkspaceDeletionInfoReply extends $pb.GeneratedMessage {
+  factory WorkspaceDeletionInfoReply({
+    WorkspaceDeletionInfo? info,
+    WorkspaceFault? fault,
+  }) {
+    final result = create();
+    if (info != null) result.info = info;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  WorkspaceDeletionInfoReply._();
+
+  factory WorkspaceDeletionInfoReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkspaceDeletionInfoReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, WorkspaceDeletionInfoReply_Outcome>
+      _WorkspaceDeletionInfoReply_OutcomeByTag = {
+    1: WorkspaceDeletionInfoReply_Outcome.info,
+    2: WorkspaceDeletionInfoReply_Outcome.fault,
+    0: WorkspaceDeletionInfoReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkspaceDeletionInfoReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<WorkspaceDeletionInfo>(1, _omitFieldNames ? '' : 'info',
+        subBuilder: WorkspaceDeletionInfo.create)
+    ..aOM<WorkspaceFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: WorkspaceFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkspaceDeletionInfoReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkspaceDeletionInfoReply copyWith(
+          void Function(WorkspaceDeletionInfoReply) updates) =>
+      super.copyWith(
+              (message) => updates(message as WorkspaceDeletionInfoReply))
+          as WorkspaceDeletionInfoReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkspaceDeletionInfoReply create() => WorkspaceDeletionInfoReply._();
+  @$core.override
+  WorkspaceDeletionInfoReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkspaceDeletionInfoReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkspaceDeletionInfoReply>(create);
+  static WorkspaceDeletionInfoReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  WorkspaceDeletionInfoReply_Outcome whichOutcome() =>
+      _WorkspaceDeletionInfoReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  WorkspaceDeletionInfo get info => $_getN(0);
+  @$pb.TagNumber(1)
+  set info(WorkspaceDeletionInfo value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasInfo() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInfo() => $_clearField(1);
+  @$pb.TagNumber(1)
+  WorkspaceDeletionInfo ensureInfo() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WorkspaceFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault(WorkspaceFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkspaceFault ensureFault() => $_ensure(1);
+}
+
+class DeleteWorkspaceRequest extends $pb.GeneratedMessage {
+  factory DeleteWorkspaceRequest({
+    $core.String? workspaceId,
+    $fixnum.Int64? expectedRevision,
+    $core.bool? moveSaves,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (expectedRevision != null) result.expectedRevision = expectedRevision;
+    if (moveSaves != null) result.moveSaves = moveSaves;
+    return result;
+  }
+
+  DeleteWorkspaceRequest._();
+
+  factory DeleteWorkspaceRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteWorkspaceRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteWorkspaceRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'expectedRevision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(3, _omitFieldNames ? '' : 'moveSaves')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteWorkspaceRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteWorkspaceRequest copyWith(
+          void Function(DeleteWorkspaceRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteWorkspaceRequest))
+          as DeleteWorkspaceRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteWorkspaceRequest create() => DeleteWorkspaceRequest._();
+  @$core.override
+  DeleteWorkspaceRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteWorkspaceRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteWorkspaceRequest>(create);
+  static DeleteWorkspaceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get expectedRevision => $_getI64(1);
+  @$pb.TagNumber(2)
+  set expectedRevision($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExpectedRevision() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExpectedRevision() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get moveSaves => $_getBF(2);
+  @$pb.TagNumber(3)
+  set moveSaves($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMoveSaves() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMoveSaves() => $_clearField(3);
+}
+
+enum WorkspaceDeletionReply_Outcome { deleted, fault, notSet }
+
+class WorkspaceDeletionReply extends $pb.GeneratedMessage {
+  factory WorkspaceDeletionReply({
+    $core.bool? deleted,
+    WorkspaceFault? fault,
+  }) {
+    final result = create();
+    if (deleted != null) result.deleted = deleted;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  WorkspaceDeletionReply._();
+
+  factory WorkspaceDeletionReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkspaceDeletionReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, WorkspaceDeletionReply_Outcome>
+      _WorkspaceDeletionReply_OutcomeByTag = {
+    1: WorkspaceDeletionReply_Outcome.deleted,
+    2: WorkspaceDeletionReply_Outcome.fault,
+    0: WorkspaceDeletionReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkspaceDeletionReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOB(1, _omitFieldNames ? '' : 'deleted')
+    ..aOM<WorkspaceFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: WorkspaceFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkspaceDeletionReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkspaceDeletionReply copyWith(
+          void Function(WorkspaceDeletionReply) updates) =>
+      super.copyWith((message) => updates(message as WorkspaceDeletionReply))
+          as WorkspaceDeletionReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkspaceDeletionReply create() => WorkspaceDeletionReply._();
+  @$core.override
+  WorkspaceDeletionReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkspaceDeletionReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkspaceDeletionReply>(create);
+  static WorkspaceDeletionReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  WorkspaceDeletionReply_Outcome whichOutcome() =>
+      _WorkspaceDeletionReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.bool get deleted => $_getBF(0);
+  @$pb.TagNumber(1)
+  set deleted($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDeleted() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeleted() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  WorkspaceFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault(WorkspaceFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkspaceFault ensureFault() => $_ensure(1);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

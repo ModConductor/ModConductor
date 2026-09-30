@@ -106,6 +106,20 @@ class WorkspaceOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$setProfileImage, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.WorkspaceDeletionInfoReply> readWorkspaceDeletion(
+    $0.ReadWorkspaceDeletionRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$readWorkspaceDeletion, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.WorkspaceDeletionReply> deleteWorkspace(
+    $0.DeleteWorkspaceRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$deleteWorkspace, request, options: options);
+  }
+
   // method descriptors
 
   static final _$createWorkspace =
@@ -158,6 +172,16 @@ class WorkspaceOperationsClient extends $grpc.Client {
           '/modconductor.v1.WorkspaceOperations/SetProfileImage',
           ($0.SetProfileImageRequest value) => value.writeToBuffer(),
           $0.ProfileImageUpdateReply.fromBuffer);
+  static final _$readWorkspaceDeletion = $grpc.ClientMethod<
+          $0.ReadWorkspaceDeletionRequest, $0.WorkspaceDeletionInfoReply>(
+      '/modconductor.v1.WorkspaceOperations/ReadWorkspaceDeletion',
+      ($0.ReadWorkspaceDeletionRequest value) => value.writeToBuffer(),
+      $0.WorkspaceDeletionInfoReply.fromBuffer);
+  static final _$deleteWorkspace =
+      $grpc.ClientMethod<$0.DeleteWorkspaceRequest, $0.WorkspaceDeletionReply>(
+          '/modconductor.v1.WorkspaceOperations/DeleteWorkspace',
+          ($0.DeleteWorkspaceRequest value) => value.writeToBuffer(),
+          $0.WorkspaceDeletionReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.WorkspaceOperations')
@@ -250,6 +274,24 @@ abstract class WorkspaceOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.SetProfileImageRequest.fromBuffer(value),
         ($0.ProfileImageUpdateReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ReadWorkspaceDeletionRequest,
+            $0.WorkspaceDeletionInfoReply>(
+        'ReadWorkspaceDeletion',
+        readWorkspaceDeletion_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ReadWorkspaceDeletionRequest.fromBuffer(value),
+        ($0.WorkspaceDeletionInfoReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeleteWorkspaceRequest,
+            $0.WorkspaceDeletionReply>(
+        'DeleteWorkspace',
+        deleteWorkspace_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.DeleteWorkspaceRequest.fromBuffer(value),
+        ($0.WorkspaceDeletionReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.WorkspaceReply> createWorkspace_Pre($grpc.ServiceCall $call,
@@ -336,4 +378,22 @@ abstract class WorkspaceOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ProfileImageUpdateReply> setProfileImage(
       $grpc.ServiceCall call, $0.SetProfileImageRequest request);
+
+  $async.Future<$0.WorkspaceDeletionInfoReply> readWorkspaceDeletion_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ReadWorkspaceDeletionRequest> $request) async {
+    return readWorkspaceDeletion($call, await $request);
+  }
+
+  $async.Future<$0.WorkspaceDeletionInfoReply> readWorkspaceDeletion(
+      $grpc.ServiceCall call, $0.ReadWorkspaceDeletionRequest request);
+
+  $async.Future<$0.WorkspaceDeletionReply> deleteWorkspace_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.DeleteWorkspaceRequest> $request) async {
+    return deleteWorkspace($call, await $request);
+  }
+
+  $async.Future<$0.WorkspaceDeletionReply> deleteWorkspace(
+      $grpc.ServiceCall call, $0.DeleteWorkspaceRequest request);
 }

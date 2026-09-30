@@ -5,6 +5,8 @@ import 'completed_events.dart';
 
 import 'generated/modconductor/v1/workspaces.pbgrpc.dart' as wire;
 
+part 'workspaces_deletion.dart';
+
 class ProfileInfo {
   const ProfileInfo(this.id, this.name);
   final String id;
@@ -79,6 +81,12 @@ class WorkspaceException implements Exception {
 }
 
 abstract interface class WorkspacesClient {
+  Future<WorkspaceDeletionInfo> deletionInfo(String workspace);
+  Future<void> deleteWorkspace(
+    String workspace,
+    int revision, {
+    bool moveSaves = false,
+  });
   Future<WorkspacePage> create(String id, String name, [String? path]);
   Future<WorkspacePage> open(String path);
   Future<WorkspacePage> read(String id, {String? after});
@@ -229,6 +237,17 @@ class GrpcWorkspacesClient
         options: CallOptions(metadata: options.metadata),
       );
   final wire.WorkspaceOperationsClient _wire, _profileWire;
+
+  @override
+  Future<WorkspaceDeletionInfo> deletionInfo(String workspace) =>
+      _deletionInfo(_wire, workspace);
+
+  @override
+  Future<void> deleteWorkspace(
+    String workspace,
+    int revision, {
+    bool moveSaves = false,
+  }) => _deleteWorkspace(_profileWire, workspace, revision, moveSaves);
 
   @override
   Future<String?> readProfileImage(String workspace, String profile) async {

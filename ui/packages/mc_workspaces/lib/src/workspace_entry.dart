@@ -123,6 +123,7 @@ extension _WorkspaceEntry on _WorkspaceBrowserState {
                 leading: const Icon(Icons.folder_outlined),
                 title: Text(workspace.name),
                 subtitle: Text(workspace.path),
+                trailing: _workspaceOptions(context, workspace),
                 enabled: controller.connected,
                 onTap: () => unawaited(controller.open(workspace.path)),
               ),

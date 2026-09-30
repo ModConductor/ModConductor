@@ -22,7 +22,10 @@ type WorkspaceStateStore
                 -> Task<Result<ProfileChange, WorkspaceError>>),
         resumeProfile:
             (Guid * Guid * (ProfileCopyProgress -> unit) * CancellationToken
-                -> Task<Result<ProfileChange, WorkspaceError>>)
+                -> Task<Result<ProfileChange, WorkspaceError>>),
+        deletionInfo: Guid -> Task<Result<WorkspaceDeletionInfo, WorkspaceError>>,
+        deleteWorkspace:
+            Guid * int64 * bool * CancellationToken -> Task<Result<unit, WorkspaceError>>
     ) =
     let gate = obj ()
     let mutable active = 0
@@ -197,6 +200,11 @@ type WorkspaceStateStore
                 true)
 
     interface IWorkspaceState with
+        member _.DeletionInfo(id) = run (fun () -> deletionInfo id)
+
+        member _.Delete(id, expected, moveSaves, token) =
+            run (fun () -> deleteWorkspace (id, expected, moveSaves, token))
+
         member _.Create(id, name, root) =
             create id name root ignore ignore ignore
 

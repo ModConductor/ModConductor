@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 
+part 'controller_workspace_deletion.dart';
 part 'controller_profile_creation.dart';
 part 'controller_profile_edits.dart';
 part 'controller_profile_progress.dart';

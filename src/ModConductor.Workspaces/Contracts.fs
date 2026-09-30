@@ -34,6 +34,10 @@ type WorkspaceList =
     { Workspaces: Workspace list
       NextWorkspace: Guid option }
 
+type WorkspaceDeletionInfo =
+    { HasPrivateSaves: bool
+      SaveDestinations: string list }
+
 [<RequireQualifiedAccess>]
 type WorkspaceError =
     | NotFound
@@ -77,6 +81,8 @@ type IWorkspaceState =
 
     abstract Check: Guid * int64 -> Task<Result<WorkspacePage, WorkspaceError>>
     abstract Recent: Guid option -> Task<WorkspaceList>
+    abstract DeletionInfo: Guid -> Task<Result<WorkspaceDeletionInfo, WorkspaceError>>
+    abstract Delete: Guid * int64 * bool * CancellationToken -> Task<Result<unit, WorkspaceError>>
 
 type IProfileImages =
     abstract Read: Guid * Guid -> Task<Result<string option, WorkspaceError>>

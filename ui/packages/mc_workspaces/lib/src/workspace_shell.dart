@@ -90,6 +90,7 @@ extension _WorkspaceShell on _WorkspaceBrowserState {
             ),
           ),
           if (ready) ...?widget.headerActions?.call(context, workspace),
+          _workspaceOptions(context, workspace),
           if (widget.openFolder != null)
             McAction(
               key: const ValueKey('open-workspace-folder'),
