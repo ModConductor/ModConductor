@@ -161,6 +161,7 @@ module internal Projection =
         game
         local
         =
+        let definition = Skyrim.forGame evidence.DefinitionId
         let bytes = OrderDocument.write value.Facts.Implicit value.View.Order
         File.WriteAllBytes(Path.Combine(local, "Plugins.txt"), bytes)
 
@@ -192,7 +193,7 @@ module internal Projection =
 
         match evidence.Executable with
         | Some executable when executable.Length <= 1024L * 1024L * 1024L ->
-            File.Copy(executable.Path, Path.Combine(game, Skyrim.definition.Executable))
+            File.Copy(executable.Path, Path.Combine(game, definition.Executable))
             Ok()
         | Some _ -> Error(LootError.Unsupported "The checked game executable exceeds 1 GiB.")
         | None -> Error(LootError.Unsupported "The checked game executable is missing.")
@@ -215,34 +216,29 @@ module internal Projection =
             match validateContext sources.Context with
             | Error error -> return Error error
             | Ok evidence ->
-                if evidence.DefinitionId <> GameId.SkyrimSpecialEditionSteam then
-                    return
-                        Error(LootError.Unsupported "LOOT sorting is not available for this game.")
-                else
-                    let root =
-                        Path.Combine(stateDirectory, "loot-staging", Guid.NewGuid().ToString("N"))
+                let root =
+                    Path.Combine(stateDirectory, "loot-staging", Guid.NewGuid().ToString("N"))
 
-                    let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
-                    let data = Directory.CreateDirectory(Path.Combine(game, "Data")).FullName
-                    let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
+                let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
+                let data = Directory.CreateDirectory(Path.Combine(game, "Data")).FullName
+                let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
 
-                    try
-                        let! staged = stagePlugins repository value data token
+                try
+                    let! staged = stagePlugins repository value data token
 
-                        let result =
-                            staged
-                            |> Result.bind (fun () -> writeGameFiles value evidence game local)
+                    let result =
+                        staged |> Result.bind (fun () -> writeGameFiles value evidence game local)
 
-                        match result with
-                        | Ok() -> return Ok(root, game, local)
-                        | Error error ->
-                            deleteStaging root
-                            return Error error
-                    with
-                    | :? OperationCanceledException as error ->
+                    match result with
+                    | Ok() -> return Ok(root, game, local)
+                    | Error error ->
                         deleteStaging root
-                        return raise error
-                    | error ->
-                        deleteStaging root
-                        return Error(LootError.Unsupported error.Message)
+                        return Error error
+                with
+                | :? OperationCanceledException as error ->
+                    deleteStaging root
+                    return raise error
+                | error ->
+                    deleteStaging root
+                    return Error(LootError.Unsupported error.Message)
         }
