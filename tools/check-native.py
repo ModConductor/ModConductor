@@ -16,7 +16,7 @@ SCOPES = (
     'steam-discovery', 'proton-contexts', 'file-plans', 'deployment-recovery',
     'generations', 'deployment-backend', 'components', 'skse', 'skyrim-setup',
     'enb', 'fnis', 'generated-outputs', 'executables', 'game-launch',
-    'profile-data', 'profile-transport', 'artifacts', 'downloads',
+    'profile-data', 'profile-transport', 'thunderstore', 'artifacts', 'downloads',
     'archive-inspection', 'archive-installation', 'mod-maintenance', 'fomod',
     'bain', 'bundles', 'credentials', 'migration',
 )

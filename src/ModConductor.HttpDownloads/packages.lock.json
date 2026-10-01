@@ -19,6 +19,12 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )"
         }
+      },
+      "modconductor.thunderstore": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
       }
     }
   }

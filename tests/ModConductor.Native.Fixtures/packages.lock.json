@@ -260,7 +260,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
-          "ModConductor.ArtifactLibrary": "[1.0.0, )"
+          "ModConductor.ArtifactLibrary": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
         }
       },
       "modconductor.loot": {
@@ -424,6 +425,12 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "modconductor.thunderstore": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
         }
       },
       "modconductor.workspaces": {

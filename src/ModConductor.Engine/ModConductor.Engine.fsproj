@@ -108,6 +108,8 @@
     <Compile Include="CredentialService.fs" />
     <Compile Include="OAuthHandoff.fs" />
     <Compile Include="DesktopService.fs" />
+    <Compile Include="ThunderstoreWire.fs" />
+    <Compile Include="ThunderstoreService.fs" />
     <Compile Include="NexusWire.fs" />
     <Compile Include="NexusService.fs" />
     <Compile Include="NexusMetadataWire.fs" />

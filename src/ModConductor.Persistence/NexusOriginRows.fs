@@ -24,7 +24,8 @@ module internal NexusOriginRows =
                       Version = (if reader.IsDBNull 1 then "" else reader.GetString 1)
                       Manual = false }
                 )
-            | DownloadSource.Url _ -> None
+            | DownloadSource.Url _
+            | DownloadSource.Thunderstore _ -> None
         else
             None
 

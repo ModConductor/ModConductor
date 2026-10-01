@@ -23,6 +23,13 @@ extension _WorkspaceShell on _WorkspaceBrowserState {
     final current = workspace.selectedProfile;
     final ready = current == null || widget.workbenchReady;
     final mode = switch (_mode) {
+      _WorkspaceMode.discover when widget.discoveryBuilder == null =>
+        _WorkspaceMode.profiles,
+      final unavailable
+          when !ready &&
+              unavailable != _WorkspaceMode.discover &&
+              unavailable != _WorkspaceMode.help =>
+        _WorkspaceMode.profiles,
       _WorkspaceMode.mods when widget.modLibraryBuilder == null =>
         _WorkspaceMode.profiles,
       _WorkspaceMode.game when widget.gameContextBuilder == null =>

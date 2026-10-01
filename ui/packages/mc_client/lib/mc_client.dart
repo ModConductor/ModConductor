@@ -52,3 +52,5 @@ export 'src/skse_client.dart';
 export 'src/enb_client.dart';
 export 'src/fnis_client.dart';
 export 'src/skyrim_setup_client.dart';
+
+export 'src/thunderstore_client.dart';

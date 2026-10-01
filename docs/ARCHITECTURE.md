@@ -11,6 +11,7 @@
 | `ModConductor.SteamDiscovery` | Read-only Steam library, app and compatibility-tool metadata |
 | `ModConductor.ProtonContexts` | Chosen Proton installation, prefix and Windows user-path checks |
 | `ModConductor.ArchiveInspection` | Read-only archive metadata and scoped lazy entry reads |
+| `ModConductor.Thunderstore` | Paged public package metadata and exact dependency requirements |
 | `ModConductor.HttpDownloads` | Engine-owned HTTP workers, range validation, retries, and integrity checks |
 | `ModConductor.ArtifactLibrary` | Archive identity, availability, and manual installed-version provenance |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |

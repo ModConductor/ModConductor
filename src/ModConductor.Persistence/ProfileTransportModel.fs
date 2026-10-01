@@ -10,6 +10,11 @@ type internal PortableNexusSource =
       FileId: int64
       FileVersion: string }
 
+[<RequireQualifiedAccess>]
+type internal PortableSource =
+    | Nexus of PortableNexusSource
+    | Thunderstore of ModConductor.Thunderstore.VersionReference
+
 type internal PortableArchiveBase =
     { ArchiveName: string
       ArchiveSha256: string
@@ -33,7 +38,7 @@ type internal PortableMod =
       Notes: string
       Comment: string
       Categories: string list
-      Source: PortableNexusSource option
+      Source: PortableSource option
       Base: PortableArchiveBase option
       Priority: int
       Enabled: bool option

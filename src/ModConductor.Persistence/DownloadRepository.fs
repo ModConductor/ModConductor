@@ -82,6 +82,13 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
         | :? string as value -> Some(Guid.Parse value)
         | _ -> None
 
+    let findThunderstore tx workspace (reference: ThunderstoreFileReference) =
+        use query = Sqlite.command connection tx
+                        "SELECT a.id FROM artifacts a JOIN artifact_downloads d ON d.artifact_id=a.id WHERE a.workspace_id=$workspace AND a.phase IN (0,1,2) AND substr(d.sources,1,length($prefix))=$prefix ORDER BY CASE WHEN a.phase=2 THEN 0 ELSE 1 END,a.id LIMIT 1"
+                        [ "$workspace", box (string workspace)
+                          "$prefix", box (ModConductor.Thunderstore.VersionReference.encode reference.Reference + "/") ]
+        match query.ExecuteScalar() with :? string as id -> Some(Guid.Parse id) | _ -> None
+
     let validRequest (request: DownloadRequest) =
         request.Id <> Guid.Empty
         && request.WorkspaceId <> Guid.Empty
@@ -93,7 +100,8 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
         && (request.Sources.Length = 1
             || request.Sources
                |> List.forall (function
-                   | DownloadSource.Nexus _ -> false
+                   | DownloadSource.Nexus _
+                   | DownloadSource.Thunderstore _ -> false
                    | DownloadSource.Url _ -> true))
         && (request.ExpectedLength |> Option.forall (fun n -> n >= 0L))
         && (request.ExpectedSha256
@@ -167,6 +175,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
             let matching =
                 match request.Sources with
                 | [ DownloadSource.Nexus reference ] -> findNexus tx request.WorkspaceId reference
+                | [ DownloadSource.Thunderstore reference ] -> findThunderstore tx request.WorkspaceId reference
                 | _ -> None
 
             let selected = defaultArg matching request.Id
@@ -309,6 +318,10 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                     ArtifactRows.find connection null workspace id
                     |> Option.map (fun row -> row.Artifact)))
 
+        member _.FindThunderstore(workspace, reference) =
+            db (fun () -> findThunderstore null workspace reference
+                          |> Option.bind (fun id -> ArtifactRows.find connection null workspace id |> Option.map _.Artifact))
+
         member _.AccountDownloads subject =
             db (fun () ->
                 use query =
@@ -334,7 +347,8 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                             work.Request.Sources
                             |> List.exists (function
                                 | DownloadSource.Nexus value -> value.Account = subject
-                                | DownloadSource.Url _ -> false)
+                                | DownloadSource.Url _
+                                | DownloadSource.Thunderstore _ -> false)
                         then
                             Some(work.Request.WorkspaceId, id)
                         else

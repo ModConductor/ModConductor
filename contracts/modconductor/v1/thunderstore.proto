@@ -1,0 +1,36 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service Thunderstore {
+  rpc SearchThunderstore(ThunderstoreSearchRequest) returns (ThunderstoreSearchReply);
+  rpc ReadThunderstorePackage(ThunderstorePackageRequest) returns (ThunderstorePackageReply);
+  rpc AcquireThunderstorePackage(ThunderstoreAcquireRequest) returns (stream ThunderstoreAcquisition);
+  rpc OpenThunderstorePage(ThunderstorePackageReference) returns (ThunderstoreOpened);
+}
+message ThunderstorePackageReference { string community = 1; string namespace = 2; string name = 3; }
+message ThunderstoreVersionReference { ThunderstorePackageReference package = 1; string version = 2; }
+message ThunderstoreFailure { string message = 1; optional int64 retry_at_unix_ms = 2; }
+message ThunderstoreInstalled { ThunderstoreVersionReference reference = 1; string mod_id = 2; }
+message ThunderstorePackagePreview {
+  ThunderstorePackageReference package = 1; string description = 2; optional string icon_url = 3;
+  bool deprecated = 4; repeated ThunderstoreInstalled installed = 5;
+}
+message ThunderstoreSearchRequest { string workspace_id = 1; string community = 2; string query = 3; string ordering = 4; int32 page = 5; }
+message ThunderstorePackages { repeated ThunderstorePackagePreview entries = 1; int32 count = 2; optional int32 next_page = 3; }
+message ThunderstoreSearchReply { oneof outcome { ThunderstorePackages packages = 1; ThunderstoreFailure failure = 2; } }
+message ThunderstoreDependency { ThunderstoreVersionReference reference = 1; bool available = 2; repeated ThunderstoreInstalled installed = 3; optional string icon_url = 4; }
+message ThunderstorePackageRequest { string workspace_id = 1; ThunderstorePackageReference package = 2; optional string version = 3; }
+message ThunderstorePackageDetails {
+  ThunderstoreVersionReference reference = 1; string latest_version = 2; string description = 3;
+  optional string icon_url = 4; bool deprecated = 5; repeated string categories = 6;
+  uint64 bytes = 7; repeated string versions = 8; repeated ThunderstoreDependency dependencies = 9;
+  repeated ThunderstoreInstalled installed = 10;
+}
+message ThunderstorePackageReply { oneof outcome { ThunderstorePackageDetails package = 1; ThunderstoreFailure failure = 2; } }
+message ThunderstoreAcquireRequest { string workspace_id = 1; ThunderstoreVersionReference reference = 2; }
+message ThunderstoreAcquisition {
+  ThunderstoreVersionReference reference = 1; string stage = 2; uint64 bytes = 3; optional uint64 total = 4;
+  int32 completed = 5; int32 packages = 6; optional string mod_id = 7; optional ThunderstoreFailure failure = 8;
+}
+message ThunderstoreOpened {}

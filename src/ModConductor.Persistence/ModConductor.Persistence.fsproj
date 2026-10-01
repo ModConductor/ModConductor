@@ -114,9 +114,14 @@
     <Compile Include="BainDrafts.fs" />
     <Compile Include="BundleRows.fs" />
     <Compile Include="BundleSources.fs" />
+    <Compile Include="ThunderstoreInventory.fs" />
     <Compile Include="InstallationRows.fs" />
     <Compile Include="InstallationPayloads.fs" />
     <Compile Include="InstallationStore.fs" />
+    <Compile Include="ThunderstoreTransfers.fs" />
+    <Compile Include="ThunderstoreInstallation.fs" />
+    <Compile Include="ThunderstoreAcquisitionWork.fs" />
+    <Compile Include="ThunderstoreAcquisition.fs" />
     <Compile Include="ProfileTransportImportMod.fs" />
     <Compile Include="ProfileTransportStore.fs" />
     <Compile Include="BundleStore.fs" />

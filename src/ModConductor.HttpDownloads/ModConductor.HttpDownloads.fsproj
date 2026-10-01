@@ -5,6 +5,7 @@
     <Compile Include="HttpTransfer.fs" />
     <Compile Include="DownloadSession.fs" />
     <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
+    <ProjectReference Include="../ModConductor.Thunderstore/ModConductor.Thunderstore.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+import 'thunderstore_client.dart';
 import 'diagnostics_client.dart';
 import 'plugin_order_client.dart';
 import 'loot_client.dart';
@@ -100,6 +101,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.desktop : null;
   NexusMetadataClient? get nexusMetadata =>
       _state is EngineConnected ? _session?.nexusMetadata : null;
+  ThunderstoreClient? get thunderstore =>
+      _state is EngineConnected ? _session?.thunderstore : null;
   NexusClient? get nexus => _state is EngineConnected ? _session?.nexus : null;
   CredentialsClient? get credentials =>
       _state is EngineConnected ? _session?.credentials : null;

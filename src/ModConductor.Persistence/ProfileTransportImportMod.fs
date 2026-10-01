@@ -23,7 +23,7 @@ type internal ProfileTransportImportMod
           Notes = value.Notes
           Comment = value.Comment
           Version = value.Version
-          Source = ""
+          Source = match value.Source with Some(PortableSource.Thunderstore source) -> ModConductor.Thunderstore.VersionReference.encode source | _ -> ""
           Categories =
             value.Categories
             |> List.map (fun label ->
@@ -382,7 +382,7 @@ type internal ProfileTransportImportMod
                                       ) ]
 
                             match value.Source with
-                            | Some source ->
+                            | Some(PortableSource.Nexus source) ->
                                 NexusOriginRows.save
                                     database.Connection
                                     transaction
@@ -392,7 +392,8 @@ type internal ProfileTransportImportMod
                                     { Id = source.FileId
                                       Version = source.FileVersion
                                       Manual = true }
-                            | None -> ()
+                            | None
+                            | Some(PortableSource.Thunderstore _) -> ()
 
                             transaction.Commit())
 

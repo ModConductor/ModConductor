@@ -303,7 +303,7 @@ type ProfileTransportWriter
                                           Comment = metadata.Comment
                                           Categories =
                                             metadata.Categories |> List.map _.Label |> List.sort
-                                          Source = modEntry.Nexus
+                                          Source = modEntry.Source
                                           Base = baseMap
                                           Priority = portableMods.Count
                                           Enabled = modEntry.Selection.Enabled

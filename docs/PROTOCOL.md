@@ -8,6 +8,7 @@ instruction. Preserve field identities and reserve removed fields.
 
 | Schema under `contracts/modconductor/v1/` | Purpose |
 | --- | --- |
+| `thunderstore.proto` | Workspace package search, exact details, direct acquisition stream and browser handoff |
 | `bootstrap.proto` | `EngineReady` descriptor on the private stdout pipe |
 | `operations.proto` | Runtime checks, cancellation, replay, and change feeds |
 | `workspaces.proto` | Workspace roots and profile lifecycle |

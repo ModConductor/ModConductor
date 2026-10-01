@@ -1912,11 +1912,13 @@ module FnisFixtures =
             writer
             "transportKeepsExactFnisProviderAttribution"
             (provider
-             |> Option.exists (fun source ->
-                 source.Game = "skyrimspecialedition"
-                 && source.ModId = FnisCatalogue.NexusModId
-                 && source.FileId = 751L
-                 && source.FileVersion = FnisCatalogue.SupportedVersion))
+             |> Option.exists (function
+                 | PortableSource.Nexus source ->
+                     source.Game = "skyrimspecialedition"
+                     && source.ModId = FnisCatalogue.NexusModId
+                     && source.FileId = 751L
+                     && source.FileVersion = FnisCatalogue.SupportedVersion
+                 | _ -> false))
 
         let sourceRequirements = store.ProfileTransport.Inspect transported
 

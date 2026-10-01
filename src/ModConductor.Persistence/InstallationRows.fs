@@ -354,11 +354,12 @@ module internal InstallationRows =
                     Sqlite.execute
                         connection
                         transaction
-                        "INSERT INTO mods(id,workspace_id,kind,name,notes,comment,version_text,source_text,revision,source_path,source_identity,current_version,status) VALUES($mod,$workspace,1,$name,'','',$label,'',0,NULL,NULL,NULL,5)"
+                        "INSERT INTO mods(id,workspace_id,kind,name,notes,comment,version_text,source_text,revision,source_path,source_identity,current_version,status) VALUES($mod,$workspace,1,$name,'','',$label,$source,0,NULL,NULL,NULL,5)"
                         [ "$mod", box (string modId)
                           "$workspace", box (string plan.Artifact.WorkspaceId)
                           "$name", box plan.Name
-                          "$label", box plan.Version ]
+                          "$label", box plan.Version
+                          "$source", box (ThunderstoreSource.metadata connection transaction plan.Artifact.Id) ]
 
                     Ok 0L
                 | Some target ->

@@ -21,7 +21,7 @@ type internal ProfileModSnapshot =
       Selection: OrderedMod
       Version: ModVersion option
       Base: ProfileArchiveBase option
-      Nexus: PortableNexusSource option
+      Source: PortableSource option
       Hidden: string list list }
 
 type internal ProfileSnapshot =
@@ -225,10 +225,10 @@ module internal ProfileTransportSnapshot =
                           Selection = selection
                           Version = version
                           Base = baseVersion
-                          Nexus =
-                            version
-                            |> Option.bind (fun value ->
-                                nexus connection transaction value.Id baseVersion)
+                          Source =
+                            match ModConductor.Thunderstore.VersionReference.tryDecode row.Entry.Metadata.Source with
+                            | Some source -> Some(PortableSource.Thunderstore source)
+                            | None -> version |> Option.bind (fun value -> nexus connection transaction value.Id baseVersion) |> Option.map PortableSource.Nexus
                           Hidden =
                             version
                             |> Option.map (fun value ->
@@ -256,7 +256,7 @@ module internal ProfileTransportSnapshot =
                               Enabled = Some true }
                           Version = Some version
                           Base = None
-                          Nexus = None
+                          Source = None
                           Hidden = hidden connection transaction workspace id version.Id })
                 | _ -> None
 

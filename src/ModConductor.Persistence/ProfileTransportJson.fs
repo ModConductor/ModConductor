@@ -100,13 +100,22 @@ module internal ProfileTransportJson =
 
             match value.Source with
             | None -> writer.WriteNullValue()
-            | Some source ->
+            | Some(PortableSource.Nexus source) ->
                 writer.WriteStartObject()
                 writer.WriteString("provider", "nexus")
                 writer.WriteString("game", source.Game)
                 writer.WriteNumber("mod", source.ModId)
                 writer.WriteNumber("file", source.FileId)
                 writer.WriteString("fileVersion", source.FileVersion)
+                writer.WriteEndObject()
+
+            | Some(PortableSource.Thunderstore source) ->
+                writer.WriteStartObject()
+                writer.WriteString("provider", "thunderstore")
+                writer.WriteString("community", source.Package.Community)
+                writer.WriteString("namespace", source.Package.Namespace)
+                writer.WriteString("name", source.Package.Name)
+                writer.WriteString("version", source.Version)
                 writer.WriteEndObject()
 
             writer.WritePropertyName "base"
@@ -208,14 +217,16 @@ module internal ProfileTransportJson =
     let private readSource (value: JsonElement) =
         if value.ValueKind = JsonValueKind.Null then
             None
-        elif text value "provider" <> "nexus" then
-            raise (InvalidDataException "The profile has an unsupported source provider.")
         else
-            Some
-                { Game = text value "game"
-                  ModId = number value "mod"
-                  FileId = number value "file"
-                  FileVersion = text value "fileVersion" }
+            match text value "provider" with
+            | "nexus" -> Some(PortableSource.Nexus { Game = text value "game"; ModId = number value "mod"; FileId = number value "file"; FileVersion = text value "fileVersion" })
+            | "thunderstore" ->
+                let source: ModConductor.Thunderstore.VersionReference =
+                    { Package = { Community = text value "community"; Namespace = text value "namespace"; Name = text value "name" }; Version = text value "version" }
+                if not (ModConductor.Thunderstore.VersionReference.valid source) then
+                    raise (InvalidDataException "The profile has an invalid Thunderstore source.")
+                Some(PortableSource.Thunderstore source)
+            | _ -> raise (InvalidDataException "The profile has an unsupported source provider.")
 
     let private readBase (value: JsonElement) =
         if value.ValueKind = JsonValueKind.Null then

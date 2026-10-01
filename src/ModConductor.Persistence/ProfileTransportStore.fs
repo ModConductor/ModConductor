@@ -120,10 +120,10 @@ type ProfileTransportStore
                       ArchiveName = baseSource.ArchiveName
                       Sha256 = baseSource.ArchiveSha256
                       Length = baseSource.ArchiveLength
-                      ProviderGame = value.Source |> Option.map _.Game
-                      ProviderMod = value.Source |> Option.map _.ModId
-                      ProviderFile = value.Source |> Option.map _.FileId
-                      ProviderVersion = value.Source |> Option.map _.FileVersion }))
+                      ProviderGame = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.Game | PortableSource.Thunderstore _ -> None)
+                      ProviderMod = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.ModId | PortableSource.Thunderstore _ -> None)
+                      ProviderFile = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.FileId | PortableSource.Thunderstore _ -> None)
+                      ProviderVersion = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.FileVersion | PortableSource.Thunderstore value -> Some value.Version) }))
             |> List.choose id }
 
     let validate (profile: PortableProfile) =

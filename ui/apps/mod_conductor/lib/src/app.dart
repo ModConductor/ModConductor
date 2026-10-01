@@ -27,6 +27,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
+import 'package:mc_thunderstore/mc_thunderstore.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 
 part 'shell.dart';
@@ -153,6 +154,7 @@ class ModConductorApp extends StatefulWidget {
     this.bain,
     this.credentials,
     this.nexus,
+    this.thunderstore,
     this.nexusMetadata,
     this.linkSetup,
     this.bundles,
@@ -201,6 +203,7 @@ class ModConductorApp extends StatefulWidget {
   final BainClient? bain;
   final CredentialsClient? credentials;
   final NexusClient? nexus;
+  final ThunderstoreClient? thunderstore;
   final NexusMetadataClient? nexusMetadata;
   final LinkSetupClient? linkSetup;
   final BundlesClient? bundles;

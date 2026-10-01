@@ -13,7 +13,7 @@ class McInspector extends StatelessWidget {
     this.footer,
   });
   final String title;
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
   final List<Widget> children;
   final Widget? footer;
   @override

@@ -47,6 +47,8 @@ type DownloadSession
             match work.Request.Sources[work.SourceIndex] with
             | DownloadSource.Url source ->
                 do! HttpTransfer.run client None (Uri source) policy repository work token
+            | DownloadSource.Thunderstore source ->
+                do! HttpTransfer.run client None (Uri source.Url) policy repository work token
             | DownloadSource.Nexus reference ->
                 match nexusLinks with
                 | None ->
@@ -207,6 +209,9 @@ type DownloadSession
 
     member _.FindNexus(workspace, reference) =
         repository.FindNexus(workspace, reference)
+
+    member _.FindThunderstore(workspace, reference) =
+        repository.FindThunderstore(workspace, reference)
 
     member _.WaitForChange(workspace, revisions, token) =
         repository.WaitForChange(workspace, revisions, token)

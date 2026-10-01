@@ -279,4 +279,36 @@ void main() {
       const ValueKey((profileId: 'a')),
     );
   });
+  testWidgets(
+    'Discover remains reachable before the selected profile has a game',
+    (tester) async {
+      final controller = WorkspaceController()..attach(ProfilesClient());
+      addTearDown(controller.dispose);
+      await controller.open('/workspace');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.dark),
+          home: Scaffold(
+            body: WorkspaceBrowser(
+              controller: controller,
+              workbenchReady: false,
+              profileSetupBuilder: (_, workspace, profile) =>
+                  const Text('Pending game setup'),
+              discoveryBuilder: (_, workspace, visible) =>
+                  Text('Discover ${workspace.id} $visible'),
+              headerActions: (_, workspace) => [
+                const Text('Game launch action'),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workspace-discover-tab')));
+      await tester.pumpAndSettle();
+      expect(find.text('Discover workspace true'), findsOneWidget);
+      expect(find.text('Pending game setup'), findsNothing);
+      expect(find.text('Game launch action'), findsNothing);
+    },
+  );
 }

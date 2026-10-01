@@ -58,7 +58,7 @@ typedef WorkspaceHelpBuilder = Widget Function(
   WorkspaceHelpActions,
 );
 
-enum _WorkspaceMode { profiles, mods, game, tools, archives, help }
+enum _WorkspaceMode { profiles, discover, mods, game, tools, archives, help }
 
 enum _ProfileAction { export, clone, rename, delete }
 
@@ -68,6 +68,7 @@ class WorkspaceBrowser extends StatefulWidget {
     required this.controller,
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.modLibraryBuilder,
+    this.discoveryBuilder,
     this.gameContextBuilder,
     this.executableBuilder,
     this.artifactBuilder,
@@ -90,6 +91,8 @@ class WorkspaceBrowser extends StatefulWidget {
   final DirectoryChooser chooseDirectory;
   final Widget Function(BuildContext, WorkspaceInfo, bool visible)?
   modLibraryBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo, bool visible)?
+  discoveryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?

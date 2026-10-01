@@ -200,3 +200,12 @@ The following surfaces keep their existing components:
   those controls without changing the interaction.
 - The sign-in storage report stays as one selectable report. Its line structure
   comes from the credential provider and must stay intact.
+
+## Thunderstore discovery
+
+`mc_thunderstore` owns the workspace **Discover** view. It reuses `McChoice`,
+`McCollection`, `McPortraitArtwork`, `McInspector`, `McAction`, `McIconAction`,
+`McActionFeedback` and `McStatus`. Package state belongs to its controller;
+stream events update progress and completion refreshes installed metadata.
+The workspace exposes Discover before game setup. Existing Nexus and profile
+gates stay in their owning views. See [Thunderstore](THUNDERSTORE.md).

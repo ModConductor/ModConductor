@@ -173,12 +173,15 @@ type InstallationStore
             destination: BundleDestination option,
             archiveName: string option,
             modName: string option,
+            requireVacant: bool,
             token
         ) =
         task {
             let admitted =
                 lock gate (fun () ->
-                    if closing || preparing.Contains reference.WorkspaceId then
+                    if requireVacant && drafts.ContainsKey reference.WorkspaceId then
+                        Error "Close the current archive installation before adding a package."
+                    elif closing || preparing.Contains reference.WorkspaceId then
                         Error "Archive preparation is busy. Try again shortly."
                     elif drafts.Count >= 16 && not (drafts.ContainsKey reference.WorkspaceId) then
                         Error "Close an archive installation preview before opening another."
@@ -277,7 +280,10 @@ type InstallationStore
         }
 
     member this.Prepare(reference, token) =
-        this.PrepareInput(reference, None, None, None, None, token)
+        this.PrepareInput(reference, None, None, None, None, false, token)
+
+    member this.PreparePackage(reference, token) =
+        this.PrepareInput(reference, None, None, None, None, true, token)
 
     member internal this.PrepareNested
         (reference, source, destination, archiveName, modName, token)
@@ -288,6 +294,7 @@ type InstallationStore
             Some destination,
             Some archiveName,
             Some modName,
+            false,
             token
         )
 

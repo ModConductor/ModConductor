@@ -316,6 +316,7 @@ type OperationStore
             token
             checkpoint
 
+    member _.ThunderstoreInventory = ThunderstoreInventory(database)
     member _.ModLibrary = modLibrary
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
     member _.ArchiveInspection = archiveInspection

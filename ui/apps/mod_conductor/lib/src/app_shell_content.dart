@@ -46,6 +46,18 @@ mixin _ShellContent
                 onImageChanged: _workspaces.imageChanged,
                 gameImage: _hasSkyrimGame ? _skyrimProfileImage : null,
               ),
+    discoveryBuilder: widget.thunderstore == null
+        ? null
+        : (context, workspace, visible) => ThunderstoreBrowser(
+            key: ValueKey('thunderstore-${workspace.id}'),
+            client: widget.thunderstore!,
+            workspaceId: workspace.id,
+            visible: visible,
+            onInstalled: () => _installationCommitted(
+              workspace.id,
+              workspace.selectedProfile?.id,
+            ),
+          ),
     executableBuilder: !_supportsSkyrim || widget.executables == null
         ? null
         : (context, workspace) => ExecutablesBrowser(
@@ -106,7 +118,7 @@ mixin _ShellContent
             onOpenWorkspace: actions.openWorkspace,
             onCreateProfile: actions.createProfile,
           ),
-    helpBuilder: !_supportsSkyrim || widget.diagnostics == null
+    helpBuilder: widget.diagnostics == null
         ? null
         : (context, workspace, actions) => HelpBrowser(
             controller: _diagnostics,

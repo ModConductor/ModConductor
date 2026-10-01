@@ -14,10 +14,14 @@ type NexusFileReference =
       Keyed: bool
       Version: string option }
 
+type ThunderstoreFileReference =
+    { Reference: ModConductor.Thunderstore.VersionReference; Url: string }
+
 [<RequireQualifiedAccess>]
 type DownloadSource =
     | Url of string
     | Nexus of NexusFileReference
+    | Thunderstore of ThunderstoreFileReference
 
 type PrivateDownload = { Url: Uri; Expires: DateTimeOffset }
 
@@ -70,6 +74,7 @@ type IDownloadTarget =
 
 type IDownloadRepository =
     abstract FindNexus: Guid * NexusFileReference -> Task<Artifact option>
+    abstract FindThunderstore: Guid * ThunderstoreFileReference -> Task<Artifact option>
     abstract AccountDownloads: string -> Task<(Guid * Guid) list>
     abstract Read: Guid * Guid -> Task<Result<Artifact, ArtifactError>>
     abstract WaitForChange: Guid * (Guid * int64) list * CancellationToken -> Task
@@ -102,6 +107,8 @@ module DownloadSource =
     let encode =
         function
         | DownloadSource.Url value -> value
+        | DownloadSource.Thunderstore value ->
+            ModConductor.Thunderstore.VersionReference.encode value.Reference + "/" + Uri.EscapeDataString value.Url
         | DownloadSource.Nexus value ->
             String.concat
                 "/"
@@ -112,7 +119,13 @@ module DownloadSource =
                   string value.FileId ]
 
     let decode (source: string) =
-        if
+        if source.StartsWith("thunderstore:/", StringComparison.Ordinal) then
+            let parts = source.Split('/')
+            let identity = parts |> Array.take 5 |> String.concat "/"
+            DownloadSource.Thunderstore
+                { Reference = ModConductor.Thunderstore.VersionReference.tryDecode identity |> Option.defaultWith (fun () -> invalidOp "The saved Thunderstore reference is invalid.")
+                  Url = Uri.UnescapeDataString parts[5] }
+        elif
             source.StartsWith("nexus:/", StringComparison.Ordinal)
             || source.StartsWith("nexus-link:/", StringComparison.Ordinal)
         then
@@ -134,13 +147,16 @@ module DownloadSource =
     let display =
         function
         | DownloadSource.Nexus _ -> "Nexus Mods"
+        | DownloadSource.Thunderstore _ -> "Thunderstore"
         | DownloadSource.Url source ->
             match Uri.TryCreate(source, UriKind.Absolute) with
             | true, uri -> uri.GetLeftPart(UriPartial.Path)
             | _ -> "Download source"
 
-    let valid =
+    let rec valid =
         function
+        | DownloadSource.Thunderstore value ->
+            ModConductor.Thunderstore.VersionReference.valid value.Reference && valid (DownloadSource.Url value.Url)
         | DownloadSource.Nexus value ->
             not (String.IsNullOrWhiteSpace value.Account)
             && value.Account.Length <= 256

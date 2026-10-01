@@ -42,6 +42,8 @@ dependencies:
 
   mc_file_plans:
     path: ../../packages/mc_file_plans
+  mc_thunderstore:
+    path: ../../packages/mc_thunderstore
   mc_mod_library:
     path: ../../packages/mc_mod_library
   mc_workspaces:

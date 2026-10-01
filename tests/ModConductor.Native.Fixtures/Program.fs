@@ -23,6 +23,8 @@ let private writeJson includeNativeAot observe =
 
 let private run (args: string array) =
     match args with
+    | [| "--thunderstore"; area |] -> writeJson true (fun writer -> ThunderstoreFixtures.observe writer area)
+    | [| "--thunderstore-public"; area |] -> writeJson true (fun writer -> ThunderstoreFixtures.publicPackages writer area)
     | [| "--standalone-wine-runtime"; area; wine; prefix; tool |] ->
         writeJson true (fun writer ->
             NonSteamWineRuntimeFixtures.observe writer area wine prefix tool)

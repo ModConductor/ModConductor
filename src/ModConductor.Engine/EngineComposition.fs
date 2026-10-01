@@ -228,6 +228,11 @@ let internal registerOperationServices
 
     services.AddSingleton<ModConductor.Engine.InstallationService>() |> ignore
 
+    services.AddSingleton<ModConductor.Thunderstore.IPackageReader>(fun _ -> new ModConductor.Thunderstore.PackageReader() :> ModConductor.Thunderstore.IPackageReader) |> ignore
+    services.AddSingleton<ModConductor.Persistence.ThunderstoreInventory>(store.ThunderstoreInventory) |> ignore
+    services.AddSingleton<ModConductor.Persistence.ThunderstoreAcquisition>() |> ignore
+    services.AddSingleton<ModConductor.Engine.ThunderstoreService>() |> ignore
+
     services.AddSingleton<ModConductor.HttpDownloads.DownloadSession>(store.Downloads)
     |> ignore
 

@@ -7,6 +7,7 @@ import 'link_setup_client.dart';
 import 'nxm_client.dart';
 import 'desktop_client.dart';
 import 'nexus_client.dart';
+import 'thunderstore_client.dart';
 import 'nexus_metadata_client.dart';
 import 'credential_client.dart';
 import 'fomod_client.dart';
@@ -67,6 +68,8 @@ class EngineSession {
   DesktopClient get desktop => _desktop!;
   NexusMetadataClient? _nexusMetadata;
   NexusMetadataClient get nexusMetadata => _nexusMetadata!;
+  ThunderstoreClient? _thunderstore;
+  ThunderstoreClient get thunderstore => _thunderstore!;
   NexusClient? _nexus;
   NexusClient get nexus => _nexus!;
   CredentialsClient? _credentials;
@@ -211,6 +214,10 @@ class EngineSession {
     _nxm = NxmClient(channel, options);
     _linkSetup = LinkSetupClient(channel, options);
     _nexusMetadata = GrpcNexusMetadataClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
+    _thunderstore = GrpcThunderstoreClient(
       channel,
       CallOptions(metadata: options.metadata),
     );
