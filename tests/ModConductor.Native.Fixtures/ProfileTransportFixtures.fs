@@ -43,6 +43,10 @@ module ProfileTransportFixtures =
             let bytes = Encoding.UTF8.GetBytes content
             memberFile.Write bytes
 
+        for name, basis, _ in ProfileDeltaFixtures.samples () do
+            use memberFile = zip.CreateEntry("Variant A/" + name).Open()
+            memberFile.Write basis
+
     let private gameProfile (store: OperationStore) state area workspace game proton name =
         let workspaces = store.Workspaces :> IWorkspaceState
         let opened = workspaces.Read(workspace, None) |> wait |> result
@@ -141,6 +145,10 @@ module ProfileTransportFixtures =
         let stage = Directory.CreateDirectory(Path.Combine(area, "changed")).FullName
         File.WriteAllText(Path.Combine(stage, "edited.ini"), "first=one\nsecond=changed\n")
         File.WriteAllText(Path.Combine(stage, "added.ini"), "new=yes\n")
+
+        for name, _, edited in ProfileDeltaFixtures.samples () do
+            File.WriteAllBytes(Path.Combine(stage, name), edited)
+
         let selected = StorageWorker.select stage
 
         let identity =
@@ -627,10 +635,31 @@ module ProfileTransportFixtures =
         )
 
         writer.WriteBoolean(
+            "binaryAndEmptyPatches",
+            check
+                "binary and empty patches"
+                ([ [ "binary.bin" ]; [ "emptied.bin" ]; [ "filled.bin" ] ]
+                 |> List.forall (fun path ->
+                     initial.Mods.Head.Files
+                     |> List.exists (fun file ->
+                         file.Path = path
+                         && match file.Content with
+                            | PortableContent.Patch _ -> true
+                            | _ -> false)))
+        )
+
+        writer.WriteBoolean(
+            "cancelledExportDiscardsStaging",
+            check
+                "cancelled export staging"
+                (ProfileDeltaFixtures.cancelledExport store workspace original area)
+        )
+
+        writer.WriteBoolean(
             "effectiveFiles",
             check
                 "effective files"
-                (files store original = files store imported && (files store imported).Count = 3)
+                (files store original = files store imported && (files store imported).Count = 6)
         )
 
         writer.WriteBoolean(
@@ -665,11 +694,11 @@ module ProfileTransportFixtures =
             check
                 "preview inventory"
                 (exportPreview.Mods = 2
-                 && exportPreview.ModFiles = 3
+                 && exportPreview.ModFiles = 6
                  && exportPreview.SaveFiles = 1
                  && exportPreview.SaveBytes = int64 "private save".Length
                  && importPreview.Mods = 2
-                 && importPreview.ModFiles = 3
+                 && importPreview.ModFiles = 6
                  && importPreview.SaveFiles = 0)
         )
 

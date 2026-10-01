@@ -8,7 +8,7 @@ open ModConductor.Platform
 
 module internal ProfileTransportJson =
     [<Literal>]
-    let Encoding = "xdelta3-vcdiff-3.2.0-no-app-header"
+    let Encoding = "fastrsync-2.5.0"
 
     let private field (value: JsonElement) (name: string) = value.GetProperty name
     let private text (value: JsonElement) (name: string) = (field value name).GetString()

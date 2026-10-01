@@ -50,16 +50,19 @@ libloadorder 18.8.2 declare `GPL-3.0` in their package manifests, and
 option-ext 0.2.0 declares `MPL-2.0`; that does not change the project grant
 for original MC-authored material.
 
-## Bundled xdelta3 CLI
+## Profile patches
 
-The pinned [xdelta3 3.2.0 binary and source](../third_party/xdelta3/README.md)
-use Apache-2.0 for xdelta3 itself. Its release workflow statically links
-[XZ Utils liblzma v5.8.3](https://github.com/tukaani-project/xz/blob/v5.8.3/COPYING) under 0BSD and
-[BLAKE3 1.8.5](https://github.com/BLAKE3-team/BLAKE3/blob/1.8.5/LICENSE_CC0) under its CC0-1.0 alternative.
-These terms do not require copied license texts. Both platform packages retain
-xdelta3's [Apache-2.0 license](../third_party/xdelta3/LICENSE). The pinned upstream
-sources and build workflow are linked in the xdelta3 inventory; they are not
-MC-authored material.
+| Component | Version | Source | Notice |
+| --- | --- | --- | --- |
+| FastRsyncNet | 2.5.0 | [NuGet](https://www.nuget.org/packages/FastRsyncNet/2.5.0), [package source](https://github.com/GrzegorzBlok/FastRsyncNet/tree/e2bec0c2e198b4ff049dfa4a6b82ef77591899d8) | [Apache-2.0](third-party/grpc-dotnet-LICENSE.txt) |
+| System.IO.Hashing | 10.0.12 | [NuGet](https://www.nuget.org/packages/System.IO.Hashing/10.0.12), [package source](https://github.com/dotnet/dotnet/tree/95017c711e6afc1085133d440e42b4bd78155701) | [MIT](third-party/dotnet-runtime-LICENSE.txt), [component notices](third-party/dotnet-NOTICES.txt) |
+
+Profile patches use FastRsync in process. The `fastrsync-2.5.0` encoding replaces
+the previous profile patch format. Old `.mcprof` exports are not supported;
+export a new file from the source profile. There is no migration or fallback.
+NuGet locks pin both packages. Their net10.0 assets need no other packages.
+FastRsync uses xxHash3 block signatures and Adler32V3 rolling checksums. MC keeps
+its existing SHA-256 and length checks for exact profile files.
 
 ## Durable operation storage
 
@@ -86,5 +89,5 @@ Build tools remain pinned in the tool manifests and package locks.
 
 ASP.NET Core and the .NET runtime use the same retained
 [MIT text](third-party/dotnet-runtime-LICENSE.txt). Their component notices remain separate.
-SQLitePCLRaw and gRPC use the same retained [Apache-2.0 text](third-party/grpc-dotnet-LICENSE.txt).
+FastRsyncNet, SQLitePCLRaw, and gRPC share the retained [Apache-2.0 text](third-party/grpc-dotnet-LICENSE.txt).
 SQLitePCLRaw retains its separate [copyright notice](third-party/sqlitepclraw-NOTICE.txt).

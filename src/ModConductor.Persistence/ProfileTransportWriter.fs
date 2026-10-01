@@ -21,15 +21,6 @@ type ProfileTransportWriter
         images: ModConductor.Workspaces.IProfileImages,
         directory: string
     ) =
-    let codec =
-        Path.Combine(
-            AppContext.BaseDirectory,
-            if OperatingSystem.IsWindows() then
-                "xdelta3.exe"
-            else
-                "xdelta3"
-        )
-
     let copiedPayload root workspace (payload: Payload) destination =
         task {
             let! stored =
@@ -247,7 +238,6 @@ type ProfileTransportWriter
 
                                                 do!
                                                     ProfileDelta.encode
-                                                        codec
                                                         source
                                                         original.Payload.Sha256
                                                         output

@@ -14,6 +14,7 @@ type ProfileTransportTests() =
     [<Test>]
     member _.``import should restore modified selected files and explicit deletion``() =
         flag "patchAndDeletion" |> should equal true
+        flag "binaryAndEmptyPatches" |> should equal true
         flag "effectiveFiles" |> should equal true
         flag "localPayload" |> should equal true
         flag "savesOptIn" |> should equal true
@@ -31,3 +32,7 @@ type ProfileTransportTests() =
     member _.``missing exact archive should not create a profile``() =
         flag "missingExactSourceDoesNotCreateProfile" |> should equal true
         flag "unsafePathRejected" |> should equal true
+
+    [<Test>]
+    member _.``cancelled export should discard its staged files``() =
+        flag "cancelledExportDiscardsStaging" |> should equal true

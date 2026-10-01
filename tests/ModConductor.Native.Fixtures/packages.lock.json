@@ -327,6 +327,7 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "FastRsyncNet": "[2.5.0, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.ArchiveInstallation": "[1.0.0, )",
@@ -359,7 +360,8 @@
           "ModConductor.ProtonContexts": "[1.0.0, )",
           "ModConductor.Skse": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )",
-          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
+          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
+          "System.IO.Hashing": "[10.0.12, )"
         }
       },
       "modconductor.platform": {
@@ -431,6 +433,15 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "FastRsyncNet": {
+        "type": "CentralTransitive",
+        "requested": "[2.5.0, )",
+        "resolved": "2.5.0",
+        "contentHash": "J2zGmEYDf1dqkeu+IgE5Px9kohgjxleDKko3rMB+aDRV0LOt/Zo2KlX7C3nyyRIyoR/3iTy0k7/Z825e5LC/Rg==",
+        "dependencies": {
+          "System.IO.Hashing": "8.0.0"
+        }
+      },
       "Google.Protobuf": {
         "type": "CentralTransitive",
         "requested": "[3.36.1, )",
@@ -476,6 +487,12 @@
           "SQLite": "3.53.4",
           "SQLitePCLRaw.config.e_sqlite3": "3.0.5"
         }
+      },
+      "System.IO.Hashing": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "jDix4bBMYnpZdSPcnY+KDV6ik3SRMzpMKby/bZl/XUwIiflwRNAFZ0oOl61R/pSaveIJ8t1gs2BUlrGsPs/bcg=="
       },
       "Tomlyn": {
         "type": "CentralTransitive",

@@ -171,6 +171,8 @@
     <ProjectReference Include="../ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
     <ProjectReference Include="../ModConductor.Fnis/ModConductor.Fnis.fsproj" />
     <ProjectReference Include="../ModConductor.Executables/ModConductor.Executables.fsproj" />
+    <PackageReference Include="FastRsyncNet" />
+    <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />

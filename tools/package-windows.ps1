@@ -36,12 +36,9 @@ foreach ($name in @('ModConductor.Engine.exe','e_sqlite3.dll','ModConductor.Engi
   Copy-Required (Join-Path $EnginePublish $name) (Join-Path $payload "engine/$name")
 }
 Copy-Required $LootHelper "$payload/engine/modconductor-loot-helper.exe"
-Copy-Required "$root/third_party/xdelta3/xdelta3-win-x64.exe" "$payload/engine/xdelta3.exe"
 Copy-Required "$root/LICENSE" "$payload/LICENSE"
 Copy-Required "$root/docs/SOURCE.md" "$payload/notices/SOURCE.md"
 Copy-Item "$root/docs/third-party/*" "$payload/notices" -Recurse -Force
-Copy-Required "$root/third_party/xdelta3/LICENSE" "$payload/notices/xdelta3-LICENSE.txt"
-Copy-Required "$root/third_party/xdelta3/README.md" "$payload/notices/xdelta3-README.md"
 $inputs = Join-Path $Output 'dependency-manifests'
 $manifests = @('ui/pubspec.lock','native/ModConductor.Loot.Helper/Cargo.lock','.config/flutter-sdk.json','global.json') +
   @(Get-ChildItem src,tests -Filter packages.lock.json -Recurse | ForEach-Object { [IO.Path]::GetRelativePath($root, $_.FullName) })

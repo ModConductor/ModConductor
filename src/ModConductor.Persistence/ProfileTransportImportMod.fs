@@ -18,15 +18,6 @@ type internal ProfileTransportImportMod
         artifacts: IArtifactLibrary,
         directory: string
     ) =
-    let codec =
-        Path.Combine(
-            AppContext.BaseDirectory,
-            if OperatingSystem.IsWindows() then
-                "xdelta3.exe"
-            else
-                "xdelta3"
-        )
-
     let metadata (value: PortableMod) =
         { ModMetadata.Name = value.Name
           Notes = value.Notes
@@ -231,7 +222,7 @@ type internal ProfileTransportImportMod
                     raise (InvalidDataException "The recorded patch base changed.")
 
                 bundle.Copy(memberName, patch, None)
-                do! ProfileDelta.decode codec baseFile baseSha patch target sha length token
+                do! ProfileDelta.decode baseFile baseSha patch target sha length token
                 File.Delete baseFile
                 File.Delete patch
 

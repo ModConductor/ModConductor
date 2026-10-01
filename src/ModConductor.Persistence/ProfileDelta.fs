@@ -1,96 +1,70 @@
 namespace ModConductor.Persistence
 
 open System
-open System.Diagnostics
 open System.IO
 open System.Security.Cryptography
 open System.Threading
-open System.Threading.Tasks
+open FastRsync.Core
+open FastRsync.Delta
+open FastRsync.Signature
 
 module internal ProfileDelta =
-    let private version executable =
-        let start = ProcessStartInfo(executable)
-        start.ArgumentList.Add "-V"
-        start.UseShellExecute <- false
-        start.RedirectStandardError <- true
-        start.RedirectStandardOutput <- true
-        start.Environment.Remove "XDELTA" |> ignore
-        use child = Process.Start start
-        let output = child.StandardError.ReadToEnd() + child.StandardOutput.ReadToEnd()
-        child.WaitForExit()
-
-        if
-            child.ExitCode <> 0
-            || not (output.Contains("version 3.2.0", StringComparison.Ordinal))
-            || not (output.Contains("Apache", StringComparison.Ordinal))
-        then
-            raise (InvalidDataException "The bundled xdelta3 3.2.0 codec is unavailable.")
-
-    let private run executable arguments (token: CancellationToken) =
+    let private checkFile (input: Stream) expected length (token: CancellationToken) =
         task {
-            let start = ProcessStartInfo(executable)
-            start.UseShellExecute <- false
-            start.RedirectStandardError <- true
-            start.RedirectStandardOutput <- true
-            start.Environment.Remove "XDELTA" |> ignore
-            arguments |> List.iter start.ArgumentList.Add
-            use child = Process.Start start
-            let error = child.StandardError.ReadToEndAsync(token)
-            let output = child.StandardOutput.ReadToEndAsync(token)
+            if input.Length <> length then
+                raise (InvalidDataException "The profile file length does not match its metadata.")
 
-            try
-                do! child.WaitForExitAsync token
-            with :? OperationCanceledException as canceled ->
-                child.Kill(entireProcessTree = true)
-                do! child.WaitForExitAsync()
-                raise canceled
+            let! hash = SHA256.HashDataAsync(input, token)
+            let digest = Convert.ToHexStringLower hash
 
-            let! stderr = error
-            let! stdout = output
+            if not (String.Equals(digest, expected, StringComparison.OrdinalIgnoreCase)) then
+                raise (InvalidDataException "The profile file does not match its exact source.")
 
-            if child.ExitCode <> 0 then
-                raise (InvalidDataException("The profile patch failed: " + stderr + stdout))
+            input.Position <- 0L
         }
 
-    let private checkHeader patch =
-        use stream = File.OpenRead patch
-        let header = Array.zeroCreate<byte> 5
-
-        if
-            stream.Read(header, 0, header.Length) <> header.Length
-            || header[0..2] <> [| 0xD6uy; 0xC3uy; 0xC4uy |]
-            || header[3] <> 0uy
-            || (header[4] &&& 0x04uy) <> 0uy
-        then
-            raise (InvalidDataException "The profile patch is not bare VCDIFF.")
-
-    let private checkFile path expected length =
-        use input = File.OpenRead path
-
-        if input.Length <> length then
-            raise (InvalidDataException "The profile file length does not match its metadata.")
-
-        let digest = SHA256.HashData input |> Convert.ToHexStringLower
-
-        if not (String.Equals(digest, expected, StringComparison.OrdinalIgnoreCase)) then
-            raise (InvalidDataException "The profile file does not match its exact source.")
-
-    let encode executable baseFile baseSha edited editedSha editedLength patch token =
+    let encode baseFile baseSha edited editedSha editedLength patch token =
         task {
-            version executable
-            checkFile baseFile baseSha (FileInfo(baseFile).Length)
-            checkFile edited editedSha editedLength
+            use basis = File.OpenRead baseFile
+            use input = File.OpenRead edited
+            do! checkFile basis baseSha basis.Length token
+            do! checkFile input editedSha editedLength token
 
-            do! run executable [ "-a"; "-A"; "-D"; "-R"; "-e"; "-s"; baseFile; edited; patch ] token
+            use signature =
+                new FileStream(
+                    patch + ".signature",
+                    FileMode.CreateNew,
+                    FileAccess.ReadWrite,
+                    FileShare.None,
+                    4096,
+                    FileOptions.Asynchronous ||| FileOptions.DeleteOnClose
+                )
 
-            checkHeader patch
+            let signatures =
+                SignatureBuilder(
+                    SupportedAlgorithms.Hashing.XxHash3(),
+                    SupportedAlgorithms.Checksum.Adler32RollingV3()
+                )
+
+            do! signatures.BuildAsync(basis, SignatureWriter(signature), token)
+            do! signature.FlushAsync token
+            signature.Position <- 0L
+            use output = File.Create patch
+            let builder = DeltaBuilder()
+            let reader = SignatureReader(signature, null)
+            let writer = AggregateCopyOperationsDecorator(BinaryDeltaWriter(output))
+            do! builder.BuildDeltaAsync(input, reader, writer, token)
         }
 
-    let decode executable baseFile baseSha patch edited editedSha editedLength token =
+    let decode baseFile baseSha patch edited editedSha editedLength token =
         task {
-            version executable
-            checkFile baseFile baseSha (FileInfo(baseFile).Length)
-            checkHeader patch
-            do! run executable [ "-a"; "-D"; "-R"; "-d"; "-s"; baseFile; patch; edited ] token
-            checkFile edited editedSha editedLength
+            use basis = File.OpenRead baseFile
+            do! checkFile basis baseSha basis.Length token
+            use input = File.OpenRead patch
+            use output = new FileStream(edited, FileMode.CreateNew, FileAccess.ReadWrite)
+            let applier = DeltaApplier(SkipHashCheck = true)
+            do! applier.ApplyAsync(basis, BinaryDeltaReader(input, null), output, token)
+            do! output.FlushAsync token
+            output.Position <- 0L
+            do! checkFile output editedSha editedLength token
         }

@@ -54,14 +54,12 @@ archive or a private source cache.
   hashes are in `ui/pubspec.lock`. `flutter pub get --enforce-lockfile`
   retrieves these sources before the pinned Flutter build. The Flutter SDK
   itself is a build tool; engine/plugin material embedded in the app is not.
-- The bundled xdelta3 executable is the upstream
-  [3.2.0 release](https://github.com/jmacd/xdelta/releases/tag/v3.2.0).
-  `third_party/xdelta3/README.md` pins both platform binaries and the
-  matching upstream source archive by SHA-256. Its release build statically
-  links [XZ Utils liblzma v5.8.3](https://github.com/tukaani-project/xz/tree/v5.8.3)
-  and [BLAKE3 1.8.5](https://github.com/BLAKE3-team/BLAKE3/tree/1.8.5);
-  their terms and source routes are recorded there. The two upstream sources
-  are not modified or claimed as MC-authored code.
+- FastRsyncNet 2.5.0 provides in-process profile patches. Its NuGet metadata pins
+  [source commit `e2bec0c2`](https://github.com/GrzegorzBlok/FastRsyncNet/tree/e2bec0c2e198b4ff049dfa4a6b82ef77591899d8).
+  System.IO.Hashing 10.0.12 pins
+  [source commit `95017c71`](https://github.com/dotnet/dotnet/tree/95017c711e6afc1085133d440e42b4bd78155701).
+  The packages are unmodified. Their licence texts and component notices share
+  the retained Apache-2.0 and .NET notices listed in `docs/DEPENDENCIES.md`.
 - The AppImage also embeds Ubuntu 24.04 libraries and resources beyond the
   portable tar payload. Its
   `share/doc/modconductor/third-party/ubuntu-24.04/bundled-ubuntu-packages.tsv`

@@ -47,7 +47,7 @@ let
     };
   engineSource =
     sourceFor
-      [ "src" "contracts" "third_party" ]
+      [ "src" "contracts" ]
       [
         "Directory.Build.props"
         "Directory.Build.targets"
@@ -55,7 +55,7 @@ let
         "NuGet.config"
         "global.json"
       ];
-  uiSource = sourceFor [ "ui" "docs" "packaging" "third_party" ] [ "LICENSE" ];
+  uiSource = sourceFor [ "ui" "docs" "packaging" ] [ "LICENSE" ];
   helperSource = sourceFor [ "native" ] [ ];
   sourceRevision = "v${version}";
   sourceDate = 1;
@@ -76,7 +76,7 @@ let
     postPatch = patchSdk;
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-8jGwY8hfNf8OUNEkPSxPHNFCcDZCDst2KAH8whCoht0=";
+    outputHash = "sha256-YX79YqPd6NCgeuH5+92Uu6aLUjgJ89l9bYFjBNPLnA4=";
     configurePhase = ''
       export HOME="$TMPDIR/home"
       export DOTNET_CLI_HOME="$HOME"
@@ -145,7 +145,6 @@ let
       runHook preInstall
       mkdir -p "$out/lib/modconductor-engine"
       cp -r publish/. "$out/lib/modconductor-engine/"
-      install -m755 third_party/xdelta3/xdelta3-linux-x64 "$out/lib/modconductor-engine/xdelta3"
       runHook postInstall
     '';
     postFixup = ''
@@ -225,13 +224,10 @@ let
         ${engine}/lib/modconductor-engine/ModConductor.Engine.staticwebassets.endpoints.json \
         "$out/app/modconductor/engine/"
       cp ${lootHelper}/bin/modconductor-loot-helper "$out/app/modconductor/engine/"
-      cp ${engine}/lib/modconductor-engine/xdelta3 "$out/app/modconductor/engine/"
       install -m644 ${uiSource}/LICENSE "$out/share/doc/modconductor/LICENSE"
       install -m644 ${uiSource}/docs/SOURCE.md "$out/share/doc/modconductor/SOURCE.md"
       cp -r ${uiSource}/docs/third-party "$out/share/doc/modconductor/"
       chmod u+w "$out/share/doc/modconductor/third-party"
-      install -m644 ${uiSource}/third_party/xdelta3/LICENSE "$out/share/doc/modconductor/third-party/xdelta3-LICENSE.txt"
-      install -m644 ${uiSource}/third_party/xdelta3/README.md "$out/share/doc/modconductor/third-party/xdelta3-README.md"
       mkdir -p "$out/share/mime/packages"
       cp ${uiSource}/packaging/modconductor-profile.xml "$out/share/mime/packages/modconductor-profile.xml"
       update-mime-database "$out/share/mime"
