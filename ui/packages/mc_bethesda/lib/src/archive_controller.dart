@@ -15,6 +15,7 @@ class ArchivePolicyController extends ChangeNotifier {
   ArchivePolicyView? state;
   bool reading = false, writing = false, stale = false, inspecting = false;
   String? problem;
+  GameDefinitionInfo? definition;
   Future<String?> Function()? resumeAction;
   VoidCallback? onChanged;
   int _epoch = 0, _inputsRevision = 0;

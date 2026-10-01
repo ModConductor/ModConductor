@@ -18,6 +18,7 @@ class GameContextBrowser extends StatefulWidget {
     this.protonContexts,
     this.chooseExecutable,
     this.footer,
+    this.catalogue = const [],
   });
   final GameContextController controller;
   final SteamDiscoveryClient? steamDiscovery;
@@ -25,6 +26,7 @@ class GameContextBrowser extends StatefulWidget {
   final GameDirectoryChooser chooseDirectory;
   final GameDirectoryChooser? chooseExecutable;
   final Widget? footer;
+  final List<GameDefinitionInfo> catalogue;
   @override
   State<GameContextBrowser> createState() => _GameContextBrowserState();
 }
@@ -47,6 +49,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
       context: context,
       builder: (_) => InstallationDialog(
         initial: initial,
+        catalogue: widget.catalogue,
         client: client,
         chooseDirectory: widget.chooseDirectory,
         chooseExecutable: widget.chooseExecutable,
@@ -169,14 +172,14 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                 ] else ...[
                   Row(
                     children: [
-                      if (state.definition!.declaredSteamAppId == 489830) ...[
-                        const McIdentityIcon(
-                          name: 'Skyrim Special Edition',
-                          url: 'https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/489830/0dfe3eed5658f9fbd8b62f8021038c0a4190f21d.jpg',
-                          size: 44,
-                        ),
-                        const SizedBox(width: 12),
-                      ],
+                      McIdentityIcon(
+                        name: state.definition!.name,
+                        url: state.definition!.artworkUrl.isEmpty
+                            ? null
+                            : state.definition!.artworkUrl,
+                        size: 44,
+                      ),
+                      const SizedBox(width: 12),
                       Flexible(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,9 +217,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                                             GameContextPlatform.wine &&
                                         !evidence.runtimeReady
                                   ? 'Wine not selected'
-                                  : evidence.proton == null
-                                  ? 'Installation files checked'
-                                  : 'Installation and Proton files checked'),
+                                  : 'Installation found'),
                     detail: binding.needsCheck || c.needsRead
                         ? 'Last checked: ${checkedAt(evidence.checkedAt)}'
                         : !evidence.runtimeReady
@@ -289,10 +290,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                               McFact('Data folder', data, path: true),
                             if (evidence.executable case final executable?) ...[
                               McFact('Executable', executable.path, path: true),
-                              McFact(
-                                'File version',
-                                '${executable.fileVersion} · x64',
-                              ),
+                              McFact('File version', executable.fileVersion),
                             ],
                             if (evidence.launcherPath case final launcher?)
                               McFact('Launcher', launcher, path: true),
@@ -412,6 +410,34 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                       tilePadding: EdgeInsets.zero,
                       title: const Text('Capabilities'),
                       children: [
+                        McFactGroup(
+                          title: state.definition!.name,
+                          rows: [
+                            McFact(
+                              'Plugins',
+                              'ESM · ESP${state.definition!.supportsLight ? ' · ESL' : ''}',
+                            ),
+                            McFact(
+                              'Plugin order',
+                              switch (state.definition!.pluginOrdering) {
+                                'FileTime' => 'Manual · file timestamps',
+                                'None' => 'No sorting',
+                                _ => 'Plugins.txt',
+                              },
+                            ),
+                            McFact('Settings', state.definition!.settingsIni),
+                            McFact(
+                              'Saves',
+                              state.definition!.saveExtension.isEmpty
+                                  ? 'No local saves'
+                                  : state.definition!.saveExtension
+                                        .substring(1)
+                                        .toUpperCase(),
+                            ),
+                            if (state.definition!.archiveInvalidation)
+                              const McFact('Archives', 'Archive invalidation'),
+                          ],
+                        ),
                         for (final capability in state.definition!.capabilities)
                           McCapabilityState(
                             key: ValueKey(('capability', capability.id.value)),

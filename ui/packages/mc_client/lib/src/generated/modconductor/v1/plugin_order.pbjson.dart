@@ -160,6 +160,7 @@ const ProfilePluginOrder$json = {
       '10': 'unknown'
     },
     {'1': 'pending_problem', '3': 13, '4': 1, '5': 9, '10': 'pendingProblem'},
+    {'1': 'medium', '3': 14, '4': 1, '5': 5, '10': 'medium'},
   ],
 };
 
@@ -175,7 +176,7 @@ final $typed_data.Uint8List profilePluginOrderDescriptor = $convert.base64Decode
     'BsaWVkEikKEGV4dGVybmFsX2NoYW5nZWQYCiABKAhSD2V4dGVybmFsQ2hhbmdlZBIYCgdwZW5k'
     'aW5nGAsgASgIUgdwZW5kaW5nEj0KB3Vua25vd24YDCADKAsyIy5tb2Rjb25kdWN0b3IudjEuUG'
     'x1Z2luT3JkZXJTZXR0aW5nUgd1bmtub3duEicKD3BlbmRpbmdfcHJvYmxlbRgNIAEoCVIOcGVu'
-    'ZGluZ1Byb2JsZW0=');
+    'ZGluZ1Byb2JsZW0SFgoGbWVkaXVtGA4gASgFUgZtZWRpdW0=');
 
 @$core.Deprecated('Use changePluginOrderRequestDescriptor instead')
 const ChangePluginOrderRequest$json = {

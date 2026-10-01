@@ -19,7 +19,17 @@ module InstallationValidation =
                     Location.Located(path, Directory.Exists path)
 
             { Documents = locate Environment.SpecialFolder.MyDocuments definition.Documents
-              Saves = locate Environment.SpecialFolder.MyDocuments definition.Saves
+              Saves =
+                if definition.Id = GameId.OblivionRemasteredSteam then
+                    let home = Environment.GetFolderPath Environment.SpecialFolder.UserProfile
+
+                    let path =
+                        (Path.Combine(home, "Documents"), definition.Saves)
+                        ||> List.fold (fun parent name -> Path.Combine(parent, name))
+
+                    Location.Located(path, Directory.Exists path)
+                else
+                    locate Environment.SpecialFolder.MyDocuments definition.Saves
               LocalAppData =
                 locate Environment.SpecialFolder.LocalApplicationData definition.LocalAppData }
         else
@@ -29,6 +39,27 @@ module InstallationValidation =
             { Documents = unavailable
               Saves = unavailable
               LocalAppData = unavailable }
+
+    let private dataLocation (root: HeldDirectory) rootPath (relative: string) =
+        let rec descend (parent: HeldDirectory) path =
+            function
+            | [] -> path, parent.Identity
+            | expected :: rest ->
+                let actual =
+                    parent.Names
+                    |> Seq.filter (fun name ->
+                        name.Equals(expected, StringComparison.OrdinalIgnoreCase))
+                    |> Seq.toList
+
+                match actual with
+                | [ name ] ->
+                    use child = parent.Directory(name, None)
+                    descend child (Path.Combine(path, name)) rest
+                | _ -> raise (IOException(relative + " was not found or has ambiguous names."))
+
+        relative.Split([| '/'; '\\' |], StringSplitOptions.RemoveEmptyEntries)
+        |> Array.toList
+        |> descend root rootPath
 
     let inspect (definition: GameDefinition) candidate =
         let problems = ResizeArray<ValidationProblem>()
@@ -88,14 +119,14 @@ module InstallationValidation =
                                 problem expected (expected + " has ambiguous names in this folder.")
                                 None
 
-                        name definition.Data true
-                        |> Option.iter (fun name ->
-                            try
-                                use data = directory.Directory(name, None)
-                                dataIdentity <- Some data.Identity
-                                dataPath <- Some(Path.Combine(resolved, name))
-                            with :? IOException ->
-                                problem name "The Data folder is unavailable or is a link.")
+                        try
+                            let found, identity = dataLocation directory resolved definition.Data
+                            dataIdentity <- Some identity
+                            dataPath <- Some found
+                        with :? IOException ->
+                            problem
+                                definition.Data
+                                "The content folder is unavailable or is a link."
 
                         name definition.Launcher false
                         |> Option.iter (fun name ->
@@ -169,8 +200,12 @@ module InstallationValidation =
 
                         match dataIdentity with
                         | Some expected ->
-                            use currentData =
-                                directory.Directory(Path.GetFileName dataPath.Value, Some expected)
+                            let _, actual = dataLocation directory resolved definition.Data
+
+                            if actual <> expected then
+                                problem
+                                    definition.Data
+                                    "The content folder changed during the check."
 
                             ()
                         | None -> ()
@@ -185,7 +220,7 @@ module InstallationValidation =
               Platform =
                 if OperatingSystem.IsWindows() then
                     ContextPlatform.Windows
-                elif definition.Id = GameId.SkyrimSpecialEditionSteam then
+                elif GameCatalog.steam definition.Id then
                     ContextPlatform.Proton
                 else
                     ContextPlatform.Wine
@@ -199,7 +234,7 @@ module InstallationValidation =
               Wine = None
               Locations =
                 locations (
-                    Skyrim.forRuntime
+                    GameCatalog.forRuntime
                         definition.Id
                         (executable |> Option.map _.FileVersion |> Option.defaultValue "")
                 )
@@ -209,6 +244,10 @@ module InstallationValidation =
                     DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
                 )
               Fingerprint = "" }
+
+        let report =
+            { report with
+                Locations = GameLocations.apply definition.Id resolved report.Locations }
 
         { report with
             Fingerprint = ContextIdentity.fingerprint report }

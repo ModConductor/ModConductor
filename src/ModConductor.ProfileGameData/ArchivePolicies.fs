@@ -137,7 +137,12 @@ module internal ArchivePolicies =
 
                 let! verified = archives.Verify(snapshot, token)
                 let! () = verified |> Result.mapError verifyError
-                do! IniArchives.validateNames snapshot.ExplicitNames
+
+                do!
+                    IniArchives.validateNamesFor
+                        (ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId)
+                            .ArchiveKeys
+                        snapshot.ExplicitNames
 
                 return
                     scope,

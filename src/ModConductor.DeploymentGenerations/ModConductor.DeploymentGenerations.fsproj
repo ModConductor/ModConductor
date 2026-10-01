@@ -5,6 +5,7 @@
     <Compile Include="Contracts.fs" />
     <Compile Include="GenerationRetirement.fs" />
     <Compile Include="GenerationFiles.fs" />
+    <Compile Include="OrderedPluginCopy.fs" />
     <Compile Include="Preparation.fs" />
     <Compile Include="GenerationMaterialization.fs" />
     <Compile Include="GenerationDescription.fs" />

@@ -14,8 +14,10 @@ module internal SettingsPreparation =
 
     let prepare
         (context: ProfileDataContext)
+        (game: GameContextState)
         (incoming: PrivateProfileData option)
         (outgoing: PrivateProfileData option)
+        (desiredPlugins: byte array option)
         (workspaceStage: DataRoot)
         (documentsStage: DataRoot)
         (token: CancellationToken)
@@ -29,6 +31,9 @@ module internal SettingsPreparation =
             use privateStaging =
                 HeldDirectory.Open(workspaceStage.Path, workspaceStage.Identity)
 
+            let rules = GameCatalog.rules game.Binding.Value.GameId
+            let saveIni = defaultArg rules.SaveOverrideIni rules.Ini
+            let morrowind = rules.Activation = PluginActivation.MorrowindIni
             let effects = ResizeArray<ProfileDataFilesEffect>()
             let originals = ResizeArray<GlobalIni>()
             let old = context.Applied
@@ -53,8 +58,7 @@ module internal SettingsPreparation =
 
                     let! canonical =
                         match old |> Option.bind _.SaveOverride, current with
-                        | Some patch, Some bytes when declared = "Skyrim.ini" ->
-                            Ini.remove patch bytes
+                        | Some patch, Some bytes when declared = saveIni -> Ini.remove patch bytes
                         | _ -> Ok current
 
                     match old, outgoing with
@@ -96,6 +100,18 @@ module internal SettingsPreparation =
                     let globalBytes =
                         if old |> Option.exists (fun value -> value.Options.Settings) then
                             originalBytes
+                        elif
+                            morrowind
+                            && declared = rules.Ini
+                            && old |> Option.exists (fun value -> value.Plugins.IsSome)
+                        then
+                            canonical
+                            |> Option.map (fun bytes ->
+                                ModConductor.Bethesda.MorrowindActivation.write
+                                    (originalBytes
+                                     |> Option.map ModConductor.Bethesda.MorrowindActivation.names
+                                     |> Option.defaultValue [])
+                                    bytes)
                         else
                             canonical
 
@@ -115,22 +131,37 @@ module internal SettingsPreparation =
                         | None -> globalBytes
 
                     let! desired =
-                        if nextOptions.Saves && declared = "Skyrim.ini" then
-                            Ini.apply (DataEffects.linkName context + "\\") incomingBytes
+                        if nextOptions.Saves && rules.GameSaves.IsNone && declared = saveIni then
+                            Ini.apply (DataEffects.linkName game context + "\\") incomingBytes
                             |> Result.map (fun (bytes, patch) ->
                                 nextPatch <- Some patch
                                 Some bytes)
                         else
                             Ok incomingBytes
 
+                    let desired =
+                        if morrowind && declared = rules.Ini then
+                            desiredPlugins
+                            |> Option.map (fun bytes ->
+                                ModConductor.Bethesda.MorrowindActivation.write
+                                    (ModConductor.Bethesda.MorrowindActivation.names bytes)
+                                    (desired |> Option.defaultValue [||])
+                                |> Some)
+                            |> Option.defaultValue desired
+                        else
+                            desired
+
                     let wasManaged =
                         old
                         |> Option.exists (fun value ->
                             value.Options.Settings
-                            || (value.Options.Saves && declared = "Skyrim.ini"))
+                            || (value.Options.Saves && rules.GameSaves.IsNone && declared = saveIni)
+                            || (morrowind && value.Plugins.IsSome && declared = rules.Ini))
 
                     let managed =
-                        nextOptions.Settings || (nextOptions.Saves && declared = "Skyrim.ini")
+                        nextOptions.Settings
+                        || (nextOptions.Saves && rules.GameSaves.IsNone && declared = saveIni)
+                        || (morrowind && desiredPlugins.IsSome && declared = rules.Ini)
 
                     if wasManaged || managed then
                         let original =
@@ -183,26 +214,47 @@ module internal SettingsPreparation =
                 }
 
             do!
-                DataLocations.iniNames documents
+                DataLocations.iniNames game documents
                 |> ProfileDataResultFlow.traverse prepareFile
                 |> Result.map ignore
 
             let proposed =
                 incoming
                 |> Option.filter (fun _ ->
-                    nextOptions.Settings || nextOptions.Saves || incoming.Value.PluginOrder.IsSome)
+                    nextOptions.Settings
+                    || nextOptions.Saves
+                    || incoming.Value.PluginOrder.IsSome
+                    || rules.GameSaves.IsSome)
                 |> Option.map (fun profile ->
                     { ProfileId = profile.ProfileId
                       Options = nextOptions
                       Originals = List.ofSeq originals
                       SaveOverride = nextPatch
                       SaveLink = None
-                      Plugins = None })
+                      Plugins =
+                        if morrowind && desiredPlugins.IsSome then
+                            Some
+                                { Original = None
+                                  ProfileRevision = profile.Revision }
+                        else
+                            None })
 
             let previousLink = old |> Option.bind _.SaveLink
 
-            let target =
-                incoming |> Option.filter (fun _ -> nextOptions.Saves) |> Option.bind _.Saves
+            let! target =
+                match incoming with
+                | Some profile when nextOptions.Saves -> Ok profile.Saves
+                | Some _ when rules.GameSaves.IsSome ->
+                    match game.Binding.Value.Evidence.Locations.Saves with
+                    | Location.Located(path, _) ->
+                        if System.IO.Directory.Exists path then
+                            DataLocations.root path |> Result.map Some
+                        else
+                            DataLocations.root (System.IO.Path.GetDirectoryName path)
+                            |> Result.map (fun parent ->
+                                Some(DataLocations.child parent (System.IO.Path.GetFileName path)))
+                    | Location.Unavailable reason -> Error(ProfileDataError.Unavailable reason)
+                | _ -> Ok None
 
             let link =
                 match previousLink, target with

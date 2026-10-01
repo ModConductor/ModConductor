@@ -24,6 +24,7 @@ module internal BethesdaArchive =
             match magic with
             | "BSA\000" -> Some(BsaArchive.openContents source digest limits token)
             | "BTDX" -> Some(Ba2Archive.openContents source digest limits token)
+            | "\000\001\000\000" -> Some(MorrowindArchive.openContents source digest limits token)
             | _ ->
                 seek source 0L
                 None
@@ -41,13 +42,18 @@ module internal BethesdaArchive =
             let version = u32 source
 
             match magic with
-            | "BSA\000" when version = 105u -> Some "BSA v105"
+            | "BSA\000" when version = 103u || version = 104u || version = 105u ->
+                Some("BSA v" + string version)
             | "BSA\000" -> unsupported ()
-            | "BTDX" when version = 1u && source.Length >= 12L ->
+            | "\000\001\000\000" -> Some "BSA v256"
+            | "BTDX" when
+                (version = 1u || version = 2u || version = 3u || version = 7u || version = 8u)
+                && source.Length >= 12L
+                ->
                 let kind = readBytes source 4 |> fourcc
 
                 if kind = "GNRL" || kind = "DX10" then
-                    Some("BA2 v1 " + kind)
+                    Some("BA2 v" + string version + " " + kind)
                 else
                     unsupported ()
             | "BTDX" -> unsupported ()

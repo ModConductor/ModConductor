@@ -195,7 +195,8 @@ module DeploymentFixtures =
                   Deployment = None }
 
             let observation: GameObservation =
-                { ContextFingerprint = "owned-fixture-context"
+                { Inputs = []
+                  ContextFingerprint = "owned-fixture-context"
                   Root = area.Bindings.Head.Directory.Path
                   Identity = area.Bindings.Head.Directory.Identity
                   Entries = []

@@ -15,7 +15,13 @@ module internal Ba2Archive =
     let openContents (source: Stream) digest (limits: ArchiveLimits) token =
         let version = u32 source
 
-        if version <> 1u then
+        if
+            version <> 1u
+            && version <> 2u
+            && version <> 3u
+            && version <> 7u
+            && version <> 8u
+        then
             unsupported ()
 
         let kind = readBytes source 4 |> fourcc
@@ -34,12 +40,22 @@ module internal Ba2Archive =
         if count < 0 || count > limits.Entries then
             refuse "The archive contains too many entries."
 
+        let headerBytes =
+            if version = 2u then 32L
+            elif version = 3u then 36L
+            else 24L
+        // Version 3 uses a different compressed texture codec. Do not decode it as zlib.
+        if version = 3u && kind = "DX10" then
+            unsupported ()
+
+        seek source headerBytes
+
         let recordsEnd =
             if kind = "GNRL" then
-                24L + int64 count * 36L
+                headerBytes + int64 count * 36L
             else
                 let start = source.Position
-                let mutable length = 24L
+                let mutable length = headerBytes
                 let mutable totalChunks = 0
 
                 for _ in 1..count do
@@ -63,7 +79,7 @@ module internal Ba2Archive =
 
         let general = ResizeArray<DataPart * int64 option>()
         let textures = ResizeArray<int * int * int * int * bool * DataPart list>()
-        seek source 24L
+        seek source headerBytes
 
         if kind = "GNRL" then
             for _ in 1..count do
@@ -206,5 +222,12 @@ module internal Ba2Archive =
                             Prefix = Some header
                             Parts = parts } ]
 
-        let manifest = validateEntries digest ("BA2 v1 " + kind) source.Length limits stored
+        let manifest =
+            validateEntries
+                digest
+                ("BA2 v" + string version + " " + kind)
+                source.Length
+                limits
+                stored
+
         Contents(source, stored, manifest, source.Length, limits, token) :> IArchiveContents

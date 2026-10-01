@@ -48,7 +48,8 @@ module GameProjection =
           Originals = Map.empty }
 
 type GameObservation =
-    { ContextFingerprint: string
+    { Inputs: GameObservation list
+      ContextFingerprint: string
       Root: HostPath
       Identity: FileIdentity
       Entries: ObservedEntry list

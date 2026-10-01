@@ -136,6 +136,7 @@ class ModConductorApp extends StatefulWidget {
     this.inventoryExports,
     this.profileTransport,
     this.gameContexts,
+    this.gameCatalogue,
     this.filePlans,
     this.diagnostics,
     this.bethesda,
@@ -185,6 +186,7 @@ class ModConductorApp extends StatefulWidget {
   final InventoryExportClient? inventoryExports;
   final ProfileTransportClient? profileTransport;
   final GameContextsClient? gameContexts;
+  final GameCatalogueClient? gameCatalogue;
   final FilePlansClient? filePlans;
   final DiagnosticsClient? diagnostics;
   final BethesdaClient? bethesda;
@@ -249,6 +251,7 @@ class _ModConductorAppState extends _AppStateBase
     widget.desktopRequests?.addListener(_requestsChanged);
     _scheduleIncomingRequest();
     _game.addListener(_gameChanged);
+    _gameCatalogue.addListener(_gameListChanged);
     _mods.addListener(_modsChanged);
     _files.addListener(_diagnosticInputsChanged);
     _plugins.addListener(_diagnosticInputsChanged);
@@ -313,6 +316,7 @@ class _ModConductorAppState extends _AppStateBase
     unawaited(_setupEvents?.cancel() ?? Future.value());
     _workspaces.removeListener(_syncWorkspaceConsumers);
     _game.removeListener(_gameChanged);
+    _gameCatalogue.removeListener(_gameListChanged);
     _mods.removeListener(_modsChanged);
     _files.removeListener(_diagnosticInputsChanged);
     _plugins.removeListener(_diagnosticInputsChanged);
@@ -332,6 +336,7 @@ class _ModConductorAppState extends _AppStateBase
     _diagnostics.dispose();
     _mods.dispose();
     _game.dispose();
+    _gameCatalogue.dispose();
     _workspaces.dispose();
     for (final node in [
       _workspacesFocus,

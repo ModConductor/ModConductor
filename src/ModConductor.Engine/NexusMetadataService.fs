@@ -51,12 +51,13 @@ type NexusMetadataService
                 | Ok context when
                     context.Binding
                     |> Option.exists (fun binding ->
-                        binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId)
-                            .Revision)
+                        binding.Evidence.DefinitionRevision = (GameCatalog.forGame binding.GameId)
+                            .Revision
+                        && (GameCatalog.rules binding.GameId).NexusGame <> "")
                     ->
                     let! metadata =
                         session.ReadMetadata
-                            { Game = "skyrimspecialedition"
+                            { Game = (GameCatalog.rules context.Binding.Value.GameId).NexusGame
                               Mod = request.ProviderMod }
 
                     match metadata with

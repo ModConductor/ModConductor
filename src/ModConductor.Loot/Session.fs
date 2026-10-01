@@ -76,6 +76,12 @@ type LootSession
             match loaded with
             | Error _ -> return Error LootError.Stale
             | Ok sources when sources.Stamp <> value.Headers.Stamp -> return Error LootError.Stale
+            | Ok sources when not (GameCatalog.isSkyrimSE sources.Context.Binding.Value.GameId) ->
+                return
+                    Error(
+                        LootError.Unsupported
+                            "LOOT sorting is not available for this title. Use manual plugin order."
+                    )
             | Ok sources ->
                 let! projected =
                     Projection.build repository stateDirectory validateContext value sources token

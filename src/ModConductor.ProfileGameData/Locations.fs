@@ -80,10 +80,13 @@ module internal DataLocations =
 
         expected
 
-    let iniNames (documents: HeldDirectory) =
+    let definition (game: GameContextState) =
+        GameCatalog.forGame game.Binding.Value.GameId
+
+    let iniNames game (documents: HeldDirectory) =
         let entries = documents.Names |> Seq.toList
 
-        Skyrim.definition.IniFiles
+        (definition game).IniFiles
         |> List.map (fun declared ->
             let matches =
                 entries

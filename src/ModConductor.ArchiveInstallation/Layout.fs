@@ -55,7 +55,8 @@ module Layout =
                     match
                         leading
                         |> List.tryFindIndex (fun part ->
-                            part.Equals("Data", StringComparison.OrdinalIgnoreCase))
+                            part.Equals("Data", StringComparison.OrdinalIgnoreCase)
+                            || part.Equals("Data Files", StringComparison.OrdinalIgnoreCase))
                     with
                     | Some data -> List.take (data + 1) leading
                     | None -> leading
@@ -70,7 +71,7 @@ module Layout =
                       then
                           yield markerRoot i
 
-                      if i < parts.Length - 1 && name = "data" then
+                      if i < parts.Length - 1 && (name = "data" || name = "data files") then
                           yield List.take (i + 1) parts ])
             |> List.distinct
 

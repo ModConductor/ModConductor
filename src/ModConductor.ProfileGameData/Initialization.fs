@@ -116,7 +116,7 @@ module internal DataInitialization =
             let mutable value = profile
 
             if options.Settings && not value.SettingsInitialized then
-                let! globals = SettingsSource.globalSettings context token
+                let! globals = SettingsSource.globalSettings game context token
 
                 use settings =
                     HeldDirectory.Open(value.Settings.Value.Path, value.Settings.Value.Identity)

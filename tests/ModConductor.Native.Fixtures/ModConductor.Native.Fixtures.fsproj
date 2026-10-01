@@ -36,6 +36,15 @@
     <Compile Include="PluginOrderSamples.fs" />
     <Compile Include="PluginOrderFixtures.fs" />
     <Compile Include="GameViewFixtures.fs" />
+    <Compile Include="NewVegasViewFixtures.fs" />
+    <Compile Include="BethesdaFamilySamples.fs" />
+    <Compile Include="BethesdaFamilyEnvironment.fs" />
+    <Compile Include="BethesdaRuntimeSwitchFixtures.fs" />
+    <Compile Include="BethesdaFamilyFixtures.fs" />
+    <Compile Include="BethesdaContextCorrectionFixtures.fs" />
+    <Compile Include="BethesdaInputFixtures.fs" />
+    <Compile Include="BethesdaArchiveSamples.fs" />
+    <Compile Include="BethesdaTitleRuleFixtures.fs" />
     <Compile Include="VortexMigrationFixtures.fs" />
     <Compile Include="MigrationFixtures.fs" />
     <Compile Include="SaveFixtures.fs" />

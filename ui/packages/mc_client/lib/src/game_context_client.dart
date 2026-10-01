@@ -2,10 +2,36 @@ import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
 import 'generated/modconductor/v1/game_contexts.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/game_catalogue.pbgrpc.dart' as catalogue;
 import 'game_context_models.dart';
 import 'proton_context_models.dart';
 import 'proton_context_wire.dart';
 export 'game_context_models.dart';
+
+abstract interface class GameCatalogueClient {
+  Future<List<GameDefinitionInfo>> read();
+  Future<String?> openScriptExtenderPage(String gameId);
+}
+
+class GrpcGameCatalogueClient implements GameCatalogueClient {
+  GrpcGameCatalogueClient(ClientChannel channel, CallOptions options)
+    : _client = catalogue.GameCatalogueClient(channel, options: options);
+  final catalogue.GameCatalogueClient _client;
+  @override
+  Future<String?> openScriptExtenderPage(String gameId) async {
+    final reply = await _client.openScriptExtenderPage(
+      catalogue.OpenScriptExtenderPageRequest(gameId: gameId),
+    );
+    return reply.problem.isEmpty ? null : reply.problem;
+  }
+
+  @override
+  Future<List<GameDefinitionInfo>> read() async => List.unmodifiable(
+    (await _client.readGameCatalogue(catalogue.ReadGameCatalogueRequest()))
+        .games
+        .map(decodeGameDefinition),
+  );
+}
 
 abstract interface class GameContextsClient {
   Future<GameContextState> read(String workspaceId, String profileId);
@@ -195,6 +221,25 @@ GameCapability _capability(wire.GameCapabilityInfo value) => GameCapability(
       : null,
 );
 
+GameDefinitionInfo decodeGameDefinition(wire.GameDefinitionInfo d) =>
+    GameDefinitionInfo(
+      id: d.definitionId,
+      revision: d.revision,
+      name: d.name,
+      storefront: d.storefront,
+      declaredSteamAppId: d.declaredSteamAppId,
+      capabilities: List.unmodifiable(d.capabilities.map(_capability)),
+      artworkUrl: d.artworkUrl,
+      settingsIni: d.settingsIni,
+      pluginOrdering: d.pluginOrdering,
+      saveExtension: d.saveExtension,
+      extenderName: d.extenderName,
+      extenderLoader: d.extenderLoader,
+      supportsLight: d.supportsLightPlugins,
+      supportsMedium: d.supportsMediumPlugins,
+      archiveInvalidation: d.archiveInvalidation,
+    );
+
 GameContextState _reply(wire.GameContextReply reply) {
   switch (reply.whichOutcome()) {
     case wire.GameContextReply_Outcome.state:
@@ -204,18 +249,7 @@ GameContextState _reply(wire.GameContextReply reply) {
         workspaceId: s.workspaceId,
         profileId: s.profileId,
         revision: s.revision.toInt(),
-        definition: s.hasDefinition()
-            ? GameDefinitionInfo(
-                id: d.definitionId,
-                revision: d.revision,
-                name: d.name,
-                storefront: d.storefront,
-                declaredSteamAppId: d.declaredSteamAppId,
-                capabilities: List.unmodifiable(
-                  d.capabilities.map(_capability),
-                ),
-              )
-            : null,
+        definition: s.hasDefinition() ? decodeGameDefinition(d) : null,
         binding: s.hasBinding()
             ? GameBindingInfo(
                 id: s.binding.bindingId,

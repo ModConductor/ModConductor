@@ -31,7 +31,7 @@ extension _ProfileSetupDiscovery on _ProfileSetupSurfaceState {
       steamRoots = const [];
       manualSelection = false;
     });
-    final search = client.search(selectedGame.id, const []);
+    final search = client.search(selectedGame.forSource(source), const []);
     pendingSearch = search;
     try {
       final result = await search.result;
@@ -76,7 +76,7 @@ extension _ProfileSetupDiscovery on _ProfileSetupSurfaceState {
     final selected = await showDialog<ProtonSelection>(
       context: context,
       builder: (_) => ProtonDialog(
-        gameId: selectedGame.id,
+        gameId: selectedGame.forSource(source),
         gameName: selectedGame.name,
         steamAppId: selectedGame.steamAppId,
         gamePath: installation,

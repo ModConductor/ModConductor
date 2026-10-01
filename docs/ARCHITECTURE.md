@@ -212,10 +212,11 @@ Failed replacement leaves the previous binding intact. Failed Refresh retains
 its last checked facts with a failure reason. Restart requires a new check.
 External changes do not form an atomic filesystem snapshot.
 
-The Skyrim Special Edition Steam definition declares Data and Windows target-name
-rules. Windows user locations use actual Known Folders without creation. Linux
-path-only bindings remain partial until a Proton context is selected. Game launch
-and deployment are separate from these checks.
+The engine catalogue declares title-specific Data paths, Windows target-name
+rules and capabilities. Windows user locations use actual Known Folders without
+creation. Linux path-only bindings remain partial until a runtime context is
+selected. Game launch and deployment are separate from these checks.
+[GAMES.md](GAMES.md) describes title rules, ownership and qualification limits.
 
 `SteamDiscovery` reads bounded library and app manifests from platform-default or
 explicit Steam folders. It follows declared directory links, rejects unsafe
@@ -249,13 +250,14 @@ native contexts do not use the Proton resolver. Restarting requires recheck.
 
 ## Planned loose files
 
-`FilePlanning` acquires the checked Skyrim Data folder and complete, pinned mod
+`FilePlanning` acquires the checked title Data inputs and complete, pinned mod
 manifests. It uses `DeploymentPlanning` for target identity, precedence and original
 collision guards. The game folder is observed content, not a verified pristine
 installation. BSA files are opaque files; archive members are not inspected.
 
-Explicit Load or Refresh streams real content hashes through held read-only
-handles. Session-only observations are bounded and cancellable. Cached reuse and
+Explicit Load or Refresh inventories game-file metadata through held read-only
+directories. Mod versions retain their existing payload hashes. Session-only
+observations are bounded and cancellable. Cached reuse and
 Hide check the metadata inventory without hashing all content again. Files that
 change without detectable metadata changes, or after a check, are not covered by
 an atomic snapshot guarantee. Link/reparse entries are refused in this observed

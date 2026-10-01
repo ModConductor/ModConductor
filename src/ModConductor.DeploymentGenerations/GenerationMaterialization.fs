@@ -25,8 +25,13 @@ module internal GenerationMaterialization =
         let name = request.Id.ToString("N")
         let mutable secondaryRoot: Location option = None
 
-        let copySecondary pin =
-            match GenerationPreparation.reused request pin with
+        let copySecondary target pin modified =
+            let previous =
+                match modified with
+                | Some time -> GenerationPreparation.reusedOrdered request target pin time
+                | None -> GenerationPreparation.reused request pin
+
+            match previous with
             | Some backing ->
                 verify pin backing
                 backing
@@ -55,7 +60,12 @@ module internal GenerationMaterialization =
                         value
 
                 let path = logical [ Guid.NewGuid().ToString("N") ]
-                let identity = copy token pin (source sources pin) root path true
+
+                let identity =
+                    match modified with
+                    | Some time ->
+                        OrderedPluginCopy.copy token pin (source sources pin) root path time
+                    | None -> copy token pin (source sources pin) root path true
 
                 { Directory = root
                   Path = path
@@ -69,17 +79,20 @@ module internal GenerationMaterialization =
                 let pin = file.Winner.Source
 
                 let backing =
-                    match file.Winner.Precedence.Tier with
-                    | LayerTier.Mod ->
+                    match
+                        request.OrderedFiles.TryFind file.Target, file.Winner.Precedence.Tier
+                    with
+                    | Some time, _ -> copySecondary file.Target pin (Some time)
+                    | None, LayerTier.Mod ->
                         let value = source sources pin in
                         verify pin value
                         value
-                    | LayerTier.Secondary -> copySecondary pin
-                    | LayerTier.Base when request.LinkedBase ->
+                    | None, LayerTier.Secondary -> copySecondary file.Target pin None
+                    | None, LayerTier.Base when request.LinkedBase ->
                         let value = source sources pin in
                         verify pin value
                         value
-                    | LayerTier.Base -> invalidOp "Base files remain at the target."
+                    | None, LayerTier.Base -> invalidOp "Base files remain at the target."
 
                 let path =
                     logical (

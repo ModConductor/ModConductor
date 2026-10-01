@@ -6,8 +6,9 @@ open System.Threading.Tasks
 open ModConductor.Platform
 
 module internal DataEffects =
-    let linkName (context: ProfileDataContext) =
-        ".mod-conductor-saves-" + context.Id.ToString("N")
+    let linkName (game: ModConductor.GameContexts.GameContextState) (context: ProfileDataContext) =
+        let rules = ModConductor.GameContexts.GameCatalog.rules game.Binding.Value.GameId
+        defaultArg rules.GameSaves (".mod-conductor-saves-" + context.Id.ToString("N"))
 
     let private matchingLink (directory: HeldDirectory) name identity =
         match directory.InspectEntry name with
@@ -20,6 +21,7 @@ module internal DataEffects =
         | _ -> DataFiles.fail "The profile save link changed. It was left untouched."
 
     let run
+        (game: ModConductor.GameContexts.GameContextState)
         (context: ProfileDataContext)
         (initial: ProfileDataActionRecord)
         (save: ProfileDataActionRecord -> Task<Result<unit, ProfileDataError>>)
@@ -50,7 +52,7 @@ module internal DataEffects =
                     do! saved
                     checkpoint "file-recorded"
 
-            let name = linkName context
+            let name = linkName game context
 
             let previous, next =
                 match action.Link with

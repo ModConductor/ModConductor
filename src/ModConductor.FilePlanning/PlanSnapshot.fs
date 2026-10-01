@@ -28,9 +28,10 @@ module internal PlanSnapshot =
         | Some binding when binding.NeedsCheck || not binding.Evidence.Valid ->
             Some "Refresh the saved game installation."
         | Some binding when
-            binding.Evidence.DefinitionRevision <> (Skyrim.forGame binding.GameId).Revision
+            binding.Evidence.DefinitionRevision
+            <> (GameCatalog.forGame binding.GameId).Revision
             ->
-            Some "Select a supported Skyrim installation."
+            Some "Select a supported game installation."
         | Some binding when
             binding.Evidence.Platform = ContextPlatform.Proton
             && (binding.Proton.IsNone || binding.Evidence.Proton.IsNone)

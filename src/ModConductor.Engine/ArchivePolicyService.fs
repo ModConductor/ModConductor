@@ -61,8 +61,7 @@ module internal ArchivePolicyWire =
                     Saved = value.Saved,
                     Applied = value.Applied,
                     Pending = value.Pending,
-                    PendingProblem = Option.defaultValue "" value.Problem,
-                    Invalidation = "Not available for this game"
+                    PendingProblem = Option.defaultValue "" value.Problem
                 )
 
             result.Entries.AddRange(value.Snapshot.Entries |> Seq.map entry)

@@ -149,7 +149,7 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
 
                         match owned with
                         | Ok receipt when receipt.Phase = RootCreationPhase.Complete ->
-                            let definition = Skyrim.forGame selection.GameId
+                            let definition = GameCatalog.forGame selection.GameId
 
                             let! installation, evidence =
                                 Task.Run(fun () ->
@@ -162,26 +162,23 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                             value.Executable <> "" && value.Prefix <> "")
 
                                     let evidence =
-                                        match selection.GameId, selection.Proton, wine with
-                                        | GameId.SkyrimSpecialEditionSteam, Some proton, None when
-                                            installation.Valid
-                                            ->
+                                        match
+                                            GameCatalog.steam selection.GameId,
+                                            selection.Proton,
+                                            wine
+                                        with
+                                        | true, Some proton, None when installation.Valid ->
                                             ModConductor.ProtonContexts.Validation.inspect
                                                 installation
                                                 proton
-                                        | GameId.SkyrimSpecialEditionSteam, None, None ->
-                                            installation
-                                        | (GameId.SkyrimSpecialEditionDirect | GameId.SkyrimSpecialEditionGog),
-                                          None,
-                                          Some wine when
+                                        | true, None, None -> installation
+                                        | false, None, Some wine when
                                             installation.Valid && OperatingSystem.IsLinux()
                                             ->
                                             ModConductor.WineContexts.WineValidation.inspect
                                                 installation
                                                 wine
-                                        | (GameId.SkyrimSpecialEditionDirect | GameId.SkyrimSpecialEditionGog),
-                                          None,
-                                          None -> installation
+                                        | false, None, None -> installation
                                         | _ ->
                                             { installation with
                                                 Problems =
@@ -198,7 +195,7 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                 | Some _, Some proton when
                                     OperatingSystem.IsLinux()
                                     && installation.Valid
-                                    && proton.AppId = Skyrim.definition.SteamAppId
+                                    && GameCatalog.steamApp selection.GameId proton.AppId
                                     ->
                                     evidence.Problems
                                     |> List.exists (fun problem ->

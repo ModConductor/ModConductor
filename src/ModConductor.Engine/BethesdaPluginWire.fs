@@ -14,6 +14,8 @@ module internal BethesdaPluginWire =
         | PluginKind.Master -> "Master"
         | PluginKind.LightPlugin -> "Light plugin"
         | PluginKind.LightMaster -> "Light master"
+        | PluginKind.MediumPlugin -> "Medium plugin"
+        | PluginKind.MediumMaster -> "Medium master"
 
     let source target (value: PluginSource) =
         let output = BethesdaPluginSource(Name = value.Name, Version = value.Version)
@@ -81,8 +83,16 @@ module internal BethesdaPluginWire =
                     FlagLabels =
                         ([ if header.Flags &&& 1u <> 0u then
                                "Master"
-                           if header.Flags &&& 0x200u <> 0u then
+                           if
+                               header.Kind = PluginKind.LightPlugin
+                               || header.Kind = PluginKind.LightMaster
+                           then
                                "Light"
+                           if
+                               header.Kind = PluginKind.MediumPlugin
+                               || header.Kind = PluginKind.MediumMaster
+                           then
+                               "Medium"
                            if header.Localized then
                                "Localized" ]
                          |> function

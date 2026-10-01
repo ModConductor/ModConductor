@@ -139,6 +139,7 @@ let internal mapGrpc (app: WebApplication) =
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProtonContextService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.GameContextService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.GameCatalogueService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SettingsService>() |> ignore

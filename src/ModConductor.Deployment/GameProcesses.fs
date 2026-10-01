@@ -58,23 +58,23 @@ module internal GameProcesses =
             None
 
     let checkWithRoot (evidence: InstallationEvidence) (runnableRoot: string option) =
+        let definition = GameCatalog.forGame evidence.DefinitionId
+
         let names =
-            [ Skyrim.definition.Executable
-              Skyrim.definition.Launcher
-              "skse64_loader.exe" ]
+            [ definition.Executable
+              definition.Launcher
+              GameCatalog.launchExecutable evidence.DefinitionId ]
+            @ ((GameCatalog.rules evidence.DefinitionId).ExtenderLoader |> Option.toList)
+            |> List.filter (String.IsNullOrWhiteSpace >> not)
 
         let targets =
             (evidence.Executable |> Option.map _.Path |> Option.toList)
             @ (evidence.LauncherPath |> Option.toList)
             @ (runnableRoot
-               |> Option.map (fun root ->
-                   [ Skyrim.definition.Executable
-                     Skyrim.definition.Launcher
-                     "skse64_loader.exe" ]
-                   |> List.map (fun name -> Path.Combine(root, name)))
+               |> Option.map (fun root -> names |> List.map (fun name -> Path.Combine(root, name)))
                |> Option.defaultValue [])
 
-        GameProcessObservation.read names
+        GameProcessObservation.read (names |> List.map Path.GetFileName)
         |> List.tryPick (fun running ->
             let paths =
                 (running.Executable |> Option.toList)
@@ -85,6 +85,7 @@ module internal GameProcesses =
             else
                 let named =
                     names
+                    |> List.map Path.GetFileName
                     |> List.exists (fun name ->
                         running.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase)
                         || running.ProcessName.Equals(

@@ -52,6 +52,7 @@ module internal GenerationCorrectionFixtures =
               LinkedBase = false
               Excluded = Set.empty
               OwnedFiles = []
+              OrderedFiles = Map.empty
               Working = []
               Previous = None
               Processes = [] }

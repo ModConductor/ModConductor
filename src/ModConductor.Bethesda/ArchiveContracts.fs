@@ -34,7 +34,8 @@ type ArchivePolicyIniStamp =
       Sha256: string }
 
 type ArchivePolicyInput =
-    { Headers: PluginSnapshot
+    { GameId: ModConductor.GameContexts.GameId
+      Headers: PluginSnapshot
       Order: PluginOrderView
       Explicit: ExplicitArchive list
       Ini: ArchivePolicyIniStamp }

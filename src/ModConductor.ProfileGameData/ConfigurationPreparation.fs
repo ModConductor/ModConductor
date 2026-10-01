@@ -6,6 +6,7 @@ open ModConductor.Platform
 module internal ConfigurationPreparation =
     let prepare
         (repository: IProfileDataRepository)
+        game
         (context: ProfileDataContext)
         (action: ProfileDataActionRecord)
         (profile: PrivateProfileData)
@@ -40,7 +41,7 @@ module internal ConfigurationPreparation =
                 let! staged = staged
                 let settings = profile.Settings.Value
                 use target = HeldDirectory.Open(settings.Path, settings.Identity)
-                let! actual = ConfigurationFiles.actualName target receipt.Name
+                let! actual = ConfigurationFiles.actualName game target receipt.Name
 
                 if actual <> receipt.Name && receipt.Before.IsNone then
                     DataFiles.fail (receipt.Name + " changed.")

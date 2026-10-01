@@ -5,7 +5,7 @@ open ModConductor.DeploymentRecovery
 
 module internal GenerationDescription =
     let observed (request: BuildRequest) (sources: GenerationSources) visibility =
-        (if request.LinkedBase then Map.empty else sources.Files)
+        sources.Files
         |> Map.toList
         |> List.choose (fun (pin, backing) ->
             match pin with
@@ -21,6 +21,9 @@ module internal GenerationDescription =
                         Visibility.sources target visibility
                         |> List.filter (fun value -> value.Source = pin)
                         |> List.map (fun _ -> target))
+                    |> List.filter (fun target ->
+                        not request.LinkedBase
+                        || GenerationFiles.baseAtTarget request sources target pin)
 
                 contributions
                 |> List.tryHead

@@ -32,25 +32,45 @@ module internal Descriptor =
         else
             Ok(IO.Path.Combine(runnableRoot, IO.Path.GetRelativePath(sourceRoot, candidate)))
 
-    let private loaderPath sourceRoot runnableRoot (loader: ComponentLoader) =
+    let private loaderPath expected sourceRoot runnableRoot (loader: ComponentLoader) =
         let candidate = IO.Path.GetFullPath loader.Executable
-        let directory = IO.Path.GetDirectoryName candidate
+        let installed = IO.Path.GetFullPath(IO.Path.Combine(sourceRoot, expected))
 
-        if
-            String.Equals(
-                directory,
-                IO.Path.GetFullPath sourceRoot,
-                StringComparison.OrdinalIgnoreCase
-            )
-            && String.Equals(
-                IO.Path.GetFileName candidate,
-                "skse64_loader.exe",
-                StringComparison.OrdinalIgnoreCase
-            )
-        then
-            Ok(IO.Path.Combine(runnableRoot, "skse64_loader.exe"))
+        if String.Equals(candidate, installed, StringComparison.OrdinalIgnoreCase) then
+            Ok(IO.Path.Combine(runnableRoot, expected))
         else
-            Error "The installed SKSE loader path is invalid. Check SKSE before Play."
+            Error "The installed script extender path is invalid. Check it before Play."
+
+    let private gamePath game (evidence: InstallationEvidence) runnableRoot =
+        if game <> GameId.OblivionRemasteredSteam then
+            Ok(
+                IO.Path.Combine(
+                    runnableRoot,
+                    IO.Path.GetRelativePath(evidence.RootPath, evidence.Executable.Value.Path)
+                )
+            )
+        else
+            let resolve parent expected =
+                parent
+                |> Result.bind (fun path ->
+                    match
+                        IO.Directory.EnumerateFileSystemEntries path
+                        |> Seq.filter (fun entry ->
+                            IO.Path
+                                .GetFileName(entry)
+                                .Equals(expected, StringComparison.OrdinalIgnoreCase))
+                        |> Seq.toList
+                    with
+                    | [ actual ] -> Ok actual
+                    | _ ->
+                        Error "The selected game executable is unavailable or has ambiguous names.")
+
+            try
+                (Ok runnableRoot, (GameCatalog.launchExecutable game).Split('/'))
+                ||> Array.fold resolve
+            with
+            | :? IO.IOException
+            | :? UnauthorizedAccessException -> Error "The selected game executable is unavailable."
 
     let internal createWithHost
         hostWindows
@@ -63,11 +83,19 @@ module internal Descriptor =
         match state.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             let evidence = binding.Evidence
-            let definition = Skyrim.forGame binding.GameId
-            let app = string definition.SteamAppId
+            let definition = GameCatalog.forGame binding.GameId
+
+            let app =
+                string (
+                    binding.Proton
+                    |> Option.map _.AppId
+                    |> Option.defaultValue definition.SteamAppId
+                )
+
+            let arguments = GameCatalog.arguments binding.GameId
 
             let environment =
-                (if binding.GameId = GameId.SkyrimSpecialEditionSteam then
+                (if GameCatalog.steam binding.GameId then
                      [ "SteamAppId", Some app; "SteamGameId", Some app ]
                  else
                      [ "SteamAppId"
@@ -84,21 +112,21 @@ module internal Descriptor =
 
             let selected =
                 match loader with
-                | None ->
-                    Ok(
-                        IO.Path.Combine(
-                            runnableRoot,
-                            IO.Path.GetFileName evidence.Executable.Value.Path
-                        )
-                    )
+                | None -> gamePath binding.GameId evidence runnableRoot
                 | Some loader when loader.GameSha256 <> evidence.Executable.Value.Sha256 ->
-                    Error "Skyrim changed after SKSE was installed. Check SKSE before Play."
-                | Some loader -> loaderPath evidence.RootPath runnableRoot loader
+                    Error
+                        "The game changed after the script extender was installed. Check it before Play."
+                | Some loader ->
+                    match (GameCatalog.rules binding.GameId).ExtenderLoader with
+                    | Some expected -> loaderPath expected evidence.RootPath runnableRoot loader
+                    | None ->
+                        Error "This installation does not support the selected script extender."
 
             let configured =
                 match configuration with
                 | Some value when value.GameSha256 <> evidence.Executable.Value.Sha256 ->
-                    Error "Skyrim changed after ENB was installed. Check ENB before Play."
+                    Error
+                        "The game changed after the graphics component was installed. Check it before Play."
                 | _ -> selected
 
             match configured, evidence.Platform, evidence.Proton with
@@ -108,7 +136,7 @@ module internal Descriptor =
                     binding.Id,
                     "Windows",
                     { Executable = executable
-                      Arguments = []
+                      Arguments = arguments
                       WorkingDirectory = runnableRoot
                       Environment = environment }
                 )
@@ -118,7 +146,7 @@ module internal Descriptor =
                     binding.Id,
                     proton.RuntimeName,
                     { Executable = launch.Executable
-                      Arguments = launch.Arguments @ [ executable ]
+                      Arguments = launch.Arguments @ [ executable ] @ arguments
                       WorkingDirectory = runnableRoot
                       Environment =
                         environment
@@ -140,7 +168,7 @@ module internal Descriptor =
                     binding.Id,
                     "Wine",
                     { Executable = wine.Selection.Executable
-                      Arguments = [ executable ]
+                      Arguments = executable :: arguments
                       WorkingDirectory = runnableRoot
                       Environment = environment @ [ "WINEPREFIX", Some wine.Selection.Prefix ] }
                 )

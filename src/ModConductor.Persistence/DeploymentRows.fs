@@ -122,8 +122,7 @@ module internal DeploymentRows =
             conflict <-
                 (existing.Pending.IsSome
                  || not existing.Links.IsEmpty
-                 || not existing.Directories.IsEmpty
-                 || not existing.Originals.IsEmpty)
+                 || not existing.Directories.IsEmpty)
                 && Preparation.overlappingRoots existing.Roots value.Roots
 
         if conflict then

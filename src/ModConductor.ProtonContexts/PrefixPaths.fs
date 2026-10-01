@@ -166,7 +166,17 @@ module internal PrefixPaths =
 
             let location =
                 try
-                    match shell key with
+                    let folder =
+                        if definition.Id = GameId.OblivionRemasteredSteam && label = "Saves" then
+                            user
+                            |> Option.map (fun profile ->
+                                ({ Text = expand profile + "\\Documents"
+                                   Expand = false }
+                                : WineRegistry.StringValue))
+                        else
+                            shell key
+
+                    match folder with
                     | None ->
                         Location.Unavailable
                             "The prefix registry does not declare this user folder."

@@ -34,7 +34,7 @@ namespace ModConductor.Protocol.V1 {
             "GAQgASgIEj4KD3JlcXVpcmVkX3JlYXNvbhgFIAEoDjIlLm1vZGNvbmR1Y3Rv",
             "ci52MS5QbHVnaW5SZXF1aXJlZFJlYXNvbkIKCghfZW5hYmxlZEIPCg1fbG9j",
             "a2VkX2luZGV4IjAKEFBsdWdpbk9yZGVySXNzdWUSDAoEbmFtZRgBIAEoCRIO",
-            "CgZkZXRhaWwYAiABKAkitgMKElByb2ZpbGVQbHVnaW5PcmRlchIyCglyZWZl",
+            "CgZkZXRhaWwYAiABKAkixgMKElByb2ZpbGVQbHVnaW5PcmRlchIyCglyZWZl",
             "cmVuY2UYASABKAsyHy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFSZWYS",
             "OAoHaGVhZGVycxgCIAEoCzInLm1vZGNvbmR1Y3Rvci52MS5CZXRoZXNkYVBs",
             "dWdpblNuYXBzaG90EjQKB2VudHJpZXMYAyADKAsyIy5tb2Rjb25kdWN0b3Iu",
@@ -44,34 +44,34 @@ namespace ModConductor.Protocol.V1 {
             "CBIPCgdhcHBsaWVkGAkgASgIEhgKEGV4dGVybmFsX2NoYW5nZWQYCiABKAgS",
             "DwoHcGVuZGluZxgLIAEoCBI0Cgd1bmtub3duGAwgAygLMiMubW9kY29uZHVj",
             "dG9yLnYxLlBsdWdpbk9yZGVyU2V0dGluZxIXCg9wZW5kaW5nX3Byb2JsZW0Y",
-            "DSABKAkisgEKGENoYW5nZVBsdWdpbk9yZGVyUmVxdWVzdBIxCghleHBlY3Rl",
-            "ZBgBIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlRGF0YVJlZhISCgpo",
-            "ZWFkZXJzX2lkGAIgASgJEg0KBW5hbWVzGAMgAygJEhEKB2VuYWJsZWQYBCAB",
-            "KAhIABIRCgdtb3ZlX3VwGAUgASgISAASEAoGbG9ja2VkGAYgASgISABCCAoG",
-            "Y2hhbmdlImIKGVVzZUdhbWVQbHVnaW5PcmRlclJlcXVlc3QSMQoIZXhwZWN0",
-            "ZWQYASABKAsyHy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFSZWYSEgoK",
-            "aGVhZGVyc19pZBgCIAEoCSKLAQoQUGx1Z2luT3JkZXJSZXBseRI0CgVvcmRl",
-            "chgBIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlUGx1Z2luT3JkZXJI",
-            "ABI2Cgdwcm9ibGVtGAIgASgLMiMubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVE",
-            "YXRhUHJvYmxlbUgAQgkKB291dGNvbWUqiAEKFFBsdWdpblJlcXVpcmVkUmVh",
-            "c29uEiYKIlBMVUdJTl9SRVFVSVJFRF9SRUFTT05fVU5TUEVDSUZJRUQQABIh",
-            "Ch1QTFVHSU5fUkVRVUlSRURfUkVBU09OX0VOR0lORRABEiUKIVBMVUdJTl9S",
-            "RVFVSVJFRF9SRUFTT05fU0tZUklNX0lOSRACMrUCCgxQbHVnaW5PcmRlcnMS",
-            "XQoPUmVhZFBsdWdpbk9yZGVyEicubW9kY29uZHVjdG9yLnYxLlJlYWRQbHVn",
-            "aW5PcmRlclJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuUGx1Z2luT3JkZXJS",
-            "ZXBseRJhChFDaGFuZ2VQbHVnaW5PcmRlchIpLm1vZGNvbmR1Y3Rvci52MS5D",
-            "aGFuZ2VQbHVnaW5PcmRlclJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuUGx1",
-            "Z2luT3JkZXJSZXBseRJjChJVc2VHYW1lUGx1Z2luT3JkZXISKi5tb2Rjb25k",
-            "dWN0b3IudjEuVXNlR2FtZVBsdWdpbk9yZGVyUmVxdWVzdBohLm1vZGNvbmR1",
-            "Y3Rvci52MS5QbHVnaW5PcmRlclJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJv",
-            "dG9jb2wuVjFiBnByb3RvMw=="));
+            "DSABKAkSDgoGbWVkaXVtGA4gASgFIrIBChhDaGFuZ2VQbHVnaW5PcmRlclJl",
+            "cXVlc3QSMQoIZXhwZWN0ZWQYASABKAsyHy5tb2Rjb25kdWN0b3IudjEuUHJv",
+            "ZmlsZURhdGFSZWYSEgoKaGVhZGVyc19pZBgCIAEoCRINCgVuYW1lcxgDIAMo",
+            "CRIRCgdlbmFibGVkGAQgASgISAASEQoHbW92ZV91cBgFIAEoCEgAEhAKBmxv",
+            "Y2tlZBgGIAEoCEgAQggKBmNoYW5nZSJiChlVc2VHYW1lUGx1Z2luT3JkZXJS",
+            "ZXF1ZXN0EjEKCGV4cGVjdGVkGAEgASgLMh8ubW9kY29uZHVjdG9yLnYxLlBy",
+            "b2ZpbGVEYXRhUmVmEhIKCmhlYWRlcnNfaWQYAiABKAkiiwEKEFBsdWdpbk9y",
+            "ZGVyUmVwbHkSNAoFb3JkZXIYASABKAsyIy5tb2Rjb25kdWN0b3IudjEuUHJv",
+            "ZmlsZVBsdWdpbk9yZGVySAASNgoHcHJvYmxlbRgCIAEoCzIjLm1vZGNvbmR1",
+            "Y3Rvci52MS5Qcm9maWxlRGF0YVByb2JsZW1IAEIJCgdvdXRjb21lKogBChRQ",
+            "bHVnaW5SZXF1aXJlZFJlYXNvbhImCiJQTFVHSU5fUkVRVUlSRURfUkVBU09O",
+            "X1VOU1BFQ0lGSUVEEAASIQodUExVR0lOX1JFUVVJUkVEX1JFQVNPTl9FTkdJ",
+            "TkUQARIlCiFQTFVHSU5fUkVRVUlSRURfUkVBU09OX1NLWVJJTV9JTkkQAjK1",
+            "AgoMUGx1Z2luT3JkZXJzEl0KD1JlYWRQbHVnaW5PcmRlchInLm1vZGNvbmR1",
+            "Y3Rvci52MS5SZWFkUGx1Z2luT3JkZXJSZXF1ZXN0GiEubW9kY29uZHVjdG9y",
+            "LnYxLlBsdWdpbk9yZGVyUmVwbHkSYQoRQ2hhbmdlUGx1Z2luT3JkZXISKS5t",
+            "b2Rjb25kdWN0b3IudjEuQ2hhbmdlUGx1Z2luT3JkZXJSZXF1ZXN0GiEubW9k",
+            "Y29uZHVjdG9yLnYxLlBsdWdpbk9yZGVyUmVwbHkSYwoSVXNlR2FtZVBsdWdp",
+            "bk9yZGVyEioubW9kY29uZHVjdG9yLnYxLlVzZUdhbWVQbHVnaW5PcmRlclJl",
+            "cXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuUGx1Z2luT3JkZXJSZXBseUIbqgIY",
+            "TW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.BethesdaPluginsReflection.Descriptor, global::ModConductor.Protocol.V1.ProfileDataReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.PluginRequiredReason), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadPluginOrderRequest), global::ModConductor.Protocol.V1.ReadPluginOrderRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "HeadersId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PluginOrderSetting), global::ModConductor.Protocol.V1.PluginOrderSetting.Parser, new[]{ "Name", "Enabled", "LockedIndex", "Required", "RequiredReason" }, new[]{ "Enabled", "LockedIndex" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PluginOrderIssue), global::ModConductor.Protocol.V1.PluginOrderIssue.Parser, new[]{ "Name", "Detail" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfilePluginOrder), global::ModConductor.Protocol.V1.ProfilePluginOrder.Parser, new[]{ "Reference", "Headers", "Entries", "Issues", "Full", "Light", "FullLimit", "Saved", "Applied", "ExternalChanged", "Pending", "Unknown", "PendingProblem" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfilePluginOrder), global::ModConductor.Protocol.V1.ProfilePluginOrder.Parser, new[]{ "Reference", "Headers", "Entries", "Issues", "Full", "Light", "FullLimit", "Saved", "Applied", "ExternalChanged", "Pending", "Unknown", "PendingProblem", "Medium" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ChangePluginOrderRequest), global::ModConductor.Protocol.V1.ChangePluginOrderRequest.Parser, new[]{ "Expected", "HeadersId", "Names", "Enabled", "MoveUp", "Locked" }, new[]{ "Change" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.UseGamePluginOrderRequest), global::ModConductor.Protocol.V1.UseGamePluginOrderRequest.Parser, new[]{ "Expected", "HeadersId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PluginOrderReply), global::ModConductor.Protocol.V1.PluginOrderReply.Parser, new[]{ "Order", "Problem" }, new[]{ "Outcome" }, null, null, null)
@@ -1023,6 +1023,7 @@ namespace ModConductor.Protocol.V1 {
       pending_ = other.pending_;
       unknown_ = other.unknown_.Clone();
       pendingProblem_ = other.pendingProblem_;
+      medium_ = other.medium_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1185,6 +1186,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "medium" field.</summary>
+    public const int MediumFieldNumber = 14;
+    private int medium_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int Medium {
+      get { return medium_; }
+      set {
+        medium_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1213,6 +1226,7 @@ namespace ModConductor.Protocol.V1 {
       if (Pending != other.Pending) return false;
       if(!unknown_.Equals(other.unknown_)) return false;
       if (PendingProblem != other.PendingProblem) return false;
+      if (Medium != other.Medium) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1233,6 +1247,7 @@ namespace ModConductor.Protocol.V1 {
       if (Pending != false) hash ^= Pending.GetHashCode();
       hash ^= unknown_.GetHashCode();
       if (PendingProblem.Length != 0) hash ^= PendingProblem.GetHashCode();
+      if (Medium != 0) hash ^= Medium.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1294,6 +1309,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(106);
         output.WriteString(PendingProblem);
       }
+      if (Medium != 0) {
+        output.WriteRawTag(112);
+        output.WriteInt32(Medium);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1347,6 +1366,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(106);
         output.WriteString(PendingProblem);
       }
+      if (Medium != 0) {
+        output.WriteRawTag(112);
+        output.WriteInt32(Medium);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1389,6 +1412,9 @@ namespace ModConductor.Protocol.V1 {
       size += unknown_.CalculateSize(_repeated_unknown_codec);
       if (PendingProblem.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(PendingProblem);
+      }
+      if (Medium != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Medium);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1440,6 +1466,9 @@ namespace ModConductor.Protocol.V1 {
       unknown_.Add(other.unknown_);
       if (other.PendingProblem.Length != 0) {
         PendingProblem = other.PendingProblem;
+      }
+      if (other.Medium != 0) {
+        Medium = other.Medium;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1518,6 +1547,10 @@ namespace ModConductor.Protocol.V1 {
             PendingProblem = input.ReadString();
             break;
           }
+          case 112: {
+            Medium = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -1593,6 +1626,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 106: {
             PendingProblem = input.ReadString();
+            break;
+          }
+          case 112: {
+            Medium = input.ReadInt32();
             break;
           }
         }

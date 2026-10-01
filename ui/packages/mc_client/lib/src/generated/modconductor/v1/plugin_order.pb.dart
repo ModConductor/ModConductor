@@ -288,6 +288,7 @@ class ProfilePluginOrder extends $pb.GeneratedMessage {
     $core.bool? pending,
     $core.Iterable<PluginOrderSetting>? unknown,
     $core.String? pendingProblem,
+    $core.int? medium,
   }) {
     final result = create();
     if (reference != null) result.reference = reference;
@@ -303,6 +304,7 @@ class ProfilePluginOrder extends $pb.GeneratedMessage {
     if (pending != null) result.pending = pending;
     if (unknown != null) result.unknown.addAll(unknown);
     if (pendingProblem != null) result.pendingProblem = pendingProblem;
+    if (medium != null) result.medium = medium;
     return result;
   }
 
@@ -338,6 +340,7 @@ class ProfilePluginOrder extends $pb.GeneratedMessage {
     ..pPM<PluginOrderSetting>(12, _omitFieldNames ? '' : 'unknown',
         subBuilder: PluginOrderSetting.create)
     ..aOS(13, _omitFieldNames ? '' : 'pendingProblem')
+    ..aI(14, _omitFieldNames ? '' : 'medium')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -461,6 +464,15 @@ class ProfilePluginOrder extends $pb.GeneratedMessage {
   $core.bool hasPendingProblem() => $_has(12);
   @$pb.TagNumber(13)
   void clearPendingProblem() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.int get medium => $_getIZ(13);
+  @$pb.TagNumber(14)
+  set medium($core.int value) => $_setSignedInt32(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasMedium() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearMedium() => $_clearField(14);
 }
 
 enum ChangePluginOrderRequest_Change { enabled, moveUp, locked, notSet }

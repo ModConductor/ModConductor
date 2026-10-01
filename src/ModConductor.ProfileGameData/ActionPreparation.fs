@@ -65,6 +65,7 @@ module internal DataActionPreparation =
     let prepare
         (repository: IProfileDataRepository)
         context
+        game
         (action: ProfileDataActionRecord)
         (incoming: PrivateProfileData option)
         desiredPlugins
@@ -93,8 +94,10 @@ module internal DataActionPreparation =
                 let settings =
                     SettingsPreparation.prepare
                         context
+                        game
                         incoming
                         outgoing
+                        desiredPlugins
                         action.WorkspaceStage.Value
                         action.DocumentsStage.Value
                         token
@@ -105,6 +108,7 @@ module internal DataActionPreparation =
                     PluginPreparation.prepare
                         repository
                         context
+                        game
                         action
                         incoming
                         desiredPlugins

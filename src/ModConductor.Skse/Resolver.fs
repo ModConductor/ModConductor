@@ -118,6 +118,7 @@ module SkseResolver =
                             Some false
                         else
                             None
+                    | _ -> None
 
                 let ordered =
                     available

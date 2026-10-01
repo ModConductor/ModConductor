@@ -99,7 +99,12 @@ module internal SaveGroups =
             let! groups =
                 selected
                 |> ProfileDataResultFlow.traverse (fun name ->
-                    SaveGroupInspection.observe sourceRoot name token)
+                    SaveGroupInspection.observe
+                        (ModConductor.GameContexts.GameCatalog.rules
+                            scope.Game.Binding.Value.GameId)
+                        sourceRoot
+                        name
+                        token)
 
             let names = targetNames action targetRoot
 

@@ -8,6 +8,7 @@ open System.Threading.Tasks
 open ModConductor.Platform
 open ModConductor.DeploymentPlanning
 open ModConductor.FilePlanning
+open ModConductor.GameContexts
 
 /// One disposable read result. It is neither deployment input nor a persisted plugin inventory.
 type PluginSession(repository: IFileCandidateRepository) =
@@ -36,17 +37,36 @@ type PluginSession(repository: IFileCandidateRepository) =
               Name = "Game folder"
               Version = "" }
 
-    let readHeader workspace name source token =
+    let readHeader (rules: GameRules) workspace (name: string) source token =
+        let read (stream: FileStream) =
+            let header =
+                if
+                    name.EndsWith(".esl", StringComparison.OrdinalIgnoreCase)
+                    && not rules.SupportsLight
+                then
+                    Error(HeaderError.Unsupported "This game does not support light plugins.")
+                else
+                    HeaderReader.readFor rules name stream token
+
+            let modified =
+                if rules.Ordering = PluginOrdering.FileTime then
+                    Some(File.GetLastWriteTimeUtc stream.SafeFileHandle)
+                else
+                    None
+
+            header, modified
+
         task {
             match source with
             | CandidateSource.Observed source ->
                 try
                     use stream = CandidateFiles.openObserved source
-                    return HeaderReader.read name stream token
+                    return read stream
                 with
-                | :? IOException as error -> return Error(HeaderError.Unavailable error.Message)
+                | :? IOException as error ->
+                    return Error(HeaderError.Unavailable error.Message), None
                 | :? UnauthorizedAccessException ->
-                    return Error(HeaderError.Unavailable "The plugin file cannot be read.")
+                    return Error(HeaderError.Unavailable "The plugin file cannot be read."), None
             | CandidateSource.Pinned pin ->
                 let! opened = repository.OpenManaged(workspace, pin, token)
 
@@ -57,21 +77,59 @@ type PluginSession(repository: IFileCandidateRepository) =
                         Error(
                             HeaderError.Unavailable
                                 "The selected plugin source cannot be read. Refresh and try again."
-                        )
+                        ),
+                        None
                 | Ok stream ->
                     use stream = stream
-                    return HeaderReader.read name stream token
+                    return read stream
         }
 
     let acquire profile token =
+        let lightExtensions =
+            GameCatalog.definitions
+            |> List.collect (fun game -> (GameCatalog.rules game.Id).LightExtensions)
+            |> List.distinct
+
         task {
             let! acquired =
-                CandidateFiles.acquire repository profile SkyrimPlugins.isCandidate 100000 token
+                CandidateFiles.acquire
+                    repository
+                    profile
+                    (fun path ->
+                        SkyrimPlugins.isCandidate path
+                        || (lightExtensions
+                            |> List.exists (fun expected ->
+                                expected.Equals(
+                                    LogicalPath.display path,
+                                    StringComparison.OrdinalIgnoreCase
+                                ))))
+                    100000
+                    token
 
             match acquired with
             | Error error -> return Error error
             | Ok observation ->
                 let sources = observation.Sources
+                let binding = sources.Context.Binding.Value
+
+                let selected =
+                    GameCatalog.runtimeRules
+                        binding.GameId
+                        binding.Evidence.Executable.Value.FileVersion
+
+                let light =
+                    selected.LightExtensions
+                    |> List.exists (fun expected ->
+                        observation.Plan.Files
+                        |> List.exists (fun file ->
+                            expected.Equals(
+                                LogicalPath.display file.Target.Path,
+                                StringComparison.OrdinalIgnoreCase
+                            )))
+
+                let rules =
+                    { selected with
+                        SupportsLight = selected.SupportsLight || light }
 
                 let files =
                     observation.Plan.Files
@@ -89,6 +147,12 @@ type PluginSession(repository: IFileCandidateRepository) =
                         )
                 else
                     let entries = ResizeArray<PluginEntry>()
+
+                    let modified =
+                        Collections.Generic.Dictionary<string, DateTime>(
+                            StringComparer.OrdinalIgnoreCase
+                        )
+
                     let mutable bytes = 0L
 
                     let add (entry: PluginEntry) =
@@ -121,8 +185,10 @@ type PluginSession(repository: IFileCandidateRepository) =
                         token.ThrowIfCancellationRequested()
                         let name = LogicalPath.display file.Target.Path
 
-                        let! header =
-                            readHeader sources.Stamp.WorkspaceId name file.Winner.Source token
+                        let! header, time =
+                            readHeader rules sources.Stamp.WorkspaceId name file.Winner.Source token
+
+                        time |> Option.iter (fun time -> modified[name] <- time)
 
                         add
                             { Name = name
@@ -145,6 +211,17 @@ type PluginSession(repository: IFileCandidateRepository) =
                               Ambiguity = Some conflict.Detail
                               Masters = [] }
 
+                    let ordered =
+                        if rules.Ordering = PluginOrdering.FileTime then
+                            entries
+                            |> Seq.sortBy (fun row ->
+                                match modified.TryGetValue row.Name with
+                                | true, time -> time
+                                | _ -> DateTime.MaxValue)
+                            |> Seq.toList
+                        else
+                            List.ofSeq entries
+
                     let! current = repository.Current sources.Stamp
 
                     match current with
@@ -156,7 +233,7 @@ type PluginSession(repository: IFileCandidateRepository) =
                                   Stamp = sources.Stamp
                                   ObservedAt = DateTimeOffset.UtcNow
                                   Stale = not current
-                                  Entries = MasterGraph.resolve (List.ofSeq entries)
+                                  Entries = MasterGraph.resolve ordered
                                   Problems =
                                     observation.Plan.InputProblems
                                     |> List.map (function

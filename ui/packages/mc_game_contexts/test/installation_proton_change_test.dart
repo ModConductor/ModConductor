@@ -7,7 +7,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_game_contexts/src/installation_dialog.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-import 'game_context_test.dart' show snapshot, Client;
+import 'game_context_test.dart' show snapshot, Client, definition;
 import 'proton_dialog_test.dart' show Discovery, SavingClient, empty;
 import 'steam_search_test.dart' show DiscoveryClient, candidate, report;
 
@@ -102,6 +102,17 @@ void main() {
           home: Scaffold(
             body: InstallationDialog(
               initial: manualState(),
+              catalogue: [
+                definition,
+                const GameDefinitionInfo(
+                  id: 'skyrim-se-gog',
+                  revision: 1,
+                  name: 'Skyrim Special Edition',
+                  storefront: 'GOG Windows',
+                  declaredSteamAppId: 0,
+                  capabilities: [],
+                ),
+              ],
               client: client,
               chooseDirectory: (_) async => null,
               onSaved: (_) {},

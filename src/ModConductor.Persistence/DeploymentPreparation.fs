@@ -148,23 +148,55 @@ module internal DeploymentPreparation =
                                         raise (RecoveryException RecoveryError.InvalidPlan)
 
                                     let game, target, originals =
-                                        GameViews.ensure workspaceLocation sources.Stamp.ProfileId
+                                        GameViews.ensure
+                                            workspaceLocation
+                                            sources.Stamp.ProfileId
+                                            (ModConductor.GameContexts.GameCatalog.forGame
+                                                evidence.DefinitionId)
 
-                                    let rootSource = GameViews.rootSource sourceGame gameRoot token
+                                    let target, dataOriginals =
+                                        RuntimeDataTarget.select
+                                            evidence
+                                            sources.Stamp.ProfileId
+                                            target
+                                            originals
+
+                                    let rootSource =
+                                        GameViews.rootSource
+                                            (ModConductor.GameContexts.GameCatalog.forGame
+                                                evidence.DefinitionId)
+                                            sourceGame
+                                            gameRoot
+                                            token
 
                                     let withAvailableScope
                                         (privateScope: ModConductor.ProfileGameData.ProfileDataScope)
                                         =
                                         task {
                                             let excluded, ownedFiles =
-                                                GameViews.selection
+                                                GameViewPlugins.selection
+                                                    evidence
                                                     sourceGame
                                                     observation.Snapshot.Files
-                                                    (privateScope.Profile
-                                                     |> Option.bind _.PluginOrder)
+                                                    privateScope
                                                     sources.Stamp.WorkspaceId
                                                     gameRoot
                                                     token
+
+                                            let excluded =
+                                                if
+                                                    gameFolderOnly
+                                                    && evidence.DefinitionId = ModConductor.GameContexts.GameId.StarfieldSteam
+                                                then
+                                                    observation.Snapshot.Files
+                                                    |> List.map (fun file ->
+                                                        ({ Root = sources.Stamp.WorkspaceId
+                                                           Path = file.Path }
+                                                        : TargetFile))
+                                                    |> Set.ofList
+                                                    |> Set.union excluded
+                                                else
+                                                    excluded
 
                                             let expectedLocations =
                                                 [ sources.Stamp.WorkspaceId, target
@@ -211,7 +243,13 @@ module internal DeploymentPreparation =
                                                                       Policy =
                                                                         ModConductor.GameContexts.Skyrim.definition.TargetPolicy }
                                                                   Directory = directory
-                                                                  Originals = originals })
+                                                                  Originals =
+                                                                    if
+                                                                        root = sources.Stamp.WorkspaceId
+                                                                    then
+                                                                        dataOriginals
+                                                                    else
+                                                                        originals })
 
                                                     token.ThrowIfCancellationRequested()
 
@@ -282,6 +320,15 @@ module internal DeploymentPreparation =
                                                                   LinkedBase = true
                                                                   Excluded = excluded
                                                                   OwnedFiles = ownedFiles
+                                                                  OrderedFiles =
+                                                                    GameViewPlugins.ordered
+                                                                        evidence
+                                                                        observation.Snapshot.Files
+                                                                        (privateScope.Profile
+                                                                         |> Option.bind
+                                                                             _.PluginOrder)
+                                                                        sources.Stamp.WorkspaceId
+                                                                        token
                                                                   Working = working
                                                                   Previous = previous
                                                                   Processes = [] }
@@ -495,6 +542,7 @@ module internal DeploymentPreparation =
                                             sources.Stamp.WorkspaceId
                                             sources.Stamp.ProfileId
                                             contextId
+                                            (RuntimeDataTarget.path evidence)
                                             token
 
                                     match clearedPrevious with

@@ -93,7 +93,14 @@ module internal ProfileDataActionPreparation =
         match action.Kind with
         | ProfileDataActionKind.ApplyArchives _
         | ProfileDataActionKind.RestoreArchives ->
-            ArchivePreparation.prepare repository archives context action incoming.Value token
+            ArchivePreparation.prepare
+                repository
+                archives
+                scope.Game
+                context
+                action
+                incoming.Value
+                token
         | ProfileDataActionKind.SaveFiles _ ->
             SavePreparation.prepare repository scope context action incoming.Value token progress
         | ProfileDataActionKind.EditConfiguration receipt ->
@@ -101,6 +108,7 @@ module internal ProfileDataActionPreparation =
                 let! prepared =
                     ConfigurationPreparation.prepare
                         repository
+                        scope.Game
                         context
                         action
                         incoming.Value
@@ -109,7 +117,15 @@ module internal ProfileDataActionPreparation =
 
                 return prepared |> Result.map (fun action -> context, action)
             }
-        | _ -> DataActionPreparation.prepare repository context action incoming desiredPlugins token
+        | _ ->
+            DataActionPreparation.prepare
+                repository
+                context
+                scope.Game
+                action
+                incoming
+                desiredPlugins
+                token
 
     let finishDeletion
         (repository: IProfileDataRepository)

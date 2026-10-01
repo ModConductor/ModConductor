@@ -12,6 +12,41 @@ module private DeploymentProjectionHelpers =
         List.truncate a.Length b = a
 
 module internal DeploymentProjection =
+    let private activeShared
+        connection
+        transaction
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
+        =
+        let target =
+            if evidence.DefinitionId <> ModConductor.GameContexts.GameId.StarfieldSteam then
+                None
+            else
+                match evidence.Locations.Documents with
+                | ModConductor.GameContexts.Location.Located(path, _) ->
+                    Some(System.IO.Path.Combine(path, "Data"))
+                | _ -> None
+
+        target
+        |> Option.bind (fun target ->
+            use query =
+                Sqlite.command connection transaction "SELECT id FROM deployment_contexts" []
+
+            use reader = query.ExecuteReader()
+
+            let ids =
+                [ while reader.Read() do
+                      yield Guid.Parse(reader.GetString 0) ]
+
+            reader.Close()
+
+            ids
+            |> List.tryPick (fun id ->
+                DeploymentRows.context connection transaction id
+                |> Option.filter (fun context ->
+                    (context.Pending.IsSome || not context.Links.IsEmpty)
+                    && context.Roots
+                       |> List.exists (fun root -> HostPath.value root.Directory.Path = target))))
+
     let private readWith candidate connection transaction owner (expected: SourceStamp) token =
         let included path =
             candidate |> Option.forall (fun predicate -> predicate path)
@@ -42,7 +77,9 @@ module internal DeploymentProjection =
                         ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence
                         |> id
 
-                    DeploymentRows.context connection transaction current
+                    activeShared connection transaction binding.Evidence
+                    |> Option.orElseWith (fun () ->
+                        DeploymentRows.context connection transaction current)
                     |> Option.orElseWith (fun () ->
                         ModConductor.Deployment.DeploymentContextId.legacyFingerprint
                             binding.Evidence
@@ -67,7 +104,17 @@ module internal DeploymentProjection =
 
                     let root =
                         context.Roots
-                        |> List.tryFind (fun root -> root.Root.Id = expected.WorkspaceId)
+                        |> List.tryFind (fun root ->
+                            match evidence with
+                            | Some evidence when
+                                evidence.DefinitionId = ModConductor.GameContexts.GameId.StarfieldSteam
+                                ->
+                                match evidence.Locations.Documents with
+                                | ModConductor.GameContexts.Location.Located(path, _) ->
+                                    System.IO.Path.Combine(path, "Data") = HostPath.value
+                                        root.Directory.Path
+                                | _ -> false
+                            | _ -> root.Root.Id = expected.WorkspaceId)
 
                     match evidence, root with
                     | Some _, Some root when
@@ -78,8 +125,14 @@ module internal DeploymentProjection =
                         // separate profile root and must not enter its source inventory.
                         Ok GameProjection.empty
                     | Some evidence, Some root when
-                        evidence.DataIdentity = Some root.Directory.Identity
-                        && evidence.DataPath = Some(HostPath.value root.Directory.Path)
+                        (evidence.DataIdentity = Some root.Directory.Identity
+                         && evidence.DataPath = Some(HostPath.value root.Directory.Path))
+                        || (evidence.DefinitionId = ModConductor.GameContexts.GameId.StarfieldSteam
+                            && match evidence.Locations.Documents with
+                               | ModConductor.GameContexts.Location.Located(path, _) ->
+                                   System.IO.Path.Combine(path, "Data") = HostPath.value
+                                       root.Directory.Path
+                               | _ -> false)
                         ->
                         match context.Active, candidate with
                         | Some id, None ->
@@ -92,8 +145,7 @@ module internal DeploymentProjection =
                         for link in
                             context.Links
                             |> List.filter (fun link ->
-                                link.Target.Root = expected.WorkspaceId
-                                && included link.Target.Path) do
+                                link.Target.Root = root.Root.Id && included link.Target.Path) do
                             if RecoveryFiles.observe context link.Target <> Some link.Entry then
                                 RecoveryFiles.fail "An active deployment link changed."
 
@@ -101,7 +153,7 @@ module internal DeploymentProjection =
                             context.Originals
                             |> List.choose (fun original ->
                                 if
-                                    original.Target.Root = expected.WorkspaceId
+                                    original.Target.Root = root.Root.Id
                                     && included original.Target.Path
                                     && context.Links
                                        |> List.exists (fun link ->
@@ -141,16 +193,14 @@ module internal DeploymentProjection =
                             { Directories =
                                 context.Directories
                                 |> List.filter (fun row ->
-                                    row.Target.Root = expected.WorkspaceId
-                                    && included row.Target.Path)
+                                    row.Target.Root = root.Root.Id && included row.Target.Path)
                                 |> List.map (fun row -> row.Target.Path, row.Identity)
                                 |> Map.ofList
                               Stamp = expected.Deployment
                               Links =
                                 context.Links
                                 |> List.filter (fun link ->
-                                    link.Target.Root = expected.WorkspaceId
-                                    && included link.Target.Path)
+                                    link.Target.Root = root.Root.Id && included link.Target.Path)
                                 |> List.map (fun link ->
                                     { Path = link.Target.Path
                                       Entry = link.Entry })

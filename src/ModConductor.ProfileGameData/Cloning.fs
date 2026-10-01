@@ -7,6 +7,7 @@ open ModConductor.Platform
 module internal ProfileCloning =
     let prepare
         (repository: IProfileDataRepository)
+        (game: ModConductor.GameContexts.GameContextState option)
         (initialContext: ProfileDataContext)
         (source: PrivateProfileData)
         (initial: ProfileDataActionRecord)
@@ -38,8 +39,10 @@ module internal ProfileCloning =
                     let! files, _, _ =
                         SettingsPreparation.prepare
                             context
+                            game.Value
                             (Some source)
                             (Some source)
+                            None
                             action.WorkspaceStage.Value
                             action.DocumentsStage.Value
                             token
@@ -67,7 +70,13 @@ module internal ProfileCloning =
 
                 // Finish recorded source replacements before cancellation can delete their stage.
                 let! copiedResult =
-                    DataEffects.run context action save CancellationToken.None captureCheckpoint
+                    DataEffects.run
+                        game.Value
+                        context
+                        action
+                        save
+                        CancellationToken.None
+                        captureCheckpoint
 
                 let! copied = copiedResult
 

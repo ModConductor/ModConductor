@@ -19,7 +19,7 @@ module internal GameViews =
         |> Result.defaultWith (fun _ ->
             raise (IOException "The game installation contains an invalid file name."))
 
-    let private child (parent: Location) name : Location =
+    let child (parent: Location) name : Location =
         use held = HeldDirectory.Open(parent.Path, parent.Identity)
 
         use directory =
@@ -37,11 +37,19 @@ module internal GameViews =
     let rootPath (workspace: HostPath) (profile: Guid) =
         Path.Combine(HostPath.value workspace, ".mc-game-views", profile.ToString("N"), "game")
 
-    let ensure (workspace: Location) (profile: Guid) =
+    let ensure
+        (workspace: Location)
+        (profile: Guid)
+        (definition: ModConductor.GameContexts.GameDefinition)
+        =
         let views = child workspace ".mc-game-views"
         let owned = child views (profile.ToString "N")
         let root = child owned "game"
-        let data = child root "Data"
+
+        let data =
+            definition.Data.Split([| '/'; '\\' |], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.fold child root
+
         let originals = child owned "originals"
         root, data, originals
 
@@ -89,7 +97,11 @@ module internal GameViews =
                 root.RemoveDirectory(".mc-game-views", viewsIdentity)
         | Some _ -> raise (IOException "The owned profile game folder changed.")
 
-    let private rootEntries (source: Location) (token: CancellationToken) =
+    let private rootEntries
+        (definition: ModConductor.GameContexts.GameDefinition)
+        (source: Location)
+        (token: CancellationToken)
+        =
         let files = ResizeArray<SnapshotFile>()
         let identities = ResizeArray<LogicalPath * FileIdentity>()
         let mutable count = 0
@@ -101,14 +113,51 @@ module internal GameViews =
             for name in directory.Names do
                 token.ThrowIfCancellationRequested()
 
+                let relative = String.concat "/" (prefix @ [ name ])
+
+                let creation =
+                    (ModConductor.GameContexts.GameCatalog.rules definition.Id).CreationFile
+
+                let rules = ModConductor.GameContexts.GameCatalog.rules definition.Id
+
+                let ownedConfiguration =
+                    rules.GameSettings
+                    |> Option.exists (fun folder ->
+                        definition.IniFiles
+                        |> List.exists (fun ini ->
+                            relative.Equals(
+                                (if folder = "" then ini else folder + "/" + ini),
+                                StringComparison.OrdinalIgnoreCase
+                            )))
+
+                let ownedPlugins =
+                    rules.GamePlugins
+                    |> Option.exists (fun folder ->
+                        [ "plugins.txt"; "loadorder.txt" ]
+                        |> List.exists (fun file ->
+                            relative.Equals(
+                                (if folder = "" then file else folder + "/" + file),
+                                StringComparison.OrdinalIgnoreCase
+                            )))
+
                 let reserved =
-                    prefix.IsEmpty
-                    && (name.Equals("Data", StringComparison.OrdinalIgnoreCase)
-                        || name.Equals("Skyrim.ccc", StringComparison.OrdinalIgnoreCase)
-                        || name.StartsWith(
-                            ".modconductor-originals-",
-                            StringComparison.OrdinalIgnoreCase
-                        ))
+                    ownedConfiguration
+                    || ownedPlugins
+                    || (rules.GameSaves
+                        |> Option.exists (fun path ->
+                            relative.Equals(path, StringComparison.OrdinalIgnoreCase)))
+                    || relative.Equals(
+                        definition.Data.Replace('\\', '/'),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    || (prefix.IsEmpty
+                        && ((creation
+                             |> Option.exists (fun file ->
+                                 name.Equals(file, StringComparison.OrdinalIgnoreCase)))
+                            || name.StartsWith(
+                                ".modconductor-originals-",
+                                StringComparison.OrdinalIgnoreCase
+                            )))
 
                 if not reserved then
                     count <- count + 1
@@ -165,8 +214,8 @@ module internal GameViews =
 
         List.ofSeq files, stamp
 
-    let rootSource source rootId token : SnapshotSource =
-        let files, stamp = rootEntries source token
+    let rootSource definition source rootId token : SnapshotSource =
+        let files, stamp = rootEntries definition source token
 
         { Snapshot =
             { Id = rootId
@@ -186,74 +235,3 @@ module internal GameViews =
             |> List.map (fun file -> file.Path, (SnapshotFile.metadata file).Value.Identity)
             |> Map.ofList
           Originals = Map.empty }
-
-    let selection
-        (source: Location)
-        (dataFiles: SnapshotFile list)
-        (saved: PluginOrder option)
-        dataRootId
-        gameRootId
-        (token: CancellationToken)
-        =
-        let gameSource: DataRoot =
-            { Path = source.Path
-              Identity = source.Identity }
-
-        let _, _, bytes = PluginInputs.readFile gameSource "Skyrim.ccc" token
-
-        let available =
-            dataFiles |> List.map (fun file -> LogicalPath.display file.Path) |> Set.ofList
-
-        let installed name =
-            available
-            |> Seq.exists (fun value -> value.Equals(name, StringComparison.OrdinalIgnoreCase))
-
-        let creation =
-            (UTF8Encoding(false, true).GetString bytes)
-                .Split([| '\r'; '\n' |], StringSplitOptions.RemoveEmptyEntries)
-            |> Array.map _.Trim()
-            |> Array.filter (fun name -> installed name && OrderDocument.canWriteName name)
-            |> Array.distinctBy _.ToUpperInvariant()
-            |> Array.toList
-
-        let selected name =
-            saved
-            |> Option.bind (fun order ->
-                order.Entries
-                |> List.tryFind (fun row ->
-                    row.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            |> Option.bind _.Enabled
-            |> Option.defaultValue true
-
-        let optional = (OrderRules.baseFiles |> List.skip 2) @ creation
-
-        let disabled = optional |> List.filter (selected >> not) |> List.filter installed
-
-        let excluded =
-            dataFiles
-            |> List.choose (fun file ->
-                let name = LogicalPath.display file.Path
-
-                if
-                    disabled
-                    |> List.exists (fun value ->
-                        value.Equals(name, StringComparison.OrdinalIgnoreCase))
-                then
-                    Some { Root = dataRootId; Path = file.Path }
-                else
-                    None)
-            |> Set.ofList
-
-        let ccc =
-            creation
-            |> List.filter selected
-            |> fun lines ->
-                if lines.IsEmpty then
-                    [||]
-                else
-                    Encoding.UTF8.GetBytes(String.concat "\r\n" lines + "\r\n")
-
-        excluded,
-        [ { Root = gameRootId
-            Path = path [ "Skyrim.ccc" ] },
-          ccc ]

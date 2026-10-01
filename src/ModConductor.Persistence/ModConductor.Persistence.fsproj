@@ -76,14 +76,16 @@
     <Compile Include="DeploymentRepository.fs" />
     <Compile Include="DeploymentProjection.fs" />
     <Compile Include="FilePlanRepository.fs" />
+    <Compile Include="GameViews.fs" />
+    <Compile Include="RuntimeDataTarget.fs" /><Compile Include="GameLocalData.fs" />
     <Compile Include="ProfileDataRepository.fs" />
     <Compile Include="GenerationProfile.fs" />
     <Compile Include="GenerationSources.fs" />
     <Compile Include="DeploymentGenerationStore.fs" />
     <Compile Include="SavedDeployments.fs" />
     <Compile Include="DeploymentOutputs.fs" />
-    <Compile Include="ComponentRoutes.fs" />
-    <Compile Include="GameViews.fs" />
+    <Compile Include="RemasteredComponents.fs" /><Compile Include="ComponentRoutes.fs" />
+    <Compile Include="GameViewPlugins.fs" />
     <Compile Include="DeploymentWorkspaceStorage.fs" />
     <Compile Include="DeploymentRetirement.fs" />
     <Compile Include="DeploymentTargetProjection.fs" />

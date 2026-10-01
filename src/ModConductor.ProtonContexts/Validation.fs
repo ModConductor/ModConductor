@@ -18,7 +18,7 @@ module Validation =
         (game: InstallationEvidence)
         (selection: ProtonSelection)
         : ContextFileEvidence list =
-        if selection.AppId <> Skyrim.definition.SteamAppId then
+        if not (GameCatalog.steamApp game.DefinitionId selection.AppId) then
             raise (IOException "The Proton selection belongs to another Steam app.")
 
         let roots =
@@ -170,7 +170,11 @@ module Validation =
                 PrefixFiles.text (4 * 1024 * 1024) (Path.Combine(prefix, "user.reg"))
 
             let registry = WineRegistry.read registryText
-            let paths = PrefixPaths.locations Skyrim.definition prefix prefixId registry
+
+            let definition =
+                GameCatalog.forRuntime game.DefinitionId game.Executable.Value.FileVersion
+
+            let paths = PrefixPaths.locations definition prefix prefixId registry
 
             checking <- compatdata
             context <- "The Proton prefix metadata could not be checked."
@@ -238,6 +242,10 @@ module Validation =
                           Saves = locate "Saves"
                           LocalAppData = locate "Local AppData" } }
 
+            let result =
+                { result with
+                    Locations = GameLocations.apply game.DefinitionId game.RootPath result.Locations }
+
             { result with
                 Fingerprint = ContextIdentity.fingerprint result }
         with (:? IOException | :? UnauthorizedAccessException | :? ArgumentException) as e ->
@@ -247,6 +255,10 @@ module Validation =
                         game.Problems
                         @ [ { Path = checking
                               Detail = context + " " + e.Message } ] }
+
+            let result =
+                { result with
+                    Locations = GameLocations.apply game.DefinitionId game.RootPath result.Locations }
 
             { result with
                 Fingerprint = ContextIdentity.fingerprint result }

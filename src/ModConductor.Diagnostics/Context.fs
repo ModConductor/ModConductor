@@ -123,9 +123,6 @@ type internal DiagnosticContext
                 context
                 |> Result.toOption
                 |> Option.bind (fun state ->
-                    DiagnosticAdmission.tryBinding
-                        workspace
-                        CapabilityId.SkyrimSpecialEdition
-                        state
+                    DiagnosticAdmission.tryBinding workspace CapabilityId.BethesdaGame state
                     |> Option.map (fun binding -> state, binding))
         }

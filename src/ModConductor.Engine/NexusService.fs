@@ -53,9 +53,16 @@ type NexusService
             | Ok state when
                 state.Binding
                 |> Option.exists (fun binding ->
-                    binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId).Revision)
+                    binding.Evidence.DefinitionRevision = (GameCatalog.forGame binding.GameId)
+                        .Revision)
                 ->
-                return Ok "skyrimspecialedition"
+                let selected = (GameCatalog.rules state.Binding.Value.GameId).NexusGame
+
+                return
+                    if selected = "" then
+                        Error NexusProblem.NotFound
+                    else
+                        Ok selected
             | Ok _
             | Error _ -> return Error NexusProblem.NotFound
         }

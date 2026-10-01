@@ -22,8 +22,10 @@ class InstallationDialog extends StatefulWidget {
     this.steamDiscovery,
     this.protonContexts,
     this.chooseExecutable,
+    this.catalogue = const [],
   });
   final GameContextState initial;
+  final List<GameDefinitionInfo> catalogue;
   final GameContextsClient client;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
@@ -40,6 +42,15 @@ class _InstallationDialogState extends State<InstallationDialog> {
     text: widget.initial.binding?.path ?? '',
   );
   late GameContextState current = widget.initial;
+  late GameDefinitionInfo selectedGame =
+      widget.initial.definition ?? widget.catalogue.first;
+  List<GameDefinitionInfo> get variants =>
+      widget.catalogue.where((game) => game.name == selectedGame.name).toList();
+  List<GameInstallationSource> get sources => variants.isEmpty
+      ? [GameInstallationSource.fromGameId(selectedGame.id)]
+      : variants
+            .map((game) => GameInstallationSource.fromGameId(game.id))
+            .toList();
   late GameInstallationSource source = GameInstallationSource.fromGameId(
     widget.initial.definition?.id,
   );
@@ -87,13 +98,13 @@ class _InstallationDialogState extends State<InstallationDialog> {
     if (busy || discovery == null) return;
     final search = steamSearch ??= SteamSearchController(
       discovery,
-      GameInstallationSource.steam.gameId,
+      selectedGame.id,
     );
     final path = await showDialog<String>(
       context: context,
       builder: (_) => SteamInstallationChooser(
         controller: search,
-        gameName: current.definition!.name,
+        gameName: selectedGame.name,
         chooseDirectory: widget.chooseDirectory,
       ),
     );
@@ -112,9 +123,9 @@ class _InstallationDialogState extends State<InstallationDialog> {
     final selected = await showDialog<ProtonSelection>(
       context: context,
       builder: (_) => ProtonDialog(
-        gameId: GameInstallationSource.steam.gameId,
-        gameName: current.definition!.name,
-        steamAppId: 489830,
+        gameId: selectedGame.id,
+        gameName: selectedGame.name,
+        steamAppId: selectedGame.declaredSteamAppId,
         gamePath: gamePath,
         client: client,
         chooseDirectory: widget.chooseDirectory,
@@ -141,7 +152,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
       final result = await widget.client.save(
         current.workspaceId,
         current.profileId,
-        source.gameId,
+        selectedGame.id,
         current.revision,
         folder.text,
         proton: source == GameInstallationSource.steam ? proton : null,
@@ -232,6 +243,24 @@ class _InstallationDialogState extends State<InstallationDialog> {
     if (busy || value == source) return;
     setState(() {
       source = value;
+      selectedGame = variants.firstWhere(
+        (game) => GameInstallationSource.fromGameId(game.id) == value,
+      );
+      proton = null;
+      wineExecutable.clear();
+      winePrefix.clear();
+      steamSearch?.dispose();
+      steamSearch = null;
+      error = null;
+    });
+  }
+
+  void selectGame(String name) {
+    if (busy || name == selectedGame.name) return;
+    setState(() {
+      selectedGame = widget.catalogue.firstWhere((game) => game.name == name);
+      source = GameInstallationSource.fromGameId(selectedGame.id);
+      folder.clear();
       proton = null;
       wineExecutable.clear();
       winePrefix.clear();
@@ -263,7 +292,12 @@ class _InstallationDialogState extends State<InstallationDialog> {
       ],
       children: [
         InstallationSetupFields(
-          gameName: current.definition!.name,
+          gameName: selectedGame.name,
+          gameChoices: widget.catalogue.isEmpty
+              ? [selectedGame.name]
+              : widget.catalogue.map((game) => game.name).toSet().toList(),
+          onGameChanged: selectGame,
+          sourceChoices: sources,
           source: source,
           onSourceChanged: selectSource,
           folder: folder,

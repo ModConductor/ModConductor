@@ -78,6 +78,10 @@ class _PluginsPaneState extends State<PluginsPane> {
             ),
             const SizedBox(height: 8),
           ],
+          if (order != null && !order.pending && order.problem.isNotEmpty) ...[
+            McStatus(title: order.problem, tone: McStatusTone.neutral),
+            const SizedBox(height: 8),
+          ],
           if (order?.pending == true) ...[
             McStatus(
               title: 'Plugin order was not fully applied',
@@ -147,7 +151,7 @@ class _PluginsPaneState extends State<PluginsPane> {
                   : controller.writing
                   ? 'Saving plugin order'
                   : order != null
-                  ? '${controller.rows.selectedIds.length > 1 ? '${controller.rows.selectedIds.length} selected · ' : ''}${order.full + order.light} enabled · ${controller.stale
+                  ? '${controller.rows.selectedIds.length > 1 ? '${controller.rows.selectedIds.length} selected · ' : ''}${order.entries.where((entry) => entry.enabled == true).length} enabled · ${controller.stale
                         ? 'Previous scan'
                         : order.issues.isNotEmpty
                         ? 'Needs attention'

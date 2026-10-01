@@ -255,6 +255,7 @@ module internal GenerationFixtures =
               LinkedBase = false
               Excluded = Set.empty
               OwnedFiles = []
+              OrderedFiles = Map.empty
               Working =
                 [ { Declaration = writableId
                     Initialized = false

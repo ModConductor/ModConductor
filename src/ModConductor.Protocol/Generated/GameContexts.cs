@@ -34,99 +34,104 @@ namespace ModConductor.Protocol.V1 {
             "ZV9pZBgFIAEoCRIPCgdnYW1lX2lkGAYgASgJEjAKBHdpbmUYByABKAsyIi5t",
             "b2Rjb25kdWN0b3IudjEuV2luZVNlbGVjdGlvbkluZm8iYAoZUmVmcmVzaEdh",
             "bWVDb250ZXh0UmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSGQoRZXhw",
-            "ZWN0ZWRfcmV2aXNpb24YAiABKAQSEgoKcHJvZmlsZV9pZBgDIAEoCSKHAgoS",
+            "ZWN0ZWRfcmV2aXNpb24YAiABKAQSEgoKcHJvZmlsZV9pZBgDIAEoCSLyAwoS",
             "R2FtZURlZmluaXRpb25JbmZvEhUKDWRlZmluaXRpb25faWQYASABKAkSEAoI",
             "cmV2aXNpb24YAiABKA0SDAoEbmFtZRgDIAEoCRISCgpzdG9yZWZyb250GAQg",
             "ASgJEh0KFWRlY2xhcmVkX3N0ZWFtX2FwcF9pZBgFIAEoDRJMChh1bmF2YWls",
             "YWJsZV9jYXBhYmlsaXRpZXMYBiADKAsyKi5tb2Rjb25kdWN0b3IudjEuVW5h",
             "dmFpbGFibGVHYW1lQ2FwYWJpbGl0eRI5CgxjYXBhYmlsaXRpZXMYByADKAsy",
-            "Iy5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFiaWxpdHlJbmZvIjkKGVVuYXZh",
-            "aWxhYmxlR2FtZUNhcGFiaWxpdHkSDAoEbmFtZRgBIAEoCRIOCgZyZWFzb24Y",
-            "AiABKAkiZwoVR2FtZUNhcGFiaWxpdHlDb250ZXh0EhUKDWRlZmluaXRpb25f",
-            "aWQYASABKAkSNwoJcGxhdGZvcm1zGAIgAygOMiQubW9kY29uZHVjdG9yLnYx",
-            "LkdhbWVDb250ZXh0UGxhdGZvcm0imQIKEkdhbWVDYXBhYmlsaXR5SW5mbxIV",
-            "Cg1jYXBhYmlsaXR5X2lkGAEgASgJEhAKCHJldmlzaW9uGAIgASgNEgwKBG5h",
-            "bWUYAyABKAkSMQoEa2luZBgEIAEoDjIjLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "Q2FwYWJpbGl0eUtpbmQSOAoIY29udGV4dHMYBSADKAsyJi5tb2Rjb25kdWN0",
-            "b3IudjEuR2FtZUNhcGFiaWxpdHlDb250ZXh0Ej8KC2Rpc3Bvc2l0aW9uGAYg",
-            "ASgOMioubW9kY29uZHVjdG9yLnYxLkdhbWVDYXBhYmlsaXR5RGlzcG9zaXRp",
-            "b24SEwoGcmVhc29uGAcgASgJSACIAQFCCQoHX3JlYXNvbiJtCgxHYW1lTG9j",
-            "YXRpb24SNQoHbG9jYXRlZBgBIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5Mb2Nh",
-            "dGVkR2FtZUZvbGRlckgAEhwKEnVuYXZhaWxhYmxlX3JlYXNvbhgCIAEoCUgA",
-            "QggKBnJlc3VsdCIxChFMb2NhdGVkR2FtZUZvbGRlchIMCgRwYXRoGAEgASgJ",
-            "Eg4KBmV4aXN0cxgCIAEoCCJ1ChZHYW1lRXhlY3V0YWJsZUV2aWRlbmNlEgwK",
-            "BHBhdGgYASABKAkSDgoGc2hhMjU2GAIgASgJEg4KBmxlbmd0aBgDIAEoBBIU",
-            "CgxmaWxlX3ZlcnNpb24YBCABKAkSFwoPcHJvZHVjdF92ZXJzaW9uGAUgASgJ",
-            "IjUKFUdhbWVWYWxpZGF0aW9uUHJvYmxlbRIMCgRwYXRoGAEgASgJEg4KBmRl",
-            "dGFpbBgCIAEoCSKYBQoYR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlEjYKCHBs",
-            "YXRmb3JtGAEgASgOMiQubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0UGxh",
-            "dGZvcm0SEQoJcm9vdF9wYXRoGAIgASgJEhYKCWRhdGFfcGF0aBgDIAEoCUgA",
-            "iAEBEjsKCmV4ZWN1dGFibGUYBCABKAsyJy5tb2Rjb25kdWN0b3IudjEuR2Ft",
-            "ZUV4ZWN1dGFibGVFdmlkZW5jZRIaCg1sYXVuY2hlcl9wYXRoGAUgASgJSAGI",
-            "AQESMAoJZG9jdW1lbnRzGAYgASgLMh0ubW9kY29uZHVjdG9yLnYxLkdhbWVM",
-            "b2NhdGlvbhIsCgVzYXZlcxgHIAEoCzIdLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "TG9jYXRpb24SNQoObG9jYWxfYXBwX2RhdGEYCCABKAsyHS5tb2Rjb25kdWN0",
-            "b3IudjEuR2FtZUxvY2F0aW9uEjgKCHByb2JsZW1zGAkgAygLMiYubW9kY29u",
-            "ZHVjdG9yLnYxLkdhbWVWYWxpZGF0aW9uUHJvYmxlbRIaChJjaGVja2VkX2F0",
-            "X3VuaXhfbXMYCiABKAMSEwoLZmluZ2VycHJpbnQYCyABKAkSFQoNZGVmaW5p",
-            "dGlvbl9pZBgMIAEoCRIbChNkZWZpbml0aW9uX3JldmlzaW9uGA0gASgNEjYK",
-            "BnByb3RvbhgOIAEoCzImLm1vZGNvbmR1Y3Rvci52MS5Qcm90b25Db250ZXh0",
-            "RXZpZGVuY2USMgoEd2luZRgPIAEoCzIkLm1vZGNvbmR1Y3Rvci52MS5XaW5l",
-            "Q29udGV4dEV2aWRlbmNlQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVyX3Bh",
-            "dGgijwIKD0dhbWVCaW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJEgwK",
-            "BHBhdGgYAiABKAkSOwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3Iu",
-            "djEuR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNrGAQg",
-            "ASgIEhQKB2ZhaWx1cmUYBSABKAlIAIgBARI0CgZwcm90b24YBiABKAsyJC5t",
-            "b2Rjb25kdWN0b3IudjEuUHJvdG9uU2VsZWN0aW9uSW5mbxIwCgR3aW5lGAcg",
-            "ASgLMiIubW9kY29uZHVjdG9yLnYxLldpbmVTZWxlY3Rpb25JbmZvQgoKCF9m",
-            "YWlsdXJlIroBChBHYW1lQ29udGV4dFN0YXRlEhQKDHdvcmtzcGFjZV9pZBgB",
-            "IAEoCRIQCghyZXZpc2lvbhgCIAEoBBI3CgpkZWZpbml0aW9uGAMgASgLMiMu",
-            "bW9kY29uZHVjdG9yLnYxLkdhbWVEZWZpbml0aW9uSW5mbxIxCgdiaW5kaW5n",
-            "GAQgASgLMiAubW9kY29uZHVjdG9yLnYxLkdhbWVCaW5kaW5nSW5mbxISCgpw",
-            "cm9maWxlX2lkGAUgASgJIpUBChBHYW1lQ29udGV4dEZhdWx0EjMKBGNvZGUY",
-            "ASABKA4yJS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRGYXVsdENvZGUS",
-            "DgoGZGV0YWlsGAIgASgJEjwKCWNhbmRpZGF0ZRgDIAEoCzIpLm1vZGNvbmR1",
-            "Y3Rvci52MS5HYW1lSW5zdGFsbGF0aW9uRXZpZGVuY2UihQEKEEdhbWVDb250",
-            "ZXh0UmVwbHkSMgoFc3RhdGUYASABKAsyIS5tb2Rjb25kdWN0b3IudjEuR2Ft",
-            "ZUNvbnRleHRTdGF0ZUgAEjIKBWZhdWx0GAIgASgLMiEubW9kY29uZHVjdG9y",
-            "LnYxLkdhbWVDb250ZXh0RmF1bHRIAEIJCgdvdXRjb21lIjcKEVdpbmVTZWxl",
-            "Y3Rpb25JbmZvEhIKCmV4ZWN1dGFibGUYASABKAkSDgoGcHJlZml4GAIgASgJ",
-            "IkwKE1dpbmVDb250ZXh0RXZpZGVuY2USNQoJc2VsZWN0aW9uGAEgASgLMiIu",
-            "bW9kY29uZHVjdG9yLnYxLldpbmVTZWxlY3Rpb25JbmZvKqEBChNHYW1lQ29u",
-            "dGV4dFBsYXRmb3JtEiUKIUdBTUVfQ09OVEVYVF9QTEFURk9STV9VTlNQRUNJ",
-            "RklFRBAAEiEKHUdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5ET1dTEAESIAoc",
-            "R0FNRV9DT05URVhUX1BMQVRGT1JNX1BST1RPThACEh4KGkdBTUVfQ09OVEVY",
-            "VF9QTEFURk9STV9XSU5FEAMq3wEKEkdhbWVDYXBhYmlsaXR5S2luZBIkCiBH",
-            "QU1FX0NBUEFCSUxJVFlfS0lORF9VTlNQRUNJRklFRBAAEiUKIUdBTUVfQ0FQ",
-            "QUJJTElUWV9LSU5EX0NPUkVfT1VUQ09NRRABEiUKIUdBTUVfQ0FQQUJJTElU",
-            "WV9LSU5EX0dBTUVfQURBUFRFUhACEigKJEdBTUVfQ0FQQUJJTElUWV9LSU5E",
-            "X09QVElPTkFMX0xFR0FDWRADEisKJ0dBTUVfQ0FQQUJJTElUWV9LSU5EX09C",
-            "U09MRVRFX01FQ0hBTklTTRAEKs0BChlHYW1lQ2FwYWJpbGl0eURpc3Bvc2l0",
-            "aW9uEisKJ0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9VTlNQRUNJRklF",
-            "RBAAEikKJUdBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9BVkFJTEFCTEUQ",
-            "ARIrCidHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5BVkFJTEFCTEUQ",
-            "AhIrCidHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5TVVBQT1JURUQQ",
-            "Ayr7AQoUR2FtZUNvbnRleHRGYXVsdENvZGUSIgoeR0FNRV9DT05URVhUX0ZB",
-            "VUxUX1VOU1BFQ0lGSUVEEAASIAocR0FNRV9DT05URVhUX0ZBVUxUX05PVF9G",
-            "T1VORBABEiUKIUdBTUVfQ09OVEVYVF9GQVVMVF9TVEFMRV9SRVZJU0lPThAC",
-            "EiwKKEdBTUVfQ09OVEVYVF9GQVVMVF9XT1JLU1BBQ0VfVU5BVkFJTEFCTEUQ",
-            "AxIrCidHQU1FX0NPTlRFWFRfRkFVTFRfSU5WQUxJRF9JTlNUQUxMQVRJT04Q",
-            "BBIbChdHQU1FX0NPTlRFWFRfRkFVTFRfQlVTWRAFMroCChVHYW1lQ29udGV4",
-            "dE9wZXJhdGlvbnMSXQoPUmVhZEdhbWVDb250ZXh0EicubW9kY29uZHVjdG9y",
-            "LnYxLlJlYWRHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEu",
-            "R2FtZUNvbnRleHRSZXBseRJdCg9TYXZlR2FtZUNvbnRleHQSJy5tb2Rjb25k",
-            "dWN0b3IudjEuU2F2ZUdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rv",
-            "ci52MS5HYW1lQ29udGV4dFJlcGx5EmMKElJlZnJlc2hHYW1lQ29udGV4dBIq",
-            "Lm1vZGNvbmR1Y3Rvci52MS5SZWZyZXNoR2FtZUNvbnRleHRSZXF1ZXN0GiEu",
-            "bW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0UmVwbHlCG6oCGE1vZENvbmR1",
-            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "Iy5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFiaWxpdHlJbmZvEhMKC2FydHdv",
+            "cmtfdXJsGAggASgJEhQKDHNldHRpbmdzX2luaRgJIAEoCRIXCg9wbHVnaW5f",
+            "b3JkZXJpbmcYCiABKAkSFgoOc2F2ZV9leHRlbnNpb24YCyABKAkSFQoNZXh0",
+            "ZW5kZXJfbmFtZRgMIAEoCRIXCg9leHRlbmRlcl9sb2FkZXIYDSABKAkSHgoW",
+            "c3VwcG9ydHNfbGlnaHRfcGx1Z2lucxgOIAEoCBIfChdzdXBwb3J0c19tZWRp",
+            "dW1fcGx1Z2lucxgPIAEoCBIcChRhcmNoaXZlX2ludmFsaWRhdGlvbhgQIAEo",
+            "CCI5ChlVbmF2YWlsYWJsZUdhbWVDYXBhYmlsaXR5EgwKBG5hbWUYASABKAkS",
+            "DgoGcmVhc29uGAIgASgJImcKFUdhbWVDYXBhYmlsaXR5Q29udGV4dBIVCg1k",
+            "ZWZpbml0aW9uX2lkGAEgASgJEjcKCXBsYXRmb3JtcxgCIAMoDjIkLm1vZGNv",
+            "bmR1Y3Rvci52MS5HYW1lQ29udGV4dFBsYXRmb3JtIpkCChJHYW1lQ2FwYWJp",
+            "bGl0eUluZm8SFQoNY2FwYWJpbGl0eV9pZBgBIAEoCRIQCghyZXZpc2lvbhgC",
+            "IAEoDRIMCgRuYW1lGAMgASgJEjEKBGtpbmQYBCABKA4yIy5tb2Rjb25kdWN0",
+            "b3IudjEuR2FtZUNhcGFiaWxpdHlLaW5kEjgKCGNvbnRleHRzGAUgAygLMiYu",
+            "bW9kY29uZHVjdG9yLnYxLkdhbWVDYXBhYmlsaXR5Q29udGV4dBI/CgtkaXNw",
+            "b3NpdGlvbhgGIAEoDjIqLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0",
+            "eURpc3Bvc2l0aW9uEhMKBnJlYXNvbhgHIAEoCUgAiAEBQgkKB19yZWFzb24i",
+            "bQoMR2FtZUxvY2F0aW9uEjUKB2xvY2F0ZWQYASABKAsyIi5tb2Rjb25kdWN0",
+            "b3IudjEuTG9jYXRlZEdhbWVGb2xkZXJIABIcChJ1bmF2YWlsYWJsZV9yZWFz",
+            "b24YAiABKAlIAEIICgZyZXN1bHQiMQoRTG9jYXRlZEdhbWVGb2xkZXISDAoE",
+            "cGF0aBgBIAEoCRIOCgZleGlzdHMYAiABKAgidQoWR2FtZUV4ZWN1dGFibGVF",
+            "dmlkZW5jZRIMCgRwYXRoGAEgASgJEg4KBnNoYTI1NhgCIAEoCRIOCgZsZW5n",
+            "dGgYAyABKAQSFAoMZmlsZV92ZXJzaW9uGAQgASgJEhcKD3Byb2R1Y3RfdmVy",
+            "c2lvbhgFIAEoCSI1ChVHYW1lVmFsaWRhdGlvblByb2JsZW0SDAoEcGF0aBgB",
+            "IAEoCRIOCgZkZXRhaWwYAiABKAkimAUKGEdhbWVJbnN0YWxsYXRpb25Fdmlk",
+            "ZW5jZRI2CghwbGF0Zm9ybRgBIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
+            "Q29udGV4dFBsYXRmb3JtEhEKCXJvb3RfcGF0aBgCIAEoCRIWCglkYXRhX3Bh",
+            "dGgYAyABKAlIAIgBARI7CgpleGVjdXRhYmxlGAQgASgLMicubW9kY29uZHVj",
+            "dG9yLnYxLkdhbWVFeGVjdXRhYmxlRXZpZGVuY2USGgoNbGF1bmNoZXJfcGF0",
+            "aBgFIAEoCUgBiAEBEjAKCWRvY3VtZW50cxgGIAEoCzIdLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lTG9jYXRpb24SLAoFc2F2ZXMYByABKAsyHS5tb2Rjb25kdWN0",
+            "b3IudjEuR2FtZUxvY2F0aW9uEjUKDmxvY2FsX2FwcF9kYXRhGAggASgLMh0u",
+            "bW9kY29uZHVjdG9yLnYxLkdhbWVMb2NhdGlvbhI4Cghwcm9ibGVtcxgJIAMo",
+            "CzImLm1vZGNvbmR1Y3Rvci52MS5HYW1lVmFsaWRhdGlvblByb2JsZW0SGgoS",
+            "Y2hlY2tlZF9hdF91bml4X21zGAogASgDEhMKC2ZpbmdlcnByaW50GAsgASgJ",
+            "EhUKDWRlZmluaXRpb25faWQYDCABKAkSGwoTZGVmaW5pdGlvbl9yZXZpc2lv",
+            "bhgNIAEoDRI2CgZwcm90b24YDiABKAsyJi5tb2Rjb25kdWN0b3IudjEuUHJv",
+            "dG9uQ29udGV4dEV2aWRlbmNlEjIKBHdpbmUYDyABKAsyJC5tb2Rjb25kdWN0",
+            "b3IudjEuV2luZUNvbnRleHRFdmlkZW5jZUIMCgpfZGF0YV9wYXRoQhAKDl9s",
+            "YXVuY2hlcl9wYXRoIo8CCg9HYW1lQmluZGluZ0luZm8SEgoKYmluZGluZ19p",
+            "ZBgBIAEoCRIMCgRwYXRoGAIgASgJEjsKCGV2aWRlbmNlGAMgASgLMikubW9k",
+            "Y29uZHVjdG9yLnYxLkdhbWVJbnN0YWxsYXRpb25FdmlkZW5jZRITCgtuZWVk",
+            "c19jaGVjaxgEIAEoCBIUCgdmYWlsdXJlGAUgASgJSACIAQESNAoGcHJvdG9u",
+            "GAYgASgLMiQubW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm8S",
+            "MAoEd2luZRgHIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5XaW5lU2VsZWN0aW9u",
+            "SW5mb0IKCghfZmFpbHVyZSK6AQoQR2FtZUNvbnRleHRTdGF0ZRIUCgx3b3Jr",
+            "c3BhY2VfaWQYASABKAkSEAoIcmV2aXNpb24YAiABKAQSNwoKZGVmaW5pdGlv",
+            "bhgDIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5HYW1lRGVmaW5pdGlvbkluZm8S",
+            "MQoHYmluZGluZxgEIAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5HYW1lQmluZGlu",
+            "Z0luZm8SEgoKcHJvZmlsZV9pZBgFIAEoCSKVAQoQR2FtZUNvbnRleHRGYXVs",
+            "dBIzCgRjb2RlGAEgASgOMiUubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0",
+            "RmF1bHRDb2RlEg4KBmRldGFpbBgCIAEoCRI8CgljYW5kaWRhdGUYAyABKAsy",
+            "KS5tb2Rjb25kdWN0b3IudjEuR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlIoUB",
+            "ChBHYW1lQ29udGV4dFJlcGx5EjIKBXN0YXRlGAEgASgLMiEubW9kY29uZHVj",
+            "dG9yLnYxLkdhbWVDb250ZXh0U3RhdGVIABIyCgVmYXVsdBgCIAEoCzIhLm1v",
+            "ZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dEZhdWx0SABCCQoHb3V0Y29tZSI3",
+            "ChFXaW5lU2VsZWN0aW9uSW5mbxISCgpleGVjdXRhYmxlGAEgASgJEg4KBnBy",
+            "ZWZpeBgCIAEoCSJMChNXaW5lQ29udGV4dEV2aWRlbmNlEjUKCXNlbGVjdGlv",
+            "bhgBIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5XaW5lU2VsZWN0aW9uSW5mbyqh",
+            "AQoTR2FtZUNvbnRleHRQbGF0Zm9ybRIlCiFHQU1FX0NPTlRFWFRfUExBVEZP",
+            "Uk1fVU5TUEVDSUZJRUQQABIhCh1HQU1FX0NPTlRFWFRfUExBVEZPUk1fV0lO",
+            "RE9XUxABEiAKHEdBTUVfQ09OVEVYVF9QTEFURk9STV9QUk9UT04QAhIeChpH",
+            "QU1FX0NPTlRFWFRfUExBVEZPUk1fV0lORRADKt8BChJHYW1lQ2FwYWJpbGl0",
+            "eUtpbmQSJAogR0FNRV9DQVBBQklMSVRZX0tJTkRfVU5TUEVDSUZJRUQQABIl",
+            "CiFHQU1FX0NBUEFCSUxJVFlfS0lORF9DT1JFX09VVENPTUUQARIlCiFHQU1F",
+            "X0NBUEFCSUxJVFlfS0lORF9HQU1FX0FEQVBURVIQAhIoCiRHQU1FX0NBUEFC",
+            "SUxJVFlfS0lORF9PUFRJT05BTF9MRUdBQ1kQAxIrCidHQU1FX0NBUEFCSUxJ",
+            "VFlfS0lORF9PQlNPTEVURV9NRUNIQU5JU00QBCrNAQoZR2FtZUNhcGFiaWxp",
+            "dHlEaXNwb3NpdGlvbhIrCidHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05f",
+            "VU5TUEVDSUZJRUQQABIpCiVHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05f",
+            "QVZBSUxBQkxFEAESKwonR0FNRV9DQVBBQklMSVRZX0RJU1BPU0lUSU9OX1VO",
+            "QVZBSUxBQkxFEAISKwonR0FNRV9DQVBBQklMSVRZX0RJU1BPU0lUSU9OX1VO",
+            "U1VQUE9SVEVEEAMq+wEKFEdhbWVDb250ZXh0RmF1bHRDb2RlEiIKHkdBTUVf",
+            "Q09OVEVYVF9GQVVMVF9VTlNQRUNJRklFRBAAEiAKHEdBTUVfQ09OVEVYVF9G",
+            "QVVMVF9OT1RfRk9VTkQQARIlCiFHQU1FX0NPTlRFWFRfRkFVTFRfU1RBTEVf",
+            "UkVWSVNJT04QAhIsCihHQU1FX0NPTlRFWFRfRkFVTFRfV09SS1NQQUNFX1VO",
+            "QVZBSUxBQkxFEAMSKwonR0FNRV9DT05URVhUX0ZBVUxUX0lOVkFMSURfSU5T",
+            "VEFMTEFUSU9OEAQSGwoXR0FNRV9DT05URVhUX0ZBVUxUX0JVU1kQBTK6AgoV",
+            "R2FtZUNvbnRleHRPcGVyYXRpb25zEl0KD1JlYWRHYW1lQ29udGV4dBInLm1v",
+            "ZGNvbmR1Y3Rvci52MS5SZWFkR2FtZUNvbnRleHRSZXF1ZXN0GiEubW9kY29u",
+            "ZHVjdG9yLnYxLkdhbWVDb250ZXh0UmVwbHkSXQoPU2F2ZUdhbWVDb250ZXh0",
+            "EicubW9kY29uZHVjdG9yLnYxLlNhdmVHYW1lQ29udGV4dFJlcXVlc3QaIS5t",
+            "b2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRSZXBseRJjChJSZWZyZXNoR2Ft",
+            "ZUNvbnRleHQSKi5tb2Rjb25kdWN0b3IudjEuUmVmcmVzaEdhbWVDb250ZXh0",
+            "UmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFJlcGx5Qhuq",
+            "AhhNb2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ProtonContextsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.GameContextPlatform), typeof(global::ModConductor.Protocol.V1.GameCapabilityKind), typeof(global::ModConductor.Protocol.V1.GameCapabilityDisposition), typeof(global::ModConductor.Protocol.V1.GameContextFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadGameContextRequest), global::ModConductor.Protocol.V1.ReadGameContextRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton", "ProfileId", "GameId", "Wine" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RefreshGameContextRequest), global::ModConductor.Protocol.V1.RefreshGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "ProfileId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities", "Capabilities" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities", "Capabilities", "ArtworkUrl", "SettingsIni", "PluginOrdering", "SaveExtension", "ExtenderName", "ExtenderLoader", "SupportsLightPlugins", "SupportsMediumPlugins", "ArchiveInvalidation" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.UnavailableGameCapability), global::ModConductor.Protocol.V1.UnavailableGameCapability.Parser, new[]{ "Name", "Reason" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameCapabilityContext), global::ModConductor.Protocol.V1.GameCapabilityContext.Parser, new[]{ "DefinitionId", "Platforms" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameCapabilityInfo), global::ModConductor.Protocol.V1.GameCapabilityInfo.Parser, new[]{ "CapabilityId", "Revision", "Name", "Kind", "Contexts", "Disposition", "Reason" }, new[]{ "Reason" }, null, null, null),
@@ -1168,6 +1173,15 @@ namespace ModConductor.Protocol.V1 {
       declaredSteamAppId_ = other.declaredSteamAppId_;
       unavailableCapabilities_ = other.unavailableCapabilities_.Clone();
       capabilities_ = other.capabilities_.Clone();
+      artworkUrl_ = other.artworkUrl_;
+      settingsIni_ = other.settingsIni_;
+      pluginOrdering_ = other.pluginOrdering_;
+      saveExtension_ = other.saveExtension_;
+      extenderName_ = other.extenderName_;
+      extenderLoader_ = other.extenderLoader_;
+      supportsLightPlugins_ = other.supportsLightPlugins_;
+      supportsMediumPlugins_ = other.supportsMediumPlugins_;
+      archiveInvalidation_ = other.archiveInvalidation_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1259,6 +1273,114 @@ namespace ModConductor.Protocol.V1 {
       get { return capabilities_; }
     }
 
+    /// <summary>Field number for the "artwork_url" field.</summary>
+    public const int ArtworkUrlFieldNumber = 8;
+    private string artworkUrl_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ArtworkUrl {
+      get { return artworkUrl_; }
+      set {
+        artworkUrl_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "settings_ini" field.</summary>
+    public const int SettingsIniFieldNumber = 9;
+    private string settingsIni_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SettingsIni {
+      get { return settingsIni_; }
+      set {
+        settingsIni_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "plugin_ordering" field.</summary>
+    public const int PluginOrderingFieldNumber = 10;
+    private string pluginOrdering_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string PluginOrdering {
+      get { return pluginOrdering_; }
+      set {
+        pluginOrdering_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "save_extension" field.</summary>
+    public const int SaveExtensionFieldNumber = 11;
+    private string saveExtension_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SaveExtension {
+      get { return saveExtension_; }
+      set {
+        saveExtension_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "extender_name" field.</summary>
+    public const int ExtenderNameFieldNumber = 12;
+    private string extenderName_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ExtenderName {
+      get { return extenderName_; }
+      set {
+        extenderName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "extender_loader" field.</summary>
+    public const int ExtenderLoaderFieldNumber = 13;
+    private string extenderLoader_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ExtenderLoader {
+      get { return extenderLoader_; }
+      set {
+        extenderLoader_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "supports_light_plugins" field.</summary>
+    public const int SupportsLightPluginsFieldNumber = 14;
+    private bool supportsLightPlugins_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool SupportsLightPlugins {
+      get { return supportsLightPlugins_; }
+      set {
+        supportsLightPlugins_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "supports_medium_plugins" field.</summary>
+    public const int SupportsMediumPluginsFieldNumber = 15;
+    private bool supportsMediumPlugins_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool SupportsMediumPlugins {
+      get { return supportsMediumPlugins_; }
+      set {
+        supportsMediumPlugins_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "archive_invalidation" field.</summary>
+    public const int ArchiveInvalidationFieldNumber = 16;
+    private bool archiveInvalidation_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool ArchiveInvalidation {
+      get { return archiveInvalidation_; }
+      set {
+        archiveInvalidation_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1281,6 +1403,15 @@ namespace ModConductor.Protocol.V1 {
       if (DeclaredSteamAppId != other.DeclaredSteamAppId) return false;
       if(!unavailableCapabilities_.Equals(other.unavailableCapabilities_)) return false;
       if(!capabilities_.Equals(other.capabilities_)) return false;
+      if (ArtworkUrl != other.ArtworkUrl) return false;
+      if (SettingsIni != other.SettingsIni) return false;
+      if (PluginOrdering != other.PluginOrdering) return false;
+      if (SaveExtension != other.SaveExtension) return false;
+      if (ExtenderName != other.ExtenderName) return false;
+      if (ExtenderLoader != other.ExtenderLoader) return false;
+      if (SupportsLightPlugins != other.SupportsLightPlugins) return false;
+      if (SupportsMediumPlugins != other.SupportsMediumPlugins) return false;
+      if (ArchiveInvalidation != other.ArchiveInvalidation) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1295,6 +1426,15 @@ namespace ModConductor.Protocol.V1 {
       if (DeclaredSteamAppId != 0) hash ^= DeclaredSteamAppId.GetHashCode();
       hash ^= unavailableCapabilities_.GetHashCode();
       hash ^= capabilities_.GetHashCode();
+      if (ArtworkUrl.Length != 0) hash ^= ArtworkUrl.GetHashCode();
+      if (SettingsIni.Length != 0) hash ^= SettingsIni.GetHashCode();
+      if (PluginOrdering.Length != 0) hash ^= PluginOrdering.GetHashCode();
+      if (SaveExtension.Length != 0) hash ^= SaveExtension.GetHashCode();
+      if (ExtenderName.Length != 0) hash ^= ExtenderName.GetHashCode();
+      if (ExtenderLoader.Length != 0) hash ^= ExtenderLoader.GetHashCode();
+      if (SupportsLightPlugins != false) hash ^= SupportsLightPlugins.GetHashCode();
+      if (SupportsMediumPlugins != false) hash ^= SupportsMediumPlugins.GetHashCode();
+      if (ArchiveInvalidation != false) hash ^= ArchiveInvalidation.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1335,6 +1475,42 @@ namespace ModConductor.Protocol.V1 {
       }
       unavailableCapabilities_.WriteTo(output, _repeated_unavailableCapabilities_codec);
       capabilities_.WriteTo(output, _repeated_capabilities_codec);
+      if (ArtworkUrl.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(ArtworkUrl);
+      }
+      if (SettingsIni.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(SettingsIni);
+      }
+      if (PluginOrdering.Length != 0) {
+        output.WriteRawTag(82);
+        output.WriteString(PluginOrdering);
+      }
+      if (SaveExtension.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(SaveExtension);
+      }
+      if (ExtenderName.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(ExtenderName);
+      }
+      if (ExtenderLoader.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(ExtenderLoader);
+      }
+      if (SupportsLightPlugins != false) {
+        output.WriteRawTag(112);
+        output.WriteBool(SupportsLightPlugins);
+      }
+      if (SupportsMediumPlugins != false) {
+        output.WriteRawTag(120);
+        output.WriteBool(SupportsMediumPlugins);
+      }
+      if (ArchiveInvalidation != false) {
+        output.WriteRawTag(128, 1);
+        output.WriteBool(ArchiveInvalidation);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1367,6 +1543,42 @@ namespace ModConductor.Protocol.V1 {
       }
       unavailableCapabilities_.WriteTo(ref output, _repeated_unavailableCapabilities_codec);
       capabilities_.WriteTo(ref output, _repeated_capabilities_codec);
+      if (ArtworkUrl.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(ArtworkUrl);
+      }
+      if (SettingsIni.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(SettingsIni);
+      }
+      if (PluginOrdering.Length != 0) {
+        output.WriteRawTag(82);
+        output.WriteString(PluginOrdering);
+      }
+      if (SaveExtension.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(SaveExtension);
+      }
+      if (ExtenderName.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(ExtenderName);
+      }
+      if (ExtenderLoader.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(ExtenderLoader);
+      }
+      if (SupportsLightPlugins != false) {
+        output.WriteRawTag(112);
+        output.WriteBool(SupportsLightPlugins);
+      }
+      if (SupportsMediumPlugins != false) {
+        output.WriteRawTag(120);
+        output.WriteBool(SupportsMediumPlugins);
+      }
+      if (ArchiveInvalidation != false) {
+        output.WriteRawTag(128, 1);
+        output.WriteBool(ArchiveInvalidation);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1394,6 +1606,33 @@ namespace ModConductor.Protocol.V1 {
       }
       size += unavailableCapabilities_.CalculateSize(_repeated_unavailableCapabilities_codec);
       size += capabilities_.CalculateSize(_repeated_capabilities_codec);
+      if (ArtworkUrl.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ArtworkUrl);
+      }
+      if (SettingsIni.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SettingsIni);
+      }
+      if (PluginOrdering.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(PluginOrdering);
+      }
+      if (SaveExtension.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SaveExtension);
+      }
+      if (ExtenderName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ExtenderName);
+      }
+      if (ExtenderLoader.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ExtenderLoader);
+      }
+      if (SupportsLightPlugins != false) {
+        size += 1 + 1;
+      }
+      if (SupportsMediumPlugins != false) {
+        size += 1 + 1;
+      }
+      if (ArchiveInvalidation != false) {
+        size += 2 + 1;
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1423,6 +1662,33 @@ namespace ModConductor.Protocol.V1 {
       }
       unavailableCapabilities_.Add(other.unavailableCapabilities_);
       capabilities_.Add(other.capabilities_);
+      if (other.ArtworkUrl.Length != 0) {
+        ArtworkUrl = other.ArtworkUrl;
+      }
+      if (other.SettingsIni.Length != 0) {
+        SettingsIni = other.SettingsIni;
+      }
+      if (other.PluginOrdering.Length != 0) {
+        PluginOrdering = other.PluginOrdering;
+      }
+      if (other.SaveExtension.Length != 0) {
+        SaveExtension = other.SaveExtension;
+      }
+      if (other.ExtenderName.Length != 0) {
+        ExtenderName = other.ExtenderName;
+      }
+      if (other.ExtenderLoader.Length != 0) {
+        ExtenderLoader = other.ExtenderLoader;
+      }
+      if (other.SupportsLightPlugins != false) {
+        SupportsLightPlugins = other.SupportsLightPlugins;
+      }
+      if (other.SupportsMediumPlugins != false) {
+        SupportsMediumPlugins = other.SupportsMediumPlugins;
+      }
+      if (other.ArchiveInvalidation != false) {
+        ArchiveInvalidation = other.ArchiveInvalidation;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1470,6 +1736,42 @@ namespace ModConductor.Protocol.V1 {
             capabilities_.AddEntriesFrom(input, _repeated_capabilities_codec);
             break;
           }
+          case 66: {
+            ArtworkUrl = input.ReadString();
+            break;
+          }
+          case 74: {
+            SettingsIni = input.ReadString();
+            break;
+          }
+          case 82: {
+            PluginOrdering = input.ReadString();
+            break;
+          }
+          case 90: {
+            SaveExtension = input.ReadString();
+            break;
+          }
+          case 98: {
+            ExtenderName = input.ReadString();
+            break;
+          }
+          case 106: {
+            ExtenderLoader = input.ReadString();
+            break;
+          }
+          case 112: {
+            SupportsLightPlugins = input.ReadBool();
+            break;
+          }
+          case 120: {
+            SupportsMediumPlugins = input.ReadBool();
+            break;
+          }
+          case 128: {
+            ArchiveInvalidation = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -1515,6 +1817,42 @@ namespace ModConductor.Protocol.V1 {
           }
           case 58: {
             capabilities_.AddEntriesFrom(ref input, _repeated_capabilities_codec);
+            break;
+          }
+          case 66: {
+            ArtworkUrl = input.ReadString();
+            break;
+          }
+          case 74: {
+            SettingsIni = input.ReadString();
+            break;
+          }
+          case 82: {
+            PluginOrdering = input.ReadString();
+            break;
+          }
+          case 90: {
+            SaveExtension = input.ReadString();
+            break;
+          }
+          case 98: {
+            ExtenderName = input.ReadString();
+            break;
+          }
+          case 106: {
+            ExtenderLoader = input.ReadString();
+            break;
+          }
+          case 112: {
+            SupportsLightPlugins = input.ReadBool();
+            break;
+          }
+          case 120: {
+            SupportsMediumPlugins = input.ReadBool();
+            break;
+          }
+          case 128: {
+            ArchiveInvalidation = input.ReadBool();
             break;
           }
         }

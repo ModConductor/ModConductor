@@ -23,13 +23,21 @@ module ComponentRoots =
     let gameRootId (workspace: Guid) (evidence: InstallationEvidence) =
         if
             not evidence.Valid
-            || evidence.DefinitionRevision <> (Skyrim.forGame evidence.DefinitionId).Revision
+            || evidence.DefinitionRevision
+               <> (GameCatalog.forGame evidence.DefinitionId).Revision
         then
-            Error "Select a checked Skyrim installation."
+            Error "Select a checked game installation."
         else
             use bytes = new MemoryStream()
             use writer = new BinaryWriter(bytes, Encoding.UTF8, true)
-            writer.Write "mc-skyrim-game-root-v1"
+
+            writer.Write(
+                if GameCatalog.isSkyrimSE evidence.DefinitionId then
+                    "mc-skyrim-game-root-v1"
+                else
+                    "mc-bethesda-game-root-v1"
+            )
+
             writer.Write(workspace.ToByteArray())
             writer.Write(GameId.value evidence.DefinitionId)
             writer.Write evidence.RootPath

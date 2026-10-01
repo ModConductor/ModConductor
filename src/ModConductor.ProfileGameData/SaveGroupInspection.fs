@@ -3,6 +3,7 @@ namespace ModConductor.ProfileGameData
 open System
 open ModConductor.Bethesda
 open ModConductor.Platform
+open ModConductor.GameContexts
 
 module internal SaveGroupInspection =
     let private result = ProfileDataResultFlow.result
@@ -13,11 +14,11 @@ module internal SaveGroupInspection =
           Save: StoredDataFile
           Companion: StoredDataFile option }
 
-    let observe (root: DataRoot) name token =
+    let observe rules (root: DataRoot) name token =
         use folder = HeldDirectory.Open(root.Path, root.Identity)
 
         result {
-            let! entries = SaveGroupPaging.rows root
+            let! entries = SaveGroupPaging.rows rules root
 
             let! entry =
                 match entries |> List.tryFind (fun row -> row.Id = name) with
@@ -25,7 +26,7 @@ module internal SaveGroupInspection =
                 | None -> Error ProfileDataError.NotFound
 
             if entry.Kind <> ProfileSaveEntryKind.Save || not entry.Actionable then
-                return! Error(ProfileDataError.Invalid "Choose an unambiguous Skyrim save first.")
+                return! Error(ProfileDataError.Invalid "Choose an unambiguous game save first.")
 
             let file =
                 DataFiles.observe folder entry.Name token
@@ -90,12 +91,23 @@ module internal SaveGroupInspection =
                 | Some value -> Ok value
                 | None -> Error ProfileDataError.NotFound
 
-            let! group = observe root name token
+            let rules = GameCatalog.rules scope.Game.Binding.Value.GameId
+            let! group = observe rules root name token
             use folder = HeldDirectory.Open(group.Save.Root.Path, group.Save.Root.Identity)
             let stream, _ = folder.Read(group.Save.Name, Some group.Save.File.Identity)
             use stream = stream
 
-            match SkyrimSaveReader.read stream token with
+            let metadata =
+                if GameCatalog.isSkyrimSE scope.Game.Binding.Value.GameId then
+                    SkyrimSaveReader.read stream token
+                elif rules.CompanionExtension = Some ".nvse" then
+                    NewVegasSaveReader.read stream token
+                else
+                    Error(
+                        SkyrimSaveError.Unsupported "Save metadata is not available for this title."
+                    )
+
+            match metadata with
             | Error problem ->
                 return
                     { Source = kind

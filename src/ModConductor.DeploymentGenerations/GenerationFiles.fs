@@ -9,6 +9,31 @@ open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
 
 module internal GenerationFiles =
+    let baseAtTarget (request: BuildRequest) (sources: GenerationSources) (target: TargetFile) pin =
+        match
+            sources.Files.TryFind pin,
+            request.Roots |> List.tryFind (fun root -> root.Root.Id = target.Root)
+        with
+        | Some backing, Some root ->
+            backing.Directory.Identity = root.Directory.Identity
+            && TargetPolicy.key root.Root.Policy backing.Path = TargetPolicy.key
+                root.Root.Policy
+                target.Path
+        | _ -> false
+
+    let restoredBase (request: BuildRequest) (sources: GenerationSources) (target: TargetFile) pin =
+        match
+            pin,
+            sources.Files.TryFind pin,
+            request.Roots |> List.tryFind (fun root -> root.Root.Id = target.Root)
+        with
+        | SourcePin.Snapshot(_, _, file), Some backing, Some root ->
+            backing.Directory.Identity = root.Originals.Identity
+            && TargetPolicy.key root.Root.Policy file.Path = TargetPolicy.key
+                root.Root.Policy
+                target.Path
+        | _ -> false
+
     let logical parts =
         LogicalPath.create parts
         |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.InvalidPlan))

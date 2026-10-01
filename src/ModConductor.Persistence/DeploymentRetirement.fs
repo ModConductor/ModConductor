@@ -11,26 +11,14 @@ open ModConductor.DeploymentGenerations
 open ModConductor.Deployment
 
 module internal DeploymentRetirement =
-    let clearOwnedLinks
-        (recovery: Recovery)
-        (workspace: Location)
-        workspaceId
-        profileId
-        fingerprint
-        token
-        =
+    let private clearContext (recovery: Recovery) (workspace: Location) (context: Context) token =
         task {
-            let contextId = DeploymentContextId.create workspaceId profileId fingerprint
-
-            let! legacy = recovery.Context contextId
-
-            match legacy with
-            | None -> return Ok()
-            | Some context when context.Pending.IsSome -> return Error RecoveryError.Busy
-            | Some context when context.Links.IsEmpty -> return Ok()
-            | Some context ->
-                // Switch the old owned in-place generation to an empty one through the
-                // existing recovery journal, restoring only its recorded originals.
+            if context.Pending.IsSome then
+                return Error RecoveryError.Busy
+            elif context.Links.IsEmpty then
+                return Ok()
+            else
+                // Empty the tracked generation through existing recovery and restore originals.
                 let id = Guid.NewGuid()
 
                 let directory =
@@ -53,8 +41,8 @@ module internal DeploymentRetirement =
 
                 let request: SwitchRequest =
                     { Id = id
-                      ContextId = contextId
-                      ContextFingerprint = fingerprint
+                      ContextId = context.Id
+                      ContextFingerprint = context.Fingerprint
                       ExpectedRevision = context.Revision
                       Roots = context.Roots
                       Generation = empty
@@ -73,6 +61,16 @@ module internal DeploymentRetirement =
                     return completed |> Result.map ignore
         }
 
+    let clearOwnedLinks (recovery: Recovery) workspace workspaceId profileId fingerprint token =
+        task {
+            let! context =
+                recovery.Context(DeploymentContextId.create workspaceId profileId fingerprint)
+
+            match context with
+            | None -> return Ok()
+            | Some context -> return! clearContext recovery workspace context token
+        }
+
     let clearPreviousViews
         (database: StateDatabase)
         (recovery: Recovery)
@@ -80,6 +78,7 @@ module internal DeploymentRetirement =
         workspaceId
         profileId
         currentId
+        (sharedPath: string option)
         token
         =
         task {
@@ -112,15 +111,20 @@ module internal DeploymentRetirement =
                                     HostPath.value root.Directory.Path,
                                     gamePath,
                                     StringComparison.OrdinalIgnoreCase
-                                )))
-                        |> Option.map _.Fingerprint))
+                                )
+                                || sharedPath
+                                   |> Option.exists (fun shared ->
+                                       String.Equals(
+                                           HostPath.value root.Directory.Path,
+                                           shared,
+                                           StringComparison.OrdinalIgnoreCase
+                                       ))))))
 
             let mutable refusal = None
 
-            for fingerprint in previous do
+            for context in previous do
                 if refusal.IsNone then
-                    let! cleared =
-                        clearOwnedLinks recovery workspace workspaceId profileId fingerprint token
+                    let! cleared = clearContext recovery workspace context token
 
                     match cleared with
                     | Error error -> refusal <- Some error

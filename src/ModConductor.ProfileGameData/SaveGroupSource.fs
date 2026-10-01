@@ -16,11 +16,12 @@ module internal SaveGroupSource =
         | Some binding when
             not binding.NeedsCheck
             && binding.Evidence.Valid
-            && binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId).Revision
+            && binding.Evidence.DefinitionRevision = (GameCatalog.forGame binding.GameId).Revision
             && (match binding.Evidence.Platform, binding.Evidence.Proton, binding.Proton with
                 | ContextPlatform.Windows, None, None -> true
                 | ContextPlatform.Proton, Some evidence, Some selection ->
-                    selection.AppId = Skyrim.definition.SteamAppId && evidence.Selection = selection
+                    GameCatalog.steamApp binding.GameId selection.AppId
+                    && evidence.Selection = selection
                 | ContextPlatform.Wine, None, None ->
                     binding.Wine.IsSome
                     && binding.Evidence.Wine
@@ -28,11 +29,7 @@ module internal SaveGroupSource =
                 | _ -> false)
             ->
             Ok binding
-        | _ ->
-            Error(
-                ProfileDataError.Unavailable
-                    "Select and refresh the Skyrim Special Edition context first."
-            )
+        | _ -> Error(ProfileDataError.Unavailable "Select and refresh the game context first.")
 
     let profileRoot scope =
         match scope.Profile with

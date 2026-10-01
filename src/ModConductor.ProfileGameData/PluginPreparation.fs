@@ -7,6 +7,7 @@ module internal PluginPreparation =
     let prepare
         (repository: IProfileDataRepository)
         (initialContext: ProfileDataContext)
+        (game: ModConductor.GameContexts.GameContextState)
         (initialAction: ProfileDataActionRecord)
         (incoming: PrivateProfileData option)
         (desired: byte array option)
@@ -16,7 +17,11 @@ module internal PluginPreparation =
         ProfileDataResultTask.resultTask {
             let previous = initialContext.Applied |> Option.bind _.Plugins
 
+            let morrowind =
+                (ModConductor.GameContexts.GameCatalog.rules game.Binding.Value.GameId).Activation = ModConductor.GameContexts.PluginActivation.MorrowindIni
+
             match initialAction.Kind with
+            | _ when morrowind -> return initialContext, initialAction, [], proposed
             | ProfileDataActionKind.Edit _ ->
                 return
                     initialContext,

@@ -1,7 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup>
+    <Compile Include="GameIdentity.fs" />
+    <Compile Include="GameDefinitions.fs" />
+    <Compile Include="NewVegasDefinitions.fs" />
+    <Compile Include="ClassicDefinitions.fs" />
+    <Compile Include="CreationDefinitions.fs" />
+    <Compile Include="GameRules.fs" />
+    <Compile Include="ClassicRules.fs" />
+    <Compile Include="CreationRules.fs" />
+    <Compile Include="GameCatalog.fs" />
     <Compile Include="Contracts.fs" />
+    <Compile Include="GameLocations.fs" />
     <Compile Include="Capabilities.fs" />
     <Compile Include="PeVersion.fs" />
     <Compile Include="ContextIdentity.fs" />

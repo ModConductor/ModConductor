@@ -27,10 +27,14 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
         capability!.supports(definition.id, platform);
   }
 
+  bool get _supportsBethesda =>
+      _supports(GameCapabilityId.bethesdaGame) || _supportsSkyrim;
   bool get _supportsSkyrim => _supports(GameCapabilityId.skyrimSpecialEdition);
-  bool get _hasSkyrimGame => GameInstallationSource.values.any(
-    (source) => source.gameId == _game.state?.definition?.id,
-  );
+  bool get _hasSkyrimGame =>
+      _game.state?.definition?.capability(
+        GameCapabilityId.skyrimSpecialEdition,
+      ) !=
+      null;
   bool get _supportsArchives => _supports(GameCapabilityId.archiveInspection);
   bool get _supportsInstallation =>
       _supports(GameCapabilityId.gameInstallationValidation);
@@ -250,7 +254,7 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
   }
 
   void _diagnosticInputsChanged() {
-    final available = _supportsSkyrim;
+    final available = _supportsBethesda;
     final receipt = _deployments.receipt;
     _diagnostics.attach(
       available ? widget.diagnostics : null,

@@ -98,8 +98,11 @@ type SteamDiscoveryService() =
 
     override _.SearchInstallations(request, context) =
         task {
+            let definition =
+                GameId.tryParse request.DefinitionId |> Option.map GameCatalog.forGame
+
             if
-                request.DefinitionId <> GameId.value Skyrim.definition.Id
+                (definition |> Option.forall (fun game -> game.SteamAppId = 0u))
                 || request.AdditionalRoots.Count > 16
                 || (request.AdditionalRoots
                     |> Seq.exists (fun path ->
@@ -136,8 +139,8 @@ type SteamDiscoveryService() =
                 let! result =
                     Task.Run(
                         (fun () ->
-                            Discovery.scan
-                                Skyrim.definition.SteamAppId
+                            ModConductor.ProtonContexts.GameDiscovery.scan
+                                definition.Value
                                 roots
                                 context.CancellationToken),
                         context.CancellationToken

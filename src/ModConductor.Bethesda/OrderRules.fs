@@ -2,6 +2,7 @@ namespace ModConductor.Bethesda
 
 open System
 open System.Collections.Generic
+open ModConductor.GameContexts
 
 module OrderRules =
     let private same a b =
@@ -46,7 +47,8 @@ module OrderRules =
 
         result
 
-    let reconcile
+    let reconcileFor
+        activation
         (facts: PluginOrderFacts)
         (headers: PluginEntry list)
         document
@@ -67,7 +69,7 @@ module OrderRules =
             | Some order -> order
             | None ->
                 let listed =
-                    OrderDocument.names document
+                    OrderDocument.namesFor activation document
                     |> List.filter (fun (name, _) -> found.Contains name)
 
                 let groups = Dictionary<string, ResizeArray<bool>>(StringComparer.OrdinalIgnoreCase)
@@ -117,7 +119,15 @@ module OrderRules =
                  |> List.map (fun name -> rows |> List.find (fun row -> same name row.Name)))
                 @ (rows |> List.filter (fun row -> not (earlySet.Contains row.Name))) }
 
-    let inspect (facts: PluginOrderFacts) (headers: PluginEntry list) (order: PluginOrder) =
+    let reconcile facts headers document saved =
+        reconcileFor PluginActivation.Starred facts headers document saved
+
+    let inspectFor
+        (rules: ModConductor.GameContexts.GameRules)
+        (facts: PluginOrderFacts)
+        (headers: PluginEntry list)
+        (order: PluginOrder)
+        =
         let issues = ResizeArray<PluginOrderIssue>()
 
         let problem name detail =
@@ -136,9 +146,16 @@ module OrderRules =
         active |> List.iteri (fun position row -> positions.Add(row.Name, position))
         let mutable full = 0
         let mutable light = 0
+        let mutable medium = 0
         let waiting = HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
-        for required in mandatoryFiles do
+        for required in
+            facts.Required
+            |> List.choose (fun (name, reason) ->
+                if reason = PluginRequirement.Engine then
+                    Some name
+                else
+                    None) do
             if not (index.ContainsKey required) then
                 problem (Some required) (required + " is missing.")
 
@@ -160,15 +177,25 @@ module OrderRules =
             | Error _ ->
                 problem (Some row.Name) ("The active header for " + row.Name + " cannot be used.")
             | Ok header ->
-                match header.Kind with
-                | PluginKind.LightMaster
-                | PluginKind.LightPlugin -> light <- light + 1
-                | PluginKind.Master
-                | PluginKind.Plugin -> full <- full + 1
+                if
+                    not (rules.SupportsBlueprint && BlueprintPlugins.isBlueprint index[row.Name])
+                then
+                    match header.Kind with
+                    | PluginKind.LightMaster
+                    | PluginKind.LightPlugin -> light <- light + 1
+                    | PluginKind.Master
+                    | PluginKind.Plugin -> full <- full + 1
+                    | PluginKind.MediumMaster
+                    | PluginKind.MediumPlugin -> medium <- medium + 1
 
-                let master = header.Kind = PluginKind.Master || header.Kind = PluginKind.LightMaster
+                let master =
+                    header.Kind = PluginKind.Master
+                    || header.Kind = PluginKind.LightMaster
+                    || header.Kind = PluginKind.MediumMaster
 
-                if master then
+                if rules.SupportsBlueprint && BlueprintPlugins.isBlueprint entry then
+                    ()
+                elif master then
                     for required in header.Masters do
                         waiting.Remove required |> ignore
 
@@ -211,7 +238,10 @@ module OrderRules =
                     ("The locked load position for " + row.Name + " cannot be kept.")
             | _ -> ()
 
-        let fullLimit = if light > 0 then 254 else 255
+        let fullLimit =
+            if rules.SupportsMedium then 253
+            elif light > 0 then 254
+            else 255
 
         if full > fullLimit then
             problem
@@ -222,6 +252,9 @@ module OrderRules =
                  + string fullLimit
                  + ".")
 
+        if medium > 256 then
+            problem None "Too many medium plugins enabled. The limit is 256."
+
         if light > 4096 then
             problem None "Too many light plugins enabled. The limit is 4096."
 
@@ -229,7 +262,16 @@ module OrderRules =
           Issues = List.ofSeq issues |> List.distinct
           Full = full
           Light = light
+          Medium = medium
           FullLimit = fullLimit }
+
+    let inspect facts headers order =
+        inspectFor
+            (ModConductor.GameContexts.GameCatalog.rules
+                ModConductor.GameContexts.Skyrim.definition.Id)
+            facts
+            headers
+            order
 
     let change (facts: PluginOrderFacts) (headers: PluginEntry list) (order: PluginOrder) change =
         let names =

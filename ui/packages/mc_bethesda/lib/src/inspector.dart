@@ -66,10 +66,9 @@ class PluginInspector extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(switch (setting!.requirement!) {
-                    PluginRequirement.engine =>
-                      'Required by the Skyrim Special Edition engine',
+                    PluginRequirement.engine => 'Required by the game engine',
                     PluginRequirement.skyrimIni =>
-                      'Required by the Skyrim.ini test files setting',
+                      'Required by the INI test files setting',
                   }),
                 ),
               if (setting?.lockedIndex case final locked?)

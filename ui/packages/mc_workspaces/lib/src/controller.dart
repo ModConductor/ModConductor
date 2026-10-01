@@ -23,6 +23,12 @@ class WorkspaceController extends ChangeNotifier {
   bool showingWorkspace = false;
   int archiveNavigation = 0;
   int gameNavigation = 0;
+  int toolsNavigation = 0;
+  void showTools() {
+    ++toolsNavigation;
+    _notify();
+  }
+
   int helpNavigation = 0;
   void showArchives() {
     ++archiveNavigation;

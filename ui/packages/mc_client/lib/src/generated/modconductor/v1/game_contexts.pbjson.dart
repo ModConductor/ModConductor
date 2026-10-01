@@ -202,6 +202,33 @@ const GameDefinitionInfo$json = {
       '6': '.modconductor.v1.GameCapabilityInfo',
       '10': 'capabilities'
     },
+    {'1': 'artwork_url', '3': 8, '4': 1, '5': 9, '10': 'artworkUrl'},
+    {'1': 'settings_ini', '3': 9, '4': 1, '5': 9, '10': 'settingsIni'},
+    {'1': 'plugin_ordering', '3': 10, '4': 1, '5': 9, '10': 'pluginOrdering'},
+    {'1': 'save_extension', '3': 11, '4': 1, '5': 9, '10': 'saveExtension'},
+    {'1': 'extender_name', '3': 12, '4': 1, '5': 9, '10': 'extenderName'},
+    {'1': 'extender_loader', '3': 13, '4': 1, '5': 9, '10': 'extenderLoader'},
+    {
+      '1': 'supports_light_plugins',
+      '3': 14,
+      '4': 1,
+      '5': 8,
+      '10': 'supportsLightPlugins'
+    },
+    {
+      '1': 'supports_medium_plugins',
+      '3': 15,
+      '4': 1,
+      '5': 8,
+      '10': 'supportsMediumPlugins'
+    },
+    {
+      '1': 'archive_invalidation',
+      '3': 16,
+      '4': 1,
+      '5': 8,
+      '10': 'archiveInvalidation'
+    },
   ],
 };
 
@@ -213,7 +240,14 @@ final $typed_data.Uint8List gameDefinitionInfoDescriptor = $convert.base64Decode
     'gNUhJkZWNsYXJlZFN0ZWFtQXBwSWQSZQoYdW5hdmFpbGFibGVfY2FwYWJpbGl0aWVzGAYgAygL'
     'MioubW9kY29uZHVjdG9yLnYxLlVuYXZhaWxhYmxlR2FtZUNhcGFiaWxpdHlSF3VuYXZhaWxhYm'
     'xlQ2FwYWJpbGl0aWVzEkcKDGNhcGFiaWxpdGllcxgHIAMoCzIjLm1vZGNvbmR1Y3Rvci52MS5H'
-    'YW1lQ2FwYWJpbGl0eUluZm9SDGNhcGFiaWxpdGllcw==');
+    'YW1lQ2FwYWJpbGl0eUluZm9SDGNhcGFiaWxpdGllcxIfCgthcnR3b3JrX3VybBgIIAEoCVIKYX'
+    'J0d29ya1VybBIhCgxzZXR0aW5nc19pbmkYCSABKAlSC3NldHRpbmdzSW5pEicKD3BsdWdpbl9v'
+    'cmRlcmluZxgKIAEoCVIOcGx1Z2luT3JkZXJpbmcSJQoOc2F2ZV9leHRlbnNpb24YCyABKAlSDX'
+    'NhdmVFeHRlbnNpb24SIwoNZXh0ZW5kZXJfbmFtZRgMIAEoCVIMZXh0ZW5kZXJOYW1lEicKD2V4'
+    'dGVuZGVyX2xvYWRlchgNIAEoCVIOZXh0ZW5kZXJMb2FkZXISNAoWc3VwcG9ydHNfbGlnaHRfcG'
+    'x1Z2lucxgOIAEoCFIUc3VwcG9ydHNMaWdodFBsdWdpbnMSNgoXc3VwcG9ydHNfbWVkaXVtX3Bs'
+    'dWdpbnMYDyABKAhSFXN1cHBvcnRzTWVkaXVtUGx1Z2lucxIxChRhcmNoaXZlX2ludmFsaWRhdG'
+    'lvbhgQIAEoCFITYXJjaGl2ZUludmFsaWRhdGlvbg==');
 
 @$core.Deprecated('Use unavailableGameCapabilityDescriptor instead')
 const UnavailableGameCapability$json = {

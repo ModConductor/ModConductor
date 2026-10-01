@@ -63,83 +63,94 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                     match game with
                     | Error error -> return Error error
                     | Ok game ->
-                        let documents, availability =
-                            try
-                                match DataLocations.documents game with
-                                | Ok selected -> Some selected, None
-                                | Error error -> None, Some(DataErrors.problemMessage error)
-                            with :? System.IO.IOException as error ->
-                                None, Some error.Message
+                        match
+                            GameLocalData.project
+                                { Path = root.Path
+                                  Identity = root.Identity }
+                                profile
+                                game
+                        with
+                        | Error error -> return Error error
+                        | Ok game ->
+                            let documents, availability =
+                                try
+                                    match DataLocations.documents game with
+                                    | Ok selected -> Some selected, None
+                                    | Error error -> None, Some(DataErrors.problemMessage error)
+                                with :? System.IO.IOException as error ->
+                                    None, Some error.Message
 
-                        return!
-                            database.Enqueue(fun () ->
-                                use transaction = connection.BeginTransaction(deferred = true)
+                            return!
+                                database.Enqueue(fun () ->
+                                    use transaction = connection.BeginTransaction(deferred = true)
 
-                                let context =
-                                    match documents with
-                                    | Some root ->
-                                        ProfileDataRows.context
-                                            connection
-                                            transaction
-                                            (DataLocations.id workspace root)
-                                    | None ->
-                                        let selectedPath =
-                                            game.Binding
-                                            |> Option.bind (fun binding ->
-                                                match binding.Evidence.Locations.Documents with
-                                                | ModConductor.GameContexts.Location.Located(path,
-                                                                                             _) ->
-                                                    Some path
-                                                | _ -> None)
-
-                                        use query =
-                                            Sqlite.command
+                                    let context =
+                                        match documents with
+                                        | Some root ->
+                                            ProfileDataRows.context
                                                 connection
                                                 transaction
-                                                "SELECT body FROM profile_data_contexts WHERE workspace_id=$workspace"
-                                                [ "$workspace", box (string workspace) ]
+                                                (DataLocations.id workspace root)
+                                        | None ->
+                                            let selectedPath =
+                                                game.Binding
+                                                |> Option.bind (fun binding ->
+                                                    match
+                                                        binding.Evidence.Locations.Documents
+                                                    with
+                                                    | ModConductor.GameContexts.Location.Located(path,
+                                                                                                 _) ->
+                                                        Some path
+                                                    | _ -> None)
 
-                                        use reader = query.ExecuteReader()
+                                            use query =
+                                                Sqlite.command
+                                                    connection
+                                                    transaction
+                                                    "SELECT body FROM profile_data_contexts WHERE workspace_id=$workspace"
+                                                    [ "$workspace", box (string workspace) ]
 
-                                        let candidates =
-                                            [ while reader.Read() do
-                                                  let value =
-                                                      ProfileDataEncoding.readContext (
-                                                          reader.GetFieldValue<byte array> 0
-                                                      )
+                                            use reader = query.ExecuteReader()
 
-                                                  if
-                                                      selectedPath = Some(
-                                                          HostPath.value value.Documents.Path
-                                                      )
-                                                  then
-                                                      yield value ]
+                                            let candidates =
+                                                [ while reader.Read() do
+                                                      let value =
+                                                          ProfileDataEncoding.readContext (
+                                                              reader.GetFieldValue<byte array> 0
+                                                          )
 
-                                        match candidates with
-                                        | [ value ] -> Some value
-                                        | _ -> None
+                                                      if
+                                                          selectedPath = Some(
+                                                              HostPath.value value.Documents.Path
+                                                          )
+                                                      then
+                                                          yield value ]
 
-                                let privateData =
-                                    context
-                                    |> Option.bind (fun value ->
-                                        ProfileDataRows.profile
-                                            connection
-                                            transaction
-                                            value.Id
-                                            profile)
+                                            match candidates with
+                                            | [ value ] -> Some value
+                                            | _ -> None
 
-                                transaction.Commit()
+                                    let privateData =
+                                        context
+                                        |> Option.bind (fun value ->
+                                            ProfileDataRows.profile
+                                                connection
+                                                transaction
+                                                value.Id
+                                                profile)
 
-                                Ok
-                                    { WorkspaceId = workspace
-                                      ProfileId = profile
-                                      Workspace =
-                                        { Path = root.Path
-                                          Identity = root.Identity }
-                                      Game = game
-                                      Availability = availability
-                                      Context = context
-                                      Profile = privateData })
+                                    transaction.Commit()
+
+                                    Ok
+                                        { WorkspaceId = workspace
+                                          ProfileId = profile
+                                          Workspace =
+                                            { Path = root.Path
+                                              Identity = root.Identity }
+                                          Game = game
+                                          Availability = availability
+                                          Context = context
+                                          Profile = privateData })
             }
 
         member _.CreateContext value =

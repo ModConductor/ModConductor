@@ -76,7 +76,7 @@ type GameLaunchSession
                                     deployed.Sources
                                     (dataRevision |> Result.defaultValue -1L)
                                     deployed.ActiveGeneration
-                              Name = Skyrim.definition.Name
+                              Name = (GameCatalog.forGame state.Binding.Value.GameId).Name
                               Runtime = runtime
                               Problem = problem
                               Latest = latest }
@@ -143,7 +143,7 @@ type GameLaunchSession
                                 let game =
                                     { Request = request
                                       ContextId = context
-                                      Name = Skyrim.definition.Name
+                                      Name = (GameCatalog.forGame state.Binding.Value.GameId).Name
                                       GameDirectory = launch.WorkingDirectory
                                       Runtime = runtime
                                       Launch = launch

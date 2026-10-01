@@ -10,94 +10,6 @@ type ContextPlatform =
     | Proton
     | Wine
 
-[<Struct; RequireQualifiedAccess>]
-type GameId =
-    | SkyrimSpecialEditionSteam
-    | SkyrimSpecialEditionGog
-    | SkyrimSpecialEditionDirect
-
-module GameId =
-    let value =
-        function
-        | GameId.SkyrimSpecialEditionSteam -> "skyrim-se-steam"
-        | GameId.SkyrimSpecialEditionGog -> "skyrim-se-gog"
-        | GameId.SkyrimSpecialEditionDirect -> "skyrim-se-direct"
-
-    let tryParse =
-        function
-        | "skyrim-se-steam" -> Some GameId.SkyrimSpecialEditionSteam
-        | "skyrim-se-gog" -> Some GameId.SkyrimSpecialEditionGog
-        | "skyrim-se-direct" -> Some GameId.SkyrimSpecialEditionDirect
-        | _ -> None
-
-type GameDefinition =
-    { Id: GameId
-      Revision: int
-      Name: string
-      Storefront: string
-      SteamAppId: uint32
-      Executable: string
-      Launcher: string
-      Data: string
-      Documents: string list
-      Saves: string list
-      LocalAppData: string list
-      IniFiles: string list
-      TargetPolicy: TargetPolicy }
-
-module Skyrim =
-    let definition =
-        { Id = GameId.SkyrimSpecialEditionSteam
-          Revision = 1
-          Name = "Skyrim Special Edition"
-          Storefront = "Steam"
-          SteamAppId = 489830u
-          Executable = "SkyrimSE.exe"
-          Launcher = "SkyrimSELauncher.exe"
-          Data = "Data"
-          Documents = [ "My Games"; "Skyrim Special Edition" ]
-          Saves = [ "My Games"; "Skyrim Special Edition"; "Saves" ]
-          LocalAppData = [ "Skyrim Special Edition" ]
-          IniFiles = [ "Skyrim.ini"; "SkyrimPrefs.ini"; "SkyrimCustom.ini" ]
-          TargetPolicy = TargetPolicy.windows }
-
-    let gog =
-        { definition with
-            Id = GameId.SkyrimSpecialEditionGog
-            Storefront = "GOG Windows"
-            SteamAppId = 0u
-            Documents = [ "My Games"; "Skyrim Special Edition GOG" ]
-            Saves = [ "My Games"; "Skyrim Special Edition GOG"; "Saves" ]
-            LocalAppData = [ "Skyrim Special Edition GOG" ] }
-
-    let direct =
-        { definition with
-            Id = GameId.SkyrimSpecialEditionDirect
-            Storefront = "DRM-free Windows"
-            SteamAppId = 0u }
-
-    let forGame =
-        function
-        | GameId.SkyrimSpecialEditionSteam -> definition
-        | GameId.SkyrimSpecialEditionGog -> gog
-        | GameId.SkyrimSpecialEditionDirect -> direct
-
-    let isGogRuntime (version: string) =
-        match Version.TryParse version with
-        | true, value ->
-            value.Major = 1 && value.Minor = 6 && (value.Build = 659 || value.Build = 1179)
-        | _ -> false
-
-    let forRuntime game version =
-        match game with
-        | GameId.SkyrimSpecialEditionDirect when isGogRuntime version ->
-            { gog with
-                Id = game
-                Storefront = direct.Storefront }
-        | GameId.SkyrimSpecialEditionSteam
-        | GameId.SkyrimSpecialEditionGog
-        | GameId.SkyrimSpecialEditionDirect -> forGame game
-
 [<RequireQualifiedAccess>]
 type Location =
     | Located of path: string * exists: bool
@@ -214,10 +126,38 @@ module ContextRuntime =
         | ContextPlatform.Wine -> evidence.Wine |> Option.map _.Selection.Prefix
 
     let paths (evidence: InstallationEvidence) =
-        match evidence.Platform with
-        | ContextPlatform.Windows -> []
-        | ContextPlatform.Proton -> evidence.Proton |> Option.map _.Paths |> Option.defaultValue []
-        | ContextPlatform.Wine -> evidence.Wine |> Option.map _.Paths |> Option.defaultValue []
+        let original =
+            match evidence.Platform with
+            | ContextPlatform.Windows -> []
+            | ContextPlatform.Proton ->
+                evidence.Proton |> Option.map _.Paths |> Option.defaultValue []
+            | ContextPlatform.Wine -> evidence.Wine |> Option.map _.Paths |> Option.defaultValue []
+
+        let project (entry: ContextPath) =
+            let location =
+                match entry.Name with
+                | "Documents" -> evidence.Locations.Documents
+                | "Local AppData" -> evidence.Locations.LocalAppData
+                | "Saves" -> evidence.Locations.Saves
+                | name when name.EndsWith(".ini", StringComparison.OrdinalIgnoreCase) ->
+                    match evidence.Locations.Documents with
+                    | Location.Located(path, _) ->
+                        let file = System.IO.Path.Combine(path, name)
+                        Location.Located(file, System.IO.File.Exists file)
+                    | Location.Unavailable reason -> Location.Unavailable reason
+                | _ -> entry.HostLocation
+
+            if location = entry.HostLocation then
+                entry
+            else
+                { entry with
+                    HostLocation = location
+                    WindowsPath =
+                        match location with
+                        | Location.Located(path, _) -> Some("Z:" + path.Replace('/', '\\'))
+                        | Location.Unavailable _ -> None }
+
+        original |> List.map project
 
     let name (evidence: InstallationEvidence) =
         match evidence.Platform with

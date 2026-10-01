@@ -1,9 +1,5 @@
 part of 'app.dart';
 
-final _skyrimProfileImage = Uri.parse(
-  'https://cdn.cloudflare.steamstatic.com/steam/apps/489830/header.jpg',
-);
-
 mixin _ShellContent
     on
         _AppStateBase,
@@ -16,17 +12,17 @@ mixin _ShellContent
     imageClient: widget.workspaces is ProfileImagesClient
         ? widget.workspaces as ProfileImagesClient
         : null,
-    gameName: _hasSkyrimGame ? 'Skyrim Special Edition' : null,
-    gameImage: _hasSkyrimGame ? _skyrimProfileImage : null,
+    gameContexts: widget.gameContexts,
+    gameContext: _game.state,
     openFolder: widget.openWorkspaceFolder,
     profileCreator: _createProfile,
     onImportProfile: _openProfileImport,
     onExportProfile: _openProfileExport,
     profileSetupBuilder: _profileSetupGate,
     workbenchReady: _gameReady,
-    profileInspectorBuilder: !_supportsSkyrim || widget.profileData == null
+    profileInspectorBuilder: widget.profileData == null
         ? null
-        : (context, workspace, profile, close, bindGuard) =>
+        : (context, workspace, profile, game, close, bindGuard) =>
               ProfileSettingsInspector(
                 controller: _profileData,
                 client: widget.profileData,
@@ -34,17 +30,22 @@ mixin _ShellContent
                 profile: profile,
                 profiles: _workspaces.page?.profiles ?? const [],
                 available:
-                    _workspaces.canEdit &&
-                    _game.state?.binding?.needsCheck == false,
+                    _workspaces.canEdit && game?.binding?.needsCheck == false,
                 onClose: close,
                 onNavigationGuardChanged: bindGuard,
                 onResumeProfileChange: _workspaces.resumeProfileChange,
-                pluginHeadersId: _plugins.order?.headers.id,
+                pluginHeadersId: profile.id == _game.state?.profileId
+                    ? _plugins.order?.headers.id
+                    : null,
+                savesAvailable:
+                    game?.definition?.saveExtension.isNotEmpty == true,
                 imageClient: widget.workspaces is ProfileImagesClient
                     ? widget.workspaces as ProfileImagesClient
                     : null,
                 onImageChanged: _workspaces.imageChanged,
-                gameImage: _hasSkyrimGame ? _skyrimProfileImage : null,
+                gameImage: game?.definition?.artworkUrl.isNotEmpty == true
+                    ? Uri.parse(game!.definition!.artworkUrl)
+                    : null,
               ),
     discoveryBuilder: widget.thunderstore == null
         ? null
@@ -58,13 +59,13 @@ mixin _ShellContent
               workspace.selectedProfile?.id,
             ),
           ),
-    executableBuilder: !_supportsSkyrim || widget.executables == null
+    executableBuilder: !_supportsBethesda || widget.executables == null
         ? null
         : (context, workspace) => ExecutablesBrowser(
             controller: _executables,
             chooseExecutable: widget.chooseExecutable,
             chooseDirectory: widget.chooseGameDirectory,
-            fnis: widget.fnis,
+            fnis: _supportsSkyrim ? widget.fnis : null,
             outputs: widget.outputs,
             workspace: workspace,
           ),
@@ -134,7 +135,7 @@ mixin _ShellContent
     compactCloseAction:
         widget.gameLaunching != null && MediaQuery.sizeOf(context).width < 950,
     headerActions:
-        !_supportsSkyrim ||
+        !_supportsBethesda ||
             (widget.deployments == null && widget.migration == null)
         ? null
         : (context, workspace) => [
@@ -161,6 +162,7 @@ mixin _ShellContent
         ? null
         : (context, workspace) => GameContextBrowser(
             controller: _game,
+            catalogue: _gameCatalogue.games,
             steamDiscovery: widget.steamDiscovery,
             protonContexts: widget.protonContexts,
             chooseDirectory: widget.chooseGameDirectory,
@@ -169,7 +171,13 @@ mixin _ShellContent
                 widget.skyrimSetup == null ||
                     workspace.selectedProfile == null ||
                     !_hasSkyrimGame
-                ? null
+                ? (_game.state?.definition?.extenderName.isNotEmpty == true
+                      ? ScriptExtenderSection(
+                          definition: _game.state!.definition!,
+                          client: widget.gameCatalogue,
+                          onTools: _workspaces.showTools,
+                        )
+                      : null)
                 : Padding(
                     padding: const EdgeInsets.only(top: McSpacing.large),
                     child: SkyrimSetupSection(
@@ -181,7 +189,7 @@ mixin _ShellContent
                     ),
                   ),
           ),
-    modLibraryBuilder: !_supportsSkyrim
+    modLibraryBuilder: !_supportsBethesda
         ? null
         : (context, workspace, modsVisible) {
             final canDiscover =

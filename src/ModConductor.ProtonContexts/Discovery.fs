@@ -22,7 +22,7 @@ type ProtonSearch =
       Complete: bool }
 
 module Search =
-    let discover gamePath roots (token: CancellationToken) =
+    let discover (definition: GameDefinition) gamePath roots (token: CancellationToken) =
         if not (OperatingSystem.IsLinux()) then
             { Prefixes = []
               Tools = []
@@ -34,7 +34,7 @@ module Search =
         else
             let problems = ResizeArray<ValidationProblem>()
             let gameId = PrefixFiles.directory gamePath |> snd
-            let report = Discovery.scan Skyrim.definition.SteamAppId roots token
+            let report = GameDiscovery.scan definition roots token
 
             for d in report.Diagnostics do
                 problems.Add { Path = d.Path; Detail = d.Detail }
@@ -54,7 +54,7 @@ module Search =
                             origin.Library.CanonicalPath,
                             "steamapps",
                             "compatdata",
-                            Skyrim.definition.SteamAppId.ToString(CultureInfo.InvariantCulture)
+                            origin.Manifest.AppId.ToString(CultureInfo.InvariantCulture)
                         )
 
                     try
@@ -87,7 +87,7 @@ module Search =
             for root in steamRoots do
                 token.ThrowIfCancellationRequested()
 
-                match ContextSources.mappings Skyrim.definition.SteamAppId root token with
+                match ContextSources.mappings definition.SteamAppId root token with
                 | Ok m -> mappings.Add m
                 | Error e -> problems.Add { Path = root; Detail = e }
 

@@ -134,6 +134,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.bethesda : null;
   FilePlansClient? get filePlans =>
       _state is EngineConnected ? _session?.filePlans : null;
+  GameCatalogueClient? get gameCatalogue =>
+      _state is EngineConnected ? _session?.gameCatalogue : null;
   GameContextsClient? get gameContexts =>
       _state is EngineConnected ? _session?.gameContexts : null;
   ModOrganizationClient? get modOrganization =>

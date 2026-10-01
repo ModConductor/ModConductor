@@ -27,6 +27,7 @@ class ProfileSettingsView extends StatelessWidget {
     this.imageClient,
     this.onImageChanged,
     this.gameImage,
+    this.savesAvailable = true,
   });
 
   final ProfileDataController controller;
@@ -45,6 +46,7 @@ class ProfileSettingsView extends StatelessWidget {
   final ProfileImagesClient? imageClient;
   final VoidCallback? onImageChanged;
   final Uri? gameImage;
+  final bool savesAvailable;
 
   Widget item(BuildContext context, String label, String value) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
@@ -174,12 +176,13 @@ class ProfileSettingsView extends StatelessWidget {
             'Local game settings',
             '${state.options.settings ? 'On' : 'Off'} · ${state.settingsFiles} ${state.settingsFiles == 1 ? 'file' : 'files'}',
           ),
-          item(
-            context,
-            'Local saves',
-            '${state.options.saves ? 'On' : 'Off'} · ${state.saveFiles} ${state.saveFiles == 1 ? 'file' : 'files'}',
-          ),
-          if (state.savesInitialized)
+          if (savesAvailable)
+            item(
+              context,
+              'Local saves',
+              '${state.options.saves ? 'On' : 'Off'} · ${state.saveFiles} ${state.saveFiles == 1 ? 'file' : 'files'}',
+            ),
+          if (savesAvailable && state.savesInitialized)
             McAction(
               label: 'View save files',
               icon: Icons.folder_outlined,

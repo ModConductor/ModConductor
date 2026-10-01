@@ -23,8 +23,10 @@ let private writeJson includeNativeAot observe =
 
 let private run (args: string array) =
     match args with
-    | [| "--thunderstore"; area |] -> writeJson true (fun writer -> ThunderstoreFixtures.observe writer area)
-    | [| "--thunderstore-public"; area |] -> writeJson true (fun writer -> ThunderstoreFixtures.publicPackages writer area)
+    | [| "--thunderstore"; area |] ->
+        writeJson true (fun writer -> ThunderstoreFixtures.observe writer area)
+    | [| "--thunderstore-public"; area |] ->
+        writeJson true (fun writer -> ThunderstoreFixtures.publicPackages writer area)
     | [| "--standalone-wine-runtime"; area; wine; prefix; tool |] ->
         writeJson true (fun writer ->
             NonSteamWineRuntimeFixtures.observe writer area wine prefix tool)
@@ -53,6 +55,27 @@ let private run (args: string array) =
         0
     | [| "--plugin-order"; path |] ->
         writeJson true (fun writer -> PluginOrderFixtures.observe writer path)
+    | [| "--bethesda-inputs"; path |] ->
+        writeJson true (fun writer -> BethesdaInputFixtures.observe writer path)
+    | [| "--bethesda-context-corrections"; path |] ->
+        writeJson true (fun writer -> BethesdaContextCorrectionFixtures.observe writer path)
+    | [| "--bethesda-title-rules" |] -> writeJson true BethesdaTitleRuleFixtures.observe
+    | [| "--bethesda-remastered"; path |] ->
+        writeJson true (fun writer ->
+            BethesdaFamilyFixtures.observeSelected
+                writer
+                path
+                (Some ModConductor.GameContexts.GameId.OblivionRemasteredSteam))
+    | [| "--bethesda-starfield"; path |] ->
+        writeJson true (fun writer ->
+            BethesdaFamilyFixtures.observeSelected
+                writer
+                path
+                (Some ModConductor.GameContexts.GameId.StarfieldSteam))
+    | [| "--bethesda-families"; path |] ->
+        writeJson true (fun writer -> BethesdaFamilyFixtures.observe writer path)
+    | [| "--new-vegas-view"; path |] ->
+        writeJson true (fun writer -> NewVegasViewFixtures.observe writer path)
     | [| "--game-view"; path |] ->
         writeJson true (fun writer -> GameViewFixtures.observe writer path)
     | [| "--bethesda-files"; path |] ->

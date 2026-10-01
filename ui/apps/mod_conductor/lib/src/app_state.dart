@@ -21,6 +21,7 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   final _workspaces = WorkspaceController();
   final _mods = ModLibraryController();
   final _game = GameContextController();
+  final _gameCatalogue = GameCatalogueController();
   final _files = FilePlansController();
   final _diagnostics = DiagnosticsController();
   final _plugins = PluginsController();
@@ -50,6 +51,10 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   final _detachedInstallations =
       <String, StreamSubscription<InstallationStatus>>{};
   final _installationRetries = <String, Timer>{};
+  void _gameListChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _updatesChanged() {
     if (mounted) setState(() {});
   }

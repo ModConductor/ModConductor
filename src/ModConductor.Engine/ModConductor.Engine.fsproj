@@ -32,6 +32,7 @@
     <Compile Include="ProfileTransportService.fs" />
     <Compile Include="ProtonWire.fs" />
     <Compile Include="GameContextService.fs" />
+    <Compile Include="GameCatalogueService.fs" />
     <Compile Include="SteamDiscoveryService.fs" />
     <Compile Include="ProtonContextService.fs" />
     <Compile Include="FilePlanWire.fs" />

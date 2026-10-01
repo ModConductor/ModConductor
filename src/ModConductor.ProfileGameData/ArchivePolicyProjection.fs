@@ -18,8 +18,11 @@ type internal ArchivePolicyProfileInput =
       Policy: ArchivePolicyInput option }
 
 module internal ArchivePolicyProjection =
-    let private archiveEntries bytes =
-        Ini.tryArchiveEntries bytes |> Result.mapError ProfileDataError.Unavailable
+    let private archiveEntries (scope: ProfileDataScope) bytes =
+        Ini.tryArchiveEntriesFor
+            (GameCatalog.rules scope.Game.Binding.Value.GameId).ArchiveKeys
+            bytes
+        |> Result.mapError ProfileDataError.Unavailable
 
     let private same (left: string) (right: string) =
         String.Equals(left, right, StringComparison.OrdinalIgnoreCase)
@@ -27,10 +30,14 @@ module internal ArchivePolicyProjection =
     let private namesEqual left right =
         List.length left = List.length right && List.forall2 same left right
 
-    let private explicitNames (entries: ExplicitArchive list) =
+    let private explicitNames (scope: ProfileDataScope) (entries: ExplicitArchive list) =
         let names = HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
-        [ for name in SkyrimArchives.required do
+        [ for name in
+              (if GameCatalog.isSkyrimSE scope.Game.Binding.Value.GameId then
+                   SkyrimArchives.required
+               else
+                   []) do
               if names.Add name then
                   yield name
           for entry in entries do
@@ -69,13 +76,14 @@ module internal ArchivePolicyProjection =
             use held = HeldDirectory.Open(root.Path, root.Identity)
 
             let actual =
-                DataLocations.iniNames held
-                |> List.find (fun (declared, _) -> declared = "Skyrim.ini")
+                DataLocations.iniNames scope.Game held
+                |> List.find (fun (declared, _) ->
+                    declared = (GameCatalog.rules scope.Game.Binding.Value.GameId).Ini)
                 |> snd
 
             let file = DataFiles.observe held actual token
             let bytes = DataFiles.readIni held actual file token |> Option.defaultValue [||]
-            archiveEntries bytes |> Result.map (List.map _.Name >> Some)
+            archiveEntries scope bytes |> Result.map (List.map _.Name >> Some)
         else
             Ok None
 
@@ -89,22 +97,52 @@ module internal ArchivePolicyProjection =
             match archives.ObservedBaseline scope.ProfileId with
             | Some(ArchiveBaseline.ParsedNames names) -> names
             | Some(ArchiveBaseline.BeforeSettingsEdit bytes) ->
-                match Ini.tryArchiveEntries bytes with
-                | Ok entries -> explicitNames entries
+                match
+                    Ini.tryArchiveEntriesFor
+                        (GameCatalog.rules scope.Game.Binding.Value.GameId).ArchiveKeys
+                        bytes
+                with
+                | Ok entries -> explicitNames scope entries
                 | Error _ ->
                     archives.UseCurrentNames(scope.ProfileId, snapshot.ExplicitNames)
                     snapshot.ExplicitNames
             | None -> snapshot.ExplicitNames
 
+        let rules = GameCatalog.rules scope.Game.Binding.Value.GameId
         let edited = changes before snapshot.ExplicitNames
 
-        if edited.IsEmpty then
-            Ok []
-        else
-            activeDocuments scope token
-            |> Result.map (function
-                | Some actual when not (namesEqual actual snapshot.ExplicitNames) -> edited
-                | _ -> [])
+        let loose =
+            if rules.LooseFilesInvalidation then
+                let bytes =
+                    scope.Profile
+                    |> Option.bind _.Settings
+                    |> Option.map (fun root ->
+                        let _, _, bytes = PluginInputs.readFile root rules.Ini token
+                        bytes)
+                    |> Option.defaultValue [||]
+
+                IniArchives.looseFilesEnabled bytes |> Result.map not
+            else
+                Ok false
+
+        loose
+        |> Result.mapError ProfileDataError.Unavailable
+        |> Result.bind (fun missingLoose ->
+            let edited =
+                if missingLoose then
+                    edited @ [ "Enable loose files" ]
+                else
+                    edited
+
+            if missingLoose then
+                Ok edited
+            elif edited.IsEmpty then
+                Ok []
+            else
+                activeDocuments scope token
+                |> Result.map (function
+                    | Some actual when not (namesEqual actual snapshot.ExplicitNames) -> edited
+                    | _ -> []))
 
     let private settings (scope: ProfileDataScope) =
         match scope.Game.Binding with
@@ -119,13 +157,9 @@ module internal ArchivePolicyProjection =
             | _ ->
                 Error(
                     ProfileDataError.Unavailable
-                        "Enable and initialize profile settings before changing Skyrim archives."
+                        "Enable and initialize profile settings before changing game archives."
                 )
-        | _ ->
-            Error(
-                ProfileDataError.Unavailable
-                    "Archive changes require a checked Skyrim Special Edition game folder."
-            )
+        | _ -> Error(ProfileDataError.Unavailable "Archive changes require a checked game folder.")
 
     let ini (scope: ProfileDataScope) token =
         settings scope
@@ -134,8 +168,9 @@ module internal ArchivePolicyProjection =
             use held = HeldDirectory.Open(root.Path, root.Identity)
 
             let actual =
-                DataLocations.iniNames held
-                |> List.find (fun (declared, _) -> declared = "Skyrim.ini")
+                DataLocations.iniNames scope.Game held
+                |> List.find (fun (declared, _) ->
+                    declared = (GameCatalog.rules scope.Game.Binding.Value.GameId).Ini)
                 |> snd
 
             let observed = DataFiles.observe held actual token
@@ -153,13 +188,25 @@ module internal ArchivePolicyProjection =
         ProfileDataResultFlow.result {
             let! actual, observed, bytes, stamp = ini scope token
             let! pluginInput = PluginInputs.read scope headers.Entries token
-            let! entries = archiveEntries bytes
+            let! entries = archiveEntries scope bytes
             let saved = scope.Profile |> Option.bind _.PluginOrder
 
             let order =
-                OrderRules.reconcile pluginInput.Facts headers.Entries pluginInput.Bytes saved
+                PluginLists.reconcile
+                    pluginInput.Ordering
+                    pluginInput.Activation
+                    pluginInput.Facts
+                    headers.Entries
+                    pluginInput.Bytes
+                    pluginInput.LoadOrder
+                    saved
 
-            let view = OrderRules.inspect pluginInput.Facts headers.Entries order
+            let view =
+                OrderRules.inspectFor
+                    (GameCatalog.rules scope.Game.Binding.Value.GameId)
+                    pluginInput.Facts
+                    headers.Entries
+                    order
 
             return
                 { Scope = scope
@@ -169,7 +216,8 @@ module internal ArchivePolicyProjection =
                   IniStamp = stamp
                   Policy =
                     Some
-                        { Headers = headers
+                        { GameId = scope.Game.Binding.Value.GameId
+                          Headers = headers
                           Order = view
                           Explicit = entries
                           Ini = stamp } }

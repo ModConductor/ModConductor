@@ -70,7 +70,11 @@ type internal ProfileConfigurationOperations
                     return! Error(ProfileDataError.Invalid "The file has no changes to save.")
 
                 let archiveBefore =
-                    if preview.Public.Name = "Skyrim.ini" then
+                    if
+                        preview.Public.Name = (ModConductor.GameContexts.GameCatalog.rules
+                            scope.Game.Binding.Value.GameId)
+                            .Ini
+                    then
                         Some preview.Bytes
                     else
                         None

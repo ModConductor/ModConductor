@@ -183,7 +183,7 @@ class _SaveDetails extends StatelessWidget {
             _SaveFact('Save number', '${metadata.saveNumber}'),
             _SaveFact(
               'Format',
-              'Skyrim save ${metadata.headerVersion} · form ${metadata.formVersion} · ${metadata.compression.name.toUpperCase()}',
+              'Save header ${metadata.headerVersion} · form ${metadata.formVersion} · ${metadata.compression.name.toUpperCase()}',
             ),
           ],
           if (value?.pluginCheckProblem case final detail?)

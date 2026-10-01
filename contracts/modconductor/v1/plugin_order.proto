@@ -24,7 +24,7 @@ message ProfilePluginOrder {
   ProfileDataRef reference = 1; BethesdaPluginSnapshot headers = 2;
   repeated PluginOrderSetting entries = 3; repeated PluginOrderIssue issues = 4;
   int32 full = 5; int32 light = 6; int32 full_limit = 7;
-  bool saved = 8; bool applied = 9; bool external_changed = 10; bool pending = 11; repeated PluginOrderSetting unknown = 12; string pending_problem = 13;
+  bool saved = 8; bool applied = 9; bool external_changed = 10; bool pending = 11; repeated PluginOrderSetting unknown = 12; string pending_problem = 13; int32 medium = 14;
 }
 message ChangePluginOrderRequest {
   ProfileDataRef expected = 1; string headers_id = 2;

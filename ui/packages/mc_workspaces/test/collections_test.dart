@@ -165,7 +165,7 @@ void main() {
           body: WorkspaceBrowser(
             controller: controller,
             profileInspectorBuilder:
-                (context, workspace, profile, close, bindGuard) {
+                (context, workspace, profile, game, close, bindGuard) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     bindGuard((navigate) async {
                       guardCalls++;
@@ -230,7 +230,7 @@ void main() {
           body: WorkspaceBrowser(
             controller: controller,
             profileInspectorBuilder:
-                (context, workspace, profile, close, bindGuard) {
+                (context, workspace, profile, game, close, bindGuard) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     bindGuard((navigate) async {
                       guardCalls++;

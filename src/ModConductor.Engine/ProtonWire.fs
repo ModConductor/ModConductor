@@ -36,7 +36,7 @@ module internal ProtonWire =
 
                 value
 
-            if value.AppId <> Skyrim.definition.SteamAppId || value.ToolId.Length > 1024 then
+            if value.AppId = 0u || value.ToolId.Length > 1024 then
                 ModLibraryWire.reject "The Proton app or tool selection is invalid."
 
             let association =

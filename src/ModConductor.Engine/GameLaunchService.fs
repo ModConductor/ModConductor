@@ -5,7 +5,13 @@ open ModConductor.GameLaunching
 open ModConductor.Executables
 open ModConductor.Fnis
 
-type GameLaunchService(launches: IGameLaunching, skse: SkseCoordinator, fnis: IFnisInspection) =
+type GameLaunchService
+    (
+        launches: IGameLaunching,
+        skse: SkseCoordinator,
+        fnis: IFnisInspection,
+        games: ModConductor.GameContexts.IGameContexts
+    ) =
     inherit Protocol.V1.GameLaunchOperations.GameLaunchOperationsBase()
 
     let stale =
@@ -24,11 +30,28 @@ type GameLaunchService(launches: IGameLaunching, skse: SkseCoordinator, fnis: IF
             return Result.toOption result
         }
 
+    let checks workspace profile token =
+        task {
+            let! current = games.Read(workspace, profile)
+
+            match current with
+            | Ok state when
+                state.Binding
+                |> Option.exists (fun binding ->
+                    ModConductor.GameContexts.GameCatalog.isSkyrimSE binding.GameId)
+                ->
+                let! skse = skse.CheckBeforePlay(workspace, profile)
+                let! fnis = inspect workspace profile token
+                return skse, fnis
+            | _ -> return Ok(), None
+        }
+
     let play request (context: Grpc.Core.ServerCallContext) continueStale =
         task {
             let parsed = ExecutableWire.parseGameRequest request
-            let! allowed = skse.CheckBeforePlay(parsed.WorkspaceId, parsed.ProfileId)
-            let! fnisCheck = inspect parsed.WorkspaceId parsed.ProfileId context.CancellationToken
+
+            let! allowed, fnisCheck =
+                checks parsed.WorkspaceId parsed.ProfileId context.CancellationToken
 
             match allowed, fnisCheck with
             | Error detail, _ ->
@@ -51,8 +74,7 @@ type GameLaunchService(launches: IGameLaunching, skse: SkseCoordinator, fnis: IF
         task {
             let workspace = ModLibraryWire.id request.WorkspaceId
             let profile = ModLibraryWire.id request.ProfileId
-            let! skseCheck = skse.CheckBeforePlay(workspace, profile)
-            let! fnisCheck = inspect workspace profile context.CancellationToken
+            let! skseCheck, fnisCheck = checks workspace profile context.CancellationToken
             let! result = launches.Read(workspace, profile)
 
             match result with

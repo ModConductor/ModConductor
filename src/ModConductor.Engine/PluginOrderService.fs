@@ -24,6 +24,7 @@ module internal PluginOrderWire =
                         Headers = headers.Snapshot,
                         Full = value.View.Full,
                         Light = value.View.Light,
+                        Medium = value.View.Medium,
                         FullLimit = value.View.FullLimit,
                         Saved = value.Saved,
                         Applied = value.Applied,

@@ -1,0 +1,13 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/game_contexts.proto";
+
+service GameCatalogue {
+  rpc ReadGameCatalogue(ReadGameCatalogueRequest) returns (GameCatalogueReply);
+  rpc OpenScriptExtenderPage(OpenScriptExtenderPageRequest) returns (OpenScriptExtenderPageReply);
+}
+message ReadGameCatalogueRequest {}
+message GameCatalogueReply { repeated GameDefinitionInfo games = 1; }
+message OpenScriptExtenderPageRequest { string game_id = 1; }
+message OpenScriptExtenderPageReply { string problem = 1; }

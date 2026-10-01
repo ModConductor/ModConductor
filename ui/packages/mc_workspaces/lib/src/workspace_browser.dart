@@ -17,6 +17,7 @@ part 'workspace_shell.dart';
 part 'workspace_workbench.dart';
 part 'workspace_profile_actions.dart';
 part 'workspace_profile_view.dart';
+part 'workspace_profile_context.dart';
 
 typedef ProfileRowId = ({String profileId});
 typedef WorkspaceFolderOpener = Future<bool> Function(String path);
@@ -27,6 +28,7 @@ typedef ProfileInspectorBuilder = Widget Function(
   BuildContext,
   WorkspaceInfo,
   ProfileInfo,
+  GameContextState?,
   VoidCallback,
   ValueChanged<ProfileNavigationGuard?>,
 );
@@ -81,8 +83,8 @@ class WorkspaceBrowser extends StatefulWidget {
     this.onExportProfile,
     this.profileSetupBuilder,
     this.imageClient,
-    this.gameName,
-    this.gameImage,
+    this.gameContexts,
+    this.gameContext,
     this.workbenchReady = true,
     this.compactCloseAction = false,
     this.openFolder,
@@ -113,8 +115,8 @@ class WorkspaceBrowser extends StatefulWidget {
   onExportProfile;
   final ProfileSetupBuilder? profileSetupBuilder;
   final ProfileImagesClient? imageClient;
-  final String? gameName;
-  final Uri? gameImage;
+  final GameContextsClient? gameContexts;
+  final GameContextState? gameContext;
   final bool workbenchReady;
 
   @override
@@ -130,6 +132,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   final _helpFocus = FocusNode(debugLabel: 'Help');
   int _archiveNavigation = 0;
   int _gameNavigation = 0;
+  int _toolsNavigation = 0;
   int _helpNavigation = 0;
   bool _entryHelp = false;
   String? _shownId;
@@ -141,6 +144,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   );
   WorkspacePage? _shownPage;
   final Map<String, Future<String?>> _images = {};
+  final Map<String, Future<GameContextState?>> _contexts = {};
   int _imageEpoch = -1;
   final _profilePane = GlobalKey<ScaffoldState>();
   bool _inspected = false, _compactProfile = false;
@@ -161,6 +165,9 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   @override
   void didUpdateWidget(WorkspaceBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.gameContexts, widget.gameContexts)) {
+      _contexts.clear();
+    }
     if (!identical(oldWidget.controller, controller)) {
       oldWidget.controller.removeListener(_navigationChanged);
       controller.addListener(_navigationChanged);
@@ -172,6 +179,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     final id = controller.workspace?.id;
     if (id != _shownId) {
       _images.clear();
+      _contexts.clear();
       _profiles.clear();
       _mode = _WorkspaceMode.profiles;
       _entryHelp = false;
@@ -196,12 +204,17 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
       _gameNavigation = controller.gameNavigation;
       _mode = _WorkspaceMode.game;
     }
+    if (_toolsNavigation != controller.toolsNavigation) {
+      _toolsNavigation = controller.toolsNavigation;
+      _mode = _WorkspaceMode.tools;
+    }
     if (_helpNavigation != controller.helpNavigation) {
       _helpNavigation = controller.helpNavigation;
       _mode = _WorkspaceMode.help;
     }
     final page = controller.page;
     if (id != null && page != null && !identical(page, _shownPage)) {
+      _contexts.clear();
       final selected = page.workspace.selectedProfile;
       final rows = {for (final row in page.profiles) (profileId: row.id): row};
       if (selected != null) rows[(profileId: selected.id)] = selected;

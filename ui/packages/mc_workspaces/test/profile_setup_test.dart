@@ -13,6 +13,32 @@ const game = ProfileSetupGame(
   name: 'Skyrim Special Edition',
   storefront: 'Steam',
   steamAppId: 489830,
+  variants: [
+    GameDefinitionInfo(
+      id: 'skyrim-se-steam',
+      revision: 1,
+      name: 'Skyrim Special Edition',
+      storefront: 'Steam',
+      declaredSteamAppId: 489830,
+      capabilities: [],
+    ),
+    GameDefinitionInfo(
+      id: 'skyrim-se-gog',
+      revision: 1,
+      name: 'Skyrim Special Edition',
+      storefront: 'GOG Windows',
+      declaredSteamAppId: 0,
+      capabilities: [],
+    ),
+    GameDefinitionInfo(
+      id: 'skyrim-se-direct',
+      revision: 1,
+      name: 'Skyrim Special Edition',
+      storefront: 'DRM-free Windows',
+      declaredSteamAppId: 0,
+      capabilities: [],
+    ),
+  ],
 );
 
 SteamInstallationCandidate candidate(String id, String path) =>
@@ -27,11 +53,13 @@ class Discovery implements SteamDiscoveryClient {
 
   final List<SteamInstallationCandidate> candidates;
   int searches = 0;
+  String? requestedGame;
   int cancellations = 0;
 
   @override
   SteamSearch search(String definitionId, List<String> additionalRoots) {
     searches++;
+    requestedGame = definitionId;
     return SteamSearch(
       Future.value(
         SteamSearchResult(
@@ -77,6 +105,7 @@ Future<void> mount(
   VoidCallback? onComplete,
   GameInstallationSource initialSource = GameInstallationSource.steam,
   String? initialInstallation,
+  List<ProfileSetupGame> games = const [game],
   WineSelection? initialWine,
   Size size = const Size(1000, 760),
 }) async {
@@ -93,7 +122,7 @@ Future<void> mount(
           initialSource: initialSource,
           initialInstallation: initialInstallation,
           initialWine: initialWine,
-          games: const [game],
+          games: games,
           discovery: discovery,
           chooseDirectory: chooseDirectory,
           onSubmit: onSubmit,
@@ -119,6 +148,57 @@ Future<void> findInstallations(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'the selected New Vegas registration drives discovery and saving',
+    (tester) async {
+      final games = ProfileSetupGame.fromCatalogue(const [
+        GameDefinitionInfo(
+          id: 'new-vegas-steam',
+          revision: 1,
+          name: 'Fallout: New Vegas',
+          storefront: 'Steam',
+          declaredSteamAppId: 22380,
+          capabilities: [],
+        ),
+        GameDefinitionInfo(
+          id: 'new-vegas-gog',
+          revision: 1,
+          name: 'Fallout: New Vegas',
+          storefront: 'GOG Windows',
+          declaredSteamAppId: 0,
+          capabilities: [],
+        ),
+      ]);
+      final discovery = Discovery([candidate('nv', '/games/new-vegas')]);
+      ProfileSetupSelection? submitted;
+      await mount(
+        tester,
+        discovery: discovery,
+        games: games,
+        chooseDirectory: (_) async => null,
+        onSubmit: (selection) async {
+          submitted = selection;
+          return null;
+        },
+      );
+      await findInstallations(tester);
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(discovery.requestedGame, 'new-vegas-steam');
+      expect(submitted?.gameId, 'new-vegas-steam');
+      expect(find.text('Fallout: New Vegas'), findsOneWidget);
+      expect(find.text('Skyrim Special Edition'), findsNothing);
+      expect(games.single.sources, [
+        GameInstallationSource.steam,
+        GameInstallationSource.gog,
+      ]);
+      expect(
+        games.single.forSource(GameInstallationSource.gog),
+        'new-vegas-gog',
+      );
+    },
+  );
+
   testWidgets(
     'GOG profile creation retains a partial Wine selection without Steam discovery',
     (tester) async {

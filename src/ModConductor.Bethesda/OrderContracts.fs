@@ -29,6 +29,7 @@ type PluginOrderView =
       Issues: PluginOrderIssue list
       Full: int
       Light: int
+      Medium: int
       FullLimit: int }
 
 [<RequireQualifiedAccess>]

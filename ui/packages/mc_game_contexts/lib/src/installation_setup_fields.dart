@@ -25,6 +25,7 @@ class InstallationSetupFields extends StatefulWidget {
     this.busy = false,
     this.gameChoices,
     this.onGameChanged,
+    this.sourceChoices = GameInstallationSource.values,
     this.candidates = const [],
     this.onCandidateChanged,
     this.onProblem,
@@ -34,6 +35,7 @@ class InstallationSetupFields extends StatefulWidget {
   final List<String>? gameChoices;
   final ValueChanged<String>? onGameChanged;
   final GameInstallationSource source;
+  final List<GameInstallationSource> sourceChoices;
   final ValueChanged<GameInstallationSource> onSourceChanged;
   final TextEditingController folder, wineExecutable, winePrefix;
   final GameDirectoryChooser chooseDirectory;
@@ -136,7 +138,7 @@ class _InstallationSetupFieldsState extends State<InstallationSetupFields> {
       McChoice<GameInstallationSource>(
         label: 'Installation',
         value: widget.source,
-        choices: GameInstallationSource.values,
+        choices: widget.sourceChoices,
         describe: (value) => value.label,
         onChanged: widget.onSourceChanged,
         enabled: !busy,

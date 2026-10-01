@@ -46,6 +46,7 @@ class _ProtonDialogState extends State<ProtonDialog> {
   late ProtonAssociation association =
       widget.initial?.association ?? const ManualProtonAssociation();
   late String toolId = widget.initial?.toolId ?? '';
+  late int appId = widget.initial?.appId ?? widget.steamAppId;
   late bool dataTouched = widget.initial != null;
   bool busy = false;
   late bool manualRuntime = widget.initial != null;
@@ -68,6 +69,7 @@ class _ProtonDialogState extends State<ProtonDialog> {
 
   void selectPrefix(ProtonPrefixCandidate value) {
     final origin = value.origins.first;
+    appId = origin.manifest.appId;
     association = SteamProtonAssociation(
       origin.steamRoot.canonicalPath,
       origin.library.canonicalPath,
@@ -127,7 +129,7 @@ class _ProtonDialogState extends State<ProtonDialog> {
           : () => Navigator.pop(
               context,
               ProtonSelection(
-                appId: widget.steamAppId,
+                appId: appId,
                 association: association,
                 compatData: data.text,
                 runtimeDirectory: runtime.text,
@@ -188,7 +190,7 @@ class _ProtonDialogState extends State<ProtonDialog> {
         if (association is ManualProtonAssociation && data.text.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Selected manually · AppID ${widget.steamAppId}',
+            'Selected manually · AppID $appId',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

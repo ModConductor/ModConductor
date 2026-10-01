@@ -12,12 +12,16 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
         Widget inspector() {
           final profile = selected!;
           _inspectedProfileId = profile.id;
-          return widget.profileInspectorBuilder!(
-            context,
-            controller.workspace!,
+          return _withProfileContext(
             profile,
-            _closeProfileInspector,
-            (guard) => _bindProfileNavigation(profile.id, guard),
+            (game) => widget.profileInspectorBuilder!(
+              context,
+              controller.workspace!,
+              profile,
+              game,
+              _closeProfileInspector,
+              (guard) => _bindProfileNavigation(profile.id, guard),
+            ),
           );
         }
 
@@ -73,7 +77,7 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
                 ? 'Filter loaded profiles'
                 : 'Filter profiles',
             empty: 'No profiles.',
-            cardExtent: 336,
+            cardExtent: 352,
             compactCardExtent: 390,
             compactCardWidth: 480,
             twoColumnWidth: 900,
@@ -123,6 +127,20 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
     String? activeId,
     bool focused,
   ) {
+    return _withProfileContext(
+      profile,
+      (game) =>
+          _profileCardWithContext(context, profile, activeId, focused, game),
+    );
+  }
+
+  Widget _profileCardWithContext(
+    BuildContext context,
+    ProfileInfo profile,
+    String? activeId,
+    bool focused,
+    GameContextState? game,
+  ) {
     final selected = _profiles.selectedId == (profileId: profile.id);
     final active = profile.id == activeId;
     final imageClient = widget.imageClient;
@@ -151,8 +169,10 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
           child: McPortraitCard(
             key: ValueKey('profile-card-${profile.id}'),
             name: profile.name,
-            category: widget.gameName,
-            image: widget.gameImage,
+            category: game?.definition?.name,
+            image: game?.definition?.artworkUrl.isNotEmpty == true
+                ? Uri.parse(game!.definition!.artworkUrl)
+                : null,
             imagePath: snapshot.data,
             questionFallback: true,
             badge: active

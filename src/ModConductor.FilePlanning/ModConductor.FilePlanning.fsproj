@@ -6,7 +6,7 @@
     <Compile Include="GameInventory.fs" />
     <Compile Include="TextDocuments.fs" />
     <Compile Include="FilePreview.fs" />
-    <Compile Include="GameFiles.fs" />
+    <Compile Include="GameFiles.fs" /><Compile Include="GameDataInputs.fs" />
     <Compile Include="Diagnostics.fs" />
     <Compile Include="FileIndex.fs" />
     <Compile Include="PlanSnapshot.fs" />

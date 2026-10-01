@@ -4,7 +4,7 @@ open System
 open ModConductor.GameContexts
 open ModConductor.Protocol.V1
 
-module private GameContextWire =
+module internal GameContextWire =
     let platform =
         function
         | ContextPlatform.Windows -> GameContextPlatform.Windows
@@ -100,6 +100,59 @@ module private GameContextWire =
 
         result
 
+    let definition (d: GameDefinition) =
+        let rules = GameCatalog.rules d.Id
+
+        let artworkApp =
+            (GameCatalog.definitions
+             |> List.find (fun row -> row.Name = d.Name && row.SteamAppId <> 0u))
+                .SteamAppId
+
+        let result =
+            GameDefinitionInfo(
+                DefinitionId = GameId.value d.Id,
+                Revision = uint32 d.Revision,
+                Name = d.Name,
+                Storefront = d.Storefront,
+                DeclaredSteamAppId = d.SteamAppId,
+                ArtworkUrl =
+                    (if
+                         List.contains
+                             d.Id
+                             [ GameId.TaleOfTwoWastelandsSteam
+                               GameId.NehrimSteam
+                               GameId.FalloutLondonSteam ]
+                     then
+                         ""
+                     else
+                         "https://cdn.cloudflare.steamstatic.com/steam/apps/"
+                         + string artworkApp
+                         + "/header.jpg"),
+                SettingsIni = rules.Ini,
+                PluginOrdering = string rules.Ordering,
+                SaveExtension = defaultArg rules.SaveExtension "",
+                ExtenderName = defaultArg rules.ExtenderName "",
+                ExtenderLoader = defaultArg rules.ExtenderLoader "",
+                SupportsLightPlugins = rules.SupportsLight,
+                SupportsMediumPlugins = rules.SupportsMedium,
+                ArchiveInvalidation = (rules.Invalidation.IsSome || rules.LooseFilesInvalidation)
+            )
+
+        let capabilities = CapabilityPolicy.forUsers d.Id
+        result.Capabilities.AddRange(capabilities |> Seq.map capability)
+
+        result.UnavailableCapabilities.AddRange(
+            capabilities
+            |> Seq.choose (fun item ->
+                match item.Disposition with
+                | CapabilityDisposition.Available -> None
+                | CapabilityDisposition.Unavailable reason
+                | CapabilityDisposition.Unsupported reason ->
+                    Some(UnavailableGameCapability(Name = item.Name, Reason = reason)))
+        )
+
+        result
+
     let reply =
         function
         | Ok(value: ModConductor.GameContexts.GameContextState) ->
@@ -112,29 +165,9 @@ module private GameContextWire =
 
             value.Binding
             |> Option.iter (fun b ->
-                let d = Skyrim.forGame b.GameId
+                let d = GameCatalog.forGame b.GameId
 
-                state.Definition <-
-                    GameDefinitionInfo(
-                        DefinitionId = GameId.value d.Id,
-                        Revision = uint32 d.Revision,
-                        Name = d.Name,
-                        Storefront = d.Storefront,
-                        DeclaredSteamAppId = d.SteamAppId
-                    )
-
-                let capabilities = CapabilityPolicy.forUsers d.Id
-                state.Definition.Capabilities.AddRange(capabilities |> Seq.map capability)
-
-                state.Definition.UnavailableCapabilities.AddRange(
-                    capabilities
-                    |> Seq.choose (fun item ->
-                        match item.Disposition with
-                        | CapabilityDisposition.Available -> None
-                        | CapabilityDisposition.Unavailable reason
-                        | CapabilityDisposition.Unsupported reason ->
-                            Some(UnavailableGameCapability(Name = item.Name, Reason = reason)))
-                )
+                state.Definition <- definition d
 
                 let binding =
                     GameBindingInfo(

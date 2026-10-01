@@ -14,6 +14,10 @@ type internal PluginInputs =
       Path: string
       File: StoredDataFile option
       Bytes: byte array
+      LoadOrder: byte array
+      Ordering: PluginOrdering
+      Activation: PluginActivation
+      TestOverride: bool
       Facts: PluginOrderFacts }
 
 module internal PluginInputs =
@@ -41,7 +45,7 @@ module internal PluginInputs =
             use stream = stream
 
             let maximum =
-                if declared.Equals("Skyrim.ini", StringComparison.OrdinalIgnoreCase) then
+                if declared.EndsWith(".ini", StringComparison.OrdinalIgnoreCase) then
                     16 * OrderDocument.maxBytes
                 else
                     OrderDocument.maxBytes
@@ -63,6 +67,35 @@ module internal PluginInputs =
 
             actual, Some file, bytes
         | Some _ -> DataFiles.fail (declared + " is not a regular file.")
+
+    let creationFile (game: GameContextState) token =
+        let binding = game.Binding.Value
+        let rules = GameCatalog.rules binding.GameId
+
+        let installation =
+            { Path = HostPath.create binding.Evidence.RootPath |> Result.defaultWith invalidOp
+              Identity = binding.Evidence.RootIdentity.Value }
+
+        match rules.CreationFile with
+        | None -> [||]
+        | Some name ->
+            let primary =
+                if binding.GameId <> GameId.StarfieldSteam then
+                    None
+                else
+                    match binding.Evidence.Locations.Documents with
+                    | Location.Located(path, _) when Directory.Exists path ->
+                        let root =
+                            DataLocations.root path
+                            |> Result.defaultWith (ProfileDataException >> raise)
+
+                        let _, file, bytes = readFile root name token
+                        file |> Option.map (fun _ -> bytes)
+                    | _ -> None
+
+            primary
+            |> Option.defaultWith (fun () ->
+                let _, _, bytes = readFile installation name token in bytes)
 
     let private location (game: GameContextState) =
         match game.Binding with
@@ -89,18 +122,30 @@ module internal PluginInputs =
                     DataFiles.fail
                         "The plugin list folder changed. Restore the previous context first.")
 
-            let _, file, bytes =
-                match root with
-                | Some root -> readFile root fileName token
-                | None -> fileName, None, [||]
-
             let binding = scope.Game.Binding.Value
 
-            let gameRoot =
-                { Path = HostPath.create binding.Evidence.RootPath |> Result.defaultWith invalidOp
-                  Identity = binding.Evidence.RootIdentity.Value }
+            let rules =
+                GameCatalog.runtimeRules
+                    binding.GameId
+                    binding.Evidence.Executable.Value.FileVersion
 
-            let _, _, ccc = readFile gameRoot "Skyrim.ccc" token
+            let pluginFile =
+                if rules.Activation = PluginActivation.MorrowindIni then
+                    rules.Ini
+                else
+                    fileName
+
+            let _, file, bytes =
+                match root with
+                | Some root -> readFile root pluginFile token
+                | None -> pluginFile, None, [||]
+
+            let _, _, loadOrder =
+                match root, rules.Activation with
+                | Some root, PluginActivation.Plain -> readFile root "loadorder.txt" token
+                | _ -> "loadorder.txt", None, [||]
+
+            let ccc = creationFile scope.Game token
 
             let installed name =
                 headers
@@ -112,15 +157,24 @@ module internal PluginInputs =
                     .GetString(ccc)
                     .Split([| '\r'; '\n' |], StringSplitOptions.RemoveEmptyEntries)
                 |> Array.map _.Trim()
+                |> Array.filter (fun name -> not (name.StartsWith "#"))
                 |> Array.filter installed
                 |> Array.toList
 
             let context = scope.Context
 
+            let settingsFile =
+                if rules.TestFilesOverride then
+                    (GameCatalog.forGame binding.GameId).IniFiles
+                    |> List.find (fun name ->
+                        name.EndsWith("Custom.ini", StringComparison.OrdinalIgnoreCase))
+                else
+                    rules.Ini
+
             let documentSettings () =
                 DataLocations.documents scope.Game
                 |> Result.map (fun documents ->
-                    let _, _, bytes = readFile documents "Skyrim.ini" token
+                    let _, _, bytes = readFile documents settingsFile token
                     bytes)
 
             let! settings =
@@ -132,15 +186,15 @@ module internal PluginInputs =
                         ->
                         documentSettings ()
                     | _ ->
-                        let _, _, bytes = readFile profile.Settings.Value "Skyrim.ini" token
+                        let _, _, bytes = readFile profile.Settings.Value settingsFile token
                         Ok bytes
                 | _ ->
                     match context with
                     | Some context ->
-                        SettingsSource.globalSettings context token
+                        SettingsSource.globalSettings scope.Game context token
                         |> Result.map (fun files ->
                             files
-                            |> List.tryFind (fun (name, _) -> name = "Skyrim.ini")
+                            |> List.tryFind (fun (name, _) -> name = settingsFile)
                             |> Option.bind snd
                             |> Option.defaultValue [||])
                     | None ->
@@ -151,20 +205,45 @@ module internal PluginInputs =
                             Ok [||]
                         | _ -> documentSettings ()
 
+            let tests = Ini.testFiles settings
+            let overriding = rules.TestFilesOverride && not tests.IsEmpty
+            let creation = if overriding then [] else creation
+
+            let enforced =
+                if
+                    binding.GameId = GameId.StarfieldSteam
+                    || binding.GameId = GameId.OblivionRemasteredSteam
+                then
+                    (rules.Official |> List.filter installed) @ creation
+                else
+                    []
+
             return
                 { Root = root
                   Path = selected
                   File = file
-                  Bytes = bytes
+                  Bytes =
+                    if overriding then
+                        Encoding.UTF8.GetBytes(String.concat "\r\n" (tests |> List.map ((+) "*")))
+                    else
+                        bytes
+                  LoadOrder = loadOrder
+                  Ordering = rules.Ordering
+                  Activation = rules.Activation
+                  TestOverride = overriding
                   Facts =
-                    { Early = OrderRules.baseFiles @ creation
-                      DefaultEnabled = OrderRules.baseFiles @ creation
+                    { Early = rules.Official @ creation
+                      DefaultEnabled = rules.Official @ creation
                       Required =
-                        (OrderRules.mandatoryFiles
+                        ((rules.Primary @ enforced |> List.distinctBy _.ToUpperInvariant())
                          |> List.map (fun name -> name, PluginRequirement.Engine))
-                        @ (Ini.testFiles settings
-                           |> List.map (fun name -> name, PluginRequirement.SkyrimIni))
-                      Implicit = OrderRules.mandatoryFiles } }
+                        @ (tests |> List.map (fun name -> name, PluginRequirement.SkyrimIni))
+                      Implicit =
+                        rules.Implicit
+                        @ (if binding.GameId = GameId.StarfieldSteam then
+                               creation
+                           else
+                               []) } }
         }
 
     let ensureRoot (input: PluginInputs) =

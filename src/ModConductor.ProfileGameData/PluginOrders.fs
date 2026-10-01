@@ -6,6 +6,15 @@ open ModConductor.Bethesda
 open ModConductor.FilePlanning
 
 module internal PluginOrders =
+    let private titleOrder (scope: ProfileDataScope) order =
+        if
+            (ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId)
+                .SupportsBlueprint
+        then
+            BlueprintPlugins.synchronize order
+        else
+            order
+
     let private resultTask = ProfileDataResultTask.resultTask
 
     let headers (plugins: PluginSession) workspace profile id =
@@ -23,13 +32,43 @@ module internal PluginOrders =
         }
 
     let view (scope: ProfileDataScope) (headers: PluginSnapshot) (input: PluginInputs) =
-        let saved = scope.Profile |> Option.bind _.PluginOrder
-        let order = OrderRules.reconcile input.Facts headers.Entries input.Bytes saved
+        let saved =
+            if input.TestOverride then
+                None
+            else
+                scope.Profile |> Option.bind _.PluginOrder
+
+        let order =
+            PluginLists.reconcile
+                input.Ordering
+                input.Activation
+                input.Facts
+                headers.Entries
+                input.Bytes
+                input.LoadOrder
+                saved
+            |> titleOrder scope
 
         let changed =
-            scope.Context
-            |> Option.bind _.PluginObserved
-            |> Option.exists (fun observed -> observed <> input.File)
+            if input.Activation = ModConductor.GameContexts.PluginActivation.MorrowindIni then
+                let expected =
+                    match scope.Profile |> Option.bind _.PluginOrder with
+                    | Some order when
+                        scope.Context
+                        |> Option.bind _.Applied
+                        |> Option.exists (fun active -> active.Plugins.IsSome)
+                        ->
+                        order.Entries
+                        |> List.filter (fun row -> row.Enabled = Some true)
+                        |> List.map _.Name
+                    | Some order -> MorrowindActivation.names order.Document
+                    | None -> MorrowindActivation.names input.Bytes
+
+                expected <> MorrowindActivation.names input.Bytes
+            else
+                scope.Context
+                |> Option.bind _.PluginObserved
+                |> Option.exists (fun observed -> observed <> input.File)
 
         let applied =
             scope.Context
@@ -58,12 +97,22 @@ module internal PluginOrders =
                   Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L }
               Headers = headers
               Facts = input.Facts
-              View = OrderRules.inspect input.Facts headers.Entries order
+              View =
+                OrderRules.inspectFor
+                    (ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId)
+                    input.Facts
+                    headers.Entries
+                    order
               Saved = saved.IsSome
               Applied = applied
               ExternalChanged = changed
               Pending = scope.Context |> Option.bind _.Pending |> Option.isSome
-              Problem = None })
+              Problem =
+                if input.TestOverride then
+                    Some
+                        "The game uses sTestFile settings instead of plugins.txt. Remove those settings to use plugin order."
+                else
+                    None })
 
     let read (repository: IProfileDataRepository) plugins workspace profile id =
         resultTask {
@@ -100,13 +149,42 @@ module internal PluginOrders =
             if current.Pending then
                 return! Error ProfileDataError.Busy
 
-            let! order =
+            if input.TestOverride then
+                return!
+                    Error(
+                        ProfileDataError.Unavailable
+                            "Remove sTestFile entries from the game's Custom.ini before changing plugin order."
+                    )
+
+            let rules =
+                ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId
+
+            match change with
+            | Some(PluginOrderChange.Enable(names, _)) when
+                rules.SupportsBlueprint && names |> List.exists BlueprintPlugins.isNamed
+                ->
+                return!
+                    Error(
+                        ProfileDataError.Invalid
+                            "Change the matching main plugin to enable or disable its blueprint plugin."
+                    )
+            | _ -> ()
+
+            let! changedOrder =
                 match change with
                 | Some change ->
                     OrderRules.change input.Facts header.Entries current.View.Order change
                     |> Result.mapError ProfileDataError.Invalid
                 | None ->
-                    let imported = OrderRules.reconcile input.Facts header.Entries input.Bytes None
+                    let imported =
+                        PluginLists.reconcile
+                            input.Ordering
+                            input.Activation
+                            input.Facts
+                            header.Entries
+                            input.Bytes
+                            input.LoadOrder
+                            None
 
                     let keepLock (entry: PluginSetting) =
                         let locked =
@@ -124,10 +202,17 @@ module internal PluginOrders =
                         { imported with
                             Entries = imported.Entries |> List.map keepLock }
 
+            let order = titleOrder scope changedOrder
+
             match change with
             | Some(PluginOrderChange.Move _)
             | Some(PluginOrderChange.Replace _) ->
-                let next = OrderRules.inspect input.Facts header.Entries order
+                let next =
+                    OrderRules.inspectFor
+                        (ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId)
+                        input.Facts
+                        header.Entries
+                        order
 
                 match
                     next.Issues
@@ -169,7 +254,11 @@ module internal PluginOrders =
                 { context with
                     PluginRoot = Some root
                     PluginObserved =
-                        if change.IsNone || context.PluginObserved.IsNone then
+                        if
+                            input.Activation = ModConductor.GameContexts.PluginActivation.MorrowindIni
+                        then
+                            None
+                        elif change.IsNone || context.PluginObserved.IsNone then
                             Some input.File
                         else
                             context.PluginObserved
@@ -214,8 +303,23 @@ module internal PluginOrders =
                             "The game plugin list changed. Use game order before playing."
                     )
 
-            let order = OrderRules.reconcile input.Facts header.Entries input.Bytes saved
-            let view = OrderRules.inspect input.Facts header.Entries order
+            let order =
+                PluginLists.reconcile
+                    input.Ordering
+                    input.Activation
+                    input.Facts
+                    header.Entries
+                    input.Bytes
+                    input.LoadOrder
+                    (if input.TestOverride then None else saved)
+                |> titleOrder scope
+
+            let view =
+                OrderRules.inspectFor
+                    (ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId)
+                    input.Facts
+                    header.Entries
+                    order
 
             match view.Issues with
             | issue :: _ -> return! Error(ProfileDataError.Invalid issue.Detail)
@@ -224,5 +328,17 @@ module internal PluginOrders =
             if not header.Problems.IsEmpty then
                 return! Error(ProfileDataError.Invalid header.Problems.Head)
 
-            return saved |> Option.map (fun _ -> OrderDocument.write input.Facts.Implicit order)
+            let implicit =
+                input.Facts.Implicit
+                @ (if
+                       (ModConductor.GameContexts.GameCatalog.rules scope.Game.Binding.Value.GameId)
+                           .SupportsBlueprint
+                   then
+                       header.Entries |> List.filter BlueprintPlugins.isBlueprint |> List.map _.Name
+                   else
+                       [])
+
+            return
+                (if input.TestOverride then None else saved)
+                |> Option.map (fun _ -> OrderDocument.writeFor input.Activation implicit order)
         }

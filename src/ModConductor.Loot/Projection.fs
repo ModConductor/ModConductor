@@ -161,8 +161,12 @@ module internal Projection =
         game
         local
         =
-        let definition = Skyrim.forGame evidence.DefinitionId
-        let bytes = OrderDocument.write value.Facts.Implicit value.View.Order
+        let definition = GameCatalog.forGame evidence.DefinitionId
+        let rules = GameCatalog.rules evidence.DefinitionId
+
+        let bytes =
+            OrderDocument.writeFor rules.Activation value.Facts.Implicit value.View.Order
+
         File.WriteAllBytes(Path.Combine(local, "Plugins.txt"), bytes)
 
         let enabled =
@@ -174,7 +178,7 @@ module internal Projection =
             value.Facts.Early
             |> List.filter (fun name ->
                 not (
-                    OrderRules.baseFiles
+                    rules.Official
                     |> List.exists (fun baseName ->
                         baseName.Equals(name, StringComparison.OrdinalIgnoreCase))
                 )
@@ -182,14 +186,16 @@ module internal Projection =
                     |> List.exists (fun active ->
                         active.Equals(name, StringComparison.OrdinalIgnoreCase))))
 
-        File.WriteAllText(
-            Path.Combine(game, "Skyrim.ccc"),
-            (if creation.IsEmpty then
-                 ""
-             else
-                 String.concat "\r\n" creation + "\r\n"),
-            UTF8Encoding(false)
-        )
+        rules.CreationFile
+        |> Option.iter (fun name ->
+            File.WriteAllText(
+                Path.Combine(game, name),
+                (if creation.IsEmpty then
+                     ""
+                 else
+                     String.concat "\r\n" creation + "\r\n"),
+                UTF8Encoding(false)
+            ))
 
         match evidence.Executable with
         | Some executable when executable.Length <= 1024L * 1024L * 1024L ->
@@ -220,7 +226,14 @@ module internal Projection =
                     Path.Combine(stateDirectory, "loot-staging", Guid.NewGuid().ToString("N"))
 
                 let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
-                let data = Directory.CreateDirectory(Path.Combine(game, "Data")).FullName
+
+                let data =
+                    Directory
+                        .CreateDirectory(
+                            Path.Combine(game, (GameCatalog.forGame evidence.DefinitionId).Data)
+                        )
+                        .FullName
+
                 let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
 
                 try

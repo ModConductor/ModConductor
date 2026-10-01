@@ -48,10 +48,10 @@ module internal ProfileCloneMutation =
                     | Ok _ ->
                         return
                             GameProcesses.validate scope.Game
-                            |> Result.map ignore
+                            |> Result.map (fun _ -> Some scope.Game)
                             |> Result.mapError ProfileDataError.Unavailable
             else
-                return Ok()
+                return Ok None
         }
 
     let private saveCopy
@@ -217,7 +217,7 @@ module internal ProfileCloneMutation =
 
                     match valid with
                     | Error error -> return Error error
-                    | Ok() ->
+                    | Ok game ->
                         let! claim =
                             ProfileMutationSupport.claim
                                 services.Repository
@@ -243,6 +243,7 @@ module internal ProfileCloneMutation =
                             return!
                                 ProfileCloning.prepare
                                     services.Repository
+                                    game
                                     context
                                     profile
                                     action

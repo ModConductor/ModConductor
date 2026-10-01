@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text
 open ModConductor.Platform
+open ModConductor.GameContexts
 
 module internal SaveGroupPaging =
     let private result = ProfileDataResultFlow.result
@@ -42,13 +43,16 @@ module internal SaveGroupPaging =
           Actionable = false
           Problem = problem }
 
-    let private saveRow (folder: HeldDirectory) names name identity =
+    let private saveRow (rules: GameRules) (folder: HeldDirectory) names name identity =
         let stream, _ = folder.Read(name, Some identity)
         use file = stream
         let _, ownProblem = unique names name
 
         let companion, companionProblem =
-            regular folder names (Path.GetFileNameWithoutExtension(name) + ".skse")
+            match rules.CompanionExtension with
+            | Some extension ->
+                regular folder names (Path.GetFileNameWithoutExtension(name) + extension)
+            | None -> None, None
 
         let problem = ownProblem |> Option.orElse companionProblem
 
@@ -61,14 +65,20 @@ module internal SaveGroupPaging =
           Actionable = problem.IsNone
           Problem = problem }
 
-    let private row (folder: HeldDirectory) names name =
+    let private row (rules: GameRules) (folder: HeldDirectory) names name =
         let entry = folder.InspectEntry name
         let extension = Path.GetExtension name
 
         let pairedSkse =
-            extension.Equals(".skse", StringComparison.OrdinalIgnoreCase)
+            (rules.CompanionExtension
+             |> Option.exists (fun suffix ->
+                 extension.Equals(suffix, StringComparison.OrdinalIgnoreCase)))
             && (entry |> Option.exists (fun value -> value.Kind = EntryKind.RegularFile))
-            && (regular folder names (Path.GetFileNameWithoutExtension(name) + ".ess")
+            && (regular
+                    folder
+                    names
+                    (Path.GetFileNameWithoutExtension(name)
+                     + (rules.SaveExtension |> Option.defaultValue ""))
                 |> fst
                 |> Option.isSome)
 
@@ -79,8 +89,12 @@ module internal SaveGroupPaging =
             | Some value when value.Kind = EntryKind.Directory ->
                 opaque name ProfileSaveEntryKind.Directory 0L None |> Some
             | Some value when value.Kind = EntryKind.RegularFile ->
-                if extension.Equals(".ess", StringComparison.OrdinalIgnoreCase) then
-                    saveRow folder names name value.Identity |> Some
+                if
+                    rules.SaveExtension
+                    |> Option.exists (fun suffix ->
+                        extension.Equals(suffix, StringComparison.OrdinalIgnoreCase))
+                then
+                    saveRow rules folder names name value.Identity |> Some
                 else
                     let stream, _ = folder.Read(name, Some value.Identity)
                     use file = stream
@@ -90,7 +104,7 @@ module internal SaveGroupPaging =
                 |> Some
             | None -> None
 
-    let rows (root: DataRoot) =
+    let rows rules (root: DataRoot) =
         use folder = HeldDirectory.Open(root.Path, root.Identity)
         let names = folder.Names |> Seq.truncate 1000001 |> Seq.toArray
 
@@ -101,7 +115,7 @@ module internal SaveGroupPaging =
                 (fun left right -> StringComparer.Ordinal.Compare(left, right))
                 names
 
-            names |> Array.choose (row folder names) |> Array.toList |> Ok
+            names |> Array.choose (row rules folder names) |> Array.toList |> Ok
 
     let private pageEntries (available: ProfileSaveGroupEntry list) =
         let page = ResizeArray<ProfileSaveGroupEntry>()
@@ -142,7 +156,7 @@ module internal SaveGroupPaging =
                       Entries = []
                       Next = None }
             | Some root ->
-                let! current = rows root
+                let! current = rows (GameCatalog.rules scope.Game.Binding.Value.GameId) root
 
                 let available =
                     current

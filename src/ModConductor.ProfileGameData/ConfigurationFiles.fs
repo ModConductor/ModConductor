@@ -15,9 +15,9 @@ type internal ConfigurationPreview =
 module internal ConfigurationFiles =
     let private result = ProfileDataResultFlow.result
 
-    let private declared name =
+    let private declared game name =
         match
-            Skyrim.definition.IniFiles
+            (DataLocations.definition game).IniFiles
             |> List.tryFind (fun value -> value.Equals(name, StringComparison.OrdinalIgnoreCase))
         with
         | Some value -> Ok value
@@ -33,9 +33,9 @@ module internal ConfigurationFiles =
                     "Turn on local game settings before editing profile files."
             )
 
-    let actualName (held: HeldDirectory) name =
+    let actualName game (held: HeldDirectory) name =
         result {
-            let! canonical = declared name
+            let! canonical = declared game name
 
             let matches =
                 held.Names
@@ -49,10 +49,10 @@ module internal ConfigurationFiles =
             | _ -> return DataFiles.fail (canonical + " has more than one matching filename.")
         }
 
-    let private entry (held: HeldDirectory) (token: CancellationToken) name =
+    let private entry game (held: HeldDirectory) (token: CancellationToken) name =
         result {
             token.ThrowIfCancellationRequested()
-            let! actual = actualName held name
+            let! actual = actualName game held name
             let file = DataFiles.observe held actual token
 
             return
@@ -66,21 +66,23 @@ module internal ConfigurationFiles =
             let! root = settings scope
             use held = HeldDirectory.Open(root.Path, root.Identity)
 
-            return! Skyrim.definition.IniFiles |> ProfileDataResultFlow.traverse (entry held token)
+            return!
+                (DataLocations.definition scope.Game).IniFiles
+                |> ProfileDataResultFlow.traverse (entry scope.Game held token)
         }
 
     let read (scope: ProfileDataScope) expected name token =
         result {
             let! root = settings scope
             use held = HeldDirectory.Open(root.Path, root.Identity)
-            let! actual = actualName held name
+            let! actual = actualName scope.Game held name
             let before = DataFiles.observe held actual token
             let bytes = DataFiles.readIni held actual before token |> Option.defaultValue [||]
 
             let! document =
                 TextDocuments.editable bytes |> Result.mapError ProfileDataError.Unavailable
 
-            let! canonical = declared name
+            let! canonical = declared scope.Game name
 
             let publicValue =
                 { PreviewId = Guid.NewGuid()
@@ -106,7 +108,7 @@ module internal ConfigurationFiles =
                 return! Error ProfileDataError.Stale
 
             use held = HeldDirectory.Open(root.Path, root.Identity)
-            let! actual = actualName held preview.Public.Name
+            let! actual = actualName scope.Game held preview.Public.Name
 
             if actual <> preview.Public.Name && preview.Before.IsNone then
                 DataFiles.fail (preview.Public.Name + " changed.")

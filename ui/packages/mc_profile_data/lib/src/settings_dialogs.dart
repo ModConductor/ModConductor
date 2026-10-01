@@ -10,8 +10,9 @@ typedef ProfileOptionsChoice = ({
 Future<ProfileOptionsChoice?> chooseProfileOptions(
   BuildContext context,
   ProfileDataState current,
-  String profileName,
-) {
+  String profileName, {
+  bool savesAvailable = true,
+}) {
   var settings = current.options.settings, saves = current.options.saves;
   var initial = InitialProfileSaves.empty;
   return showDialog<ProfileOptionsChoice>(
@@ -36,13 +37,14 @@ Future<ProfileOptionsChoice?> chooseProfileOptions(
               padding: EdgeInsets.only(left: 16, bottom: 12),
               child: Text('Starts from the global game settings.'),
             ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Local saves'),
-            value: saves,
-            onChanged: (value) => update(() => saves = value!),
-          ),
-          if (saves && !current.savesInitialized) ...[
+          if (savesAvailable)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Local saves'),
+              value: saves,
+              onChanged: (value) => update(() => saves = value!),
+            ),
+          if (savesAvailable && saves && !current.savesInitialized) ...[
             const SizedBox(height: 8),
             McChoice<InitialProfileSaves>(
               label: 'Initial saves',

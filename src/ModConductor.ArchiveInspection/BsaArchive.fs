@@ -10,7 +10,7 @@ module internal BsaArchive =
     let openContents (source: Stream) digest (limits: ArchiveLimits) token =
         let version = u32 source
 
-        if version <> 105u then
+        if version <> 103u && version <> 104u && version <> 105u then
             unsupported ()
 
         let folderOffset = int64 (u32 source)
@@ -35,15 +35,21 @@ module internal BsaArchive =
         then
             refuse "The archive contains too many entries."
 
-        range source folderOffset (int64 folderCount * 24L)
+        let folderRecordBytes = if version = 105u then 24L else 16L
+        range source folderOffset (int64 folderCount * folderRecordBytes)
         seek source folderOffset
 
         let folders =
             [ for _ in 1..folderCount do
                   u64 source |> ignore
                   let count = int (u32 source)
-                  u32 source |> ignore
-                  let dataOffset = u64 source
+
+                  let dataOffset =
+                      if version = 105u then
+                          u32 source |> ignore
+                          u64 source
+                      else
+                          uint64 (u32 source)
 
                   if dataOffset > uint64 source.Length then
                       malformed ()
@@ -139,7 +145,10 @@ module internal BsaArchive =
                       { Offset = dataOffset + prefix + codecPrefix
                         Stored = payload
                         Expanded = expanded
-                        Codec = if compressed then Lz4Frame else Raw }
+                        Codec =
+                          if not compressed then Raw
+                          elif version = 105u then Lz4Frame
+                          else Zlib }
 
                   source.Position <- saved
 
@@ -150,5 +159,7 @@ module internal BsaArchive =
                         Prefix = None
                         Parts = [ part ] } ]
 
-        let manifest = validateEntries digest "BSA v105" source.Length limits stored
+        let manifest =
+            validateEntries digest ("BSA v" + string version) source.Length limits stored
+
         Contents(source, stored, manifest, source.Length, limits, token) :> IArchiveContents

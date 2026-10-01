@@ -3,6 +3,7 @@ namespace ModConductor.Bethesda
 open System
 open System.Collections.Generic
 open System.IO
+open ModConductor.GameContexts
 
 type internal ArchiveCandidate =
     { Name: string
@@ -17,11 +18,34 @@ module internal SkyrimArchivePolicy =
     let private set (values: string seq) =
         HashSet<string>(values, StringComparer.OrdinalIgnoreCase)
 
-    let private associatedNames (plugin: string) =
+    let private associatedNames (rules: GameRules) (plugin: string) =
         let stem = Path.GetFileNameWithoutExtension plugin
-        [ stem + ".bsa"; stem + " - Textures.bsa" ]
+
+        if rules.Activation = PluginActivation.MorrowindIni then
+            []
+        elif rules.ArchiveFormats |> List.exists (fun format -> format.StartsWith "BA2") then
+            [ stem + " - Main.ba2"; stem + " - Textures.ba2" ]
+        elif rules.SupportsLight then
+            [ stem + ".bsa"; stem + " - Textures.bsa" ]
+        else
+            [ stem + ".bsa" ]
 
     let resolve (input: ArchivePolicyInput) (candidates: ArchiveCandidate list) =
+        let rules = GameCatalog.rules input.GameId
+
+        let candidates =
+            match rules.Invalidation with
+            | Some(name, version) when
+                input.Explicit |> List.exists (fun entry -> same entry.Name name)
+                ->
+                { Name = name
+                  Source = None
+                  Format = Some("BSA v" + string version)
+                  Problem = None }
+                :: candidates
+                |> List.distinctBy (fun row -> row.Name.ToUpperInvariant())
+            | _ -> candidates
+
         let problems = ResizeArray<string>()
         let blocking = ResizeArray<string>()
 
@@ -31,17 +55,25 @@ module internal SkyrimArchivePolicy =
         for problem in input.Headers.Problems do
             blocking.Add problem
 
-        let required = set SkyrimArchives.required
+        let requiredNames =
+            if GameCatalog.isSkyrimSE input.GameId then
+                SkyrimArchives.required
+            elif rules.Activation = PluginActivation.MorrowindIni then
+                [ "Morrowind.bsa" ]
+            else
+                []
+
+        let required = set requiredNames
         let explicit = Dictionary<string, ExplicitArchive>(StringComparer.OrdinalIgnoreCase)
         let duplicates = HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
         for entry in input.Explicit do
             if not (explicit.TryAdd(entry.Name, entry)) && duplicates.Add entry.Name then
-                problems.Add(entry.Name + " is repeated in the Skyrim archive list.")
+                problems.Add(entry.Name + " is repeated in the game archive list.")
 
         let desired = ResizeArray<string>()
 
-        for name in SkyrimArchives.required do
+        for name in requiredNames do
             desired.Add name
 
         for entry in input.Explicit do
@@ -56,7 +88,7 @@ module internal SkyrimArchivePolicy =
 
         for setting in input.Order.Order.Entries do
             if setting.Enabled = Some true then
-                for name in associatedNames setting.Name do
+                for name in associatedNames rules setting.Name do
                     associated.TryAdd(name, setting.Name) |> ignore
 
         let byName = Dictionary<string, ArchiveCandidate>(StringComparer.OrdinalIgnoreCase)
@@ -77,7 +109,7 @@ module internal SkyrimArchivePolicy =
 
         for setting in input.Order.Order.Entries do
             if setting.Enabled = Some true then
-                for name in associatedNames setting.Name do
+                for name in associatedNames rules setting.Name do
                     if byName.ContainsKey name && not (names |> Seq.exists (same name)) then
                         names.Add byName[name].Name
 
@@ -104,10 +136,23 @@ module internal SkyrimArchivePolicy =
 
                   let isRequired = required.Contains name
                   let intended = isRequired || explicitEntry.IsSome || plugin.IsSome
-                  let bsa = name.EndsWith(".bsa", StringComparison.OrdinalIgnoreCase)
+
+                  let bsa =
+                      name.EndsWith(".bsa", StringComparison.OrdinalIgnoreCase)
+                      || name.EndsWith(".ba2", StringComparison.OrdinalIgnoreCase)
 
                   let supported =
-                      bsa && candidate |> Option.bind _.Format |> Option.exists (same "BSA v105")
+                      bsa
+                      && candidate
+                         |> Option.bind _.Format
+                         |> Option.exists (fun format ->
+                             rules.ArchiveFormats
+                             |> List.exists (fun expected ->
+                                 same expected format
+                                 || format.StartsWith(
+                                     expected + " ",
+                                     StringComparison.OrdinalIgnoreCase
+                                 )))
 
                   let sourceProblem = candidate |> Option.bind _.Problem
 
@@ -118,27 +163,27 @@ module internal SkyrimArchivePolicy =
                           Some("The listed archive is not in the planned Data folder.")
                       | Some _, false, _, _, true ->
                           ArchivePolicyState.Unsupported,
-                          Some("BA2 archives are not loaded by Skyrim Special Edition.")
+                          Some("This archive format is not loaded by the selected game.")
                       | Some _, true, false, Some detail, true ->
                           ArchivePolicyState.Unavailable, Some detail
                       | Some _, true, false, None, true ->
                           ArchivePolicyState.Unsupported,
-                          Some("This BSA version is not supported for Skyrim Special Edition.")
+                          Some("This archive version is not supported for the selected game.")
                       | Some _, true, true, None, true -> ArchivePolicyState.Active, None
                       | Some _, _, _, Some detail, false ->
                           ArchivePolicyState.Unavailable, Some detail
                       | Some _, false, _, _, false ->
                           ArchivePolicyState.Unsupported,
-                          Some("BA2 archives are not loaded by Skyrim Special Edition.")
+                          Some("This archive format is not loaded by the selected game.")
                       | _ -> ArchivePolicyState.Inactive, None
 
                   let rowName = candidate |> Option.map _.Name |> Option.defaultValue name
 
                   let reasons =
                       [ if isRequired then
-                            "Required in Skyrim.ini"
+                            "Required in " + rules.Ini
                         if explicitEntry.IsSome then
-                            "Explicit in Skyrim.ini"
+                            "Explicit in " + rules.Ini
                         match plugin with
                         | Some value -> "Enabled with " + value
                         | None -> () ]

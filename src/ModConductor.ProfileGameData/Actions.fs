@@ -157,7 +157,9 @@ module internal ProfileDataActions =
                                 do! report current
                             }
 
-                        let! appliedResult = DataEffects.run context action save token checkpoint
+                        let! appliedResult =
+                            DataEffects.run scope.Game context action save token checkpoint
+
                         let! applied = appliedResult
 
                         action <-

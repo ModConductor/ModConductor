@@ -9,6 +9,7 @@ final class GameCapabilityId {
   static const skyrimSpecialEdition = GameCapabilityId._(
     'skyrim-special-edition',
   );
+  static const bethesdaGame = GameCapabilityId._('bethesda-game');
   static const archiveInspection = GameCapabilityId._('archive-inspection');
   static const individualSaveEditing = GameCapabilityId._(
     'individual-save-editing',
@@ -19,6 +20,7 @@ final class GameCapabilityId {
     'game-installation-validation' => gameInstallationValidation,
     'skyrim-special-edition' => skyrimSpecialEdition,
     'archive-inspection' => archiveInspection,
+    'bethesda-game' => bethesdaGame,
     'individual-save-editing' => individualSaveEditing,
     'legacy-extension-abi' => legacyExtensionAbi,
     _ => GameCapabilityId._(value),
@@ -89,6 +91,15 @@ class GameDefinitionInfo {
     required this.storefront,
     required this.declaredSteamAppId,
     required this.capabilities,
+    this.artworkUrl = '',
+    this.settingsIni = '',
+    this.pluginOrdering = '',
+    this.saveExtension = '',
+    this.extenderName = '',
+    this.extenderLoader = '',
+    this.supportsLight = false,
+    this.supportsMedium = false,
+    this.archiveInvalidation = false,
   });
   final String id;
   final int revision;
@@ -96,6 +107,9 @@ class GameDefinitionInfo {
   final String storefront;
   final int declaredSteamAppId;
   final List<GameCapability> capabilities;
+  final String artworkUrl, settingsIni, pluginOrdering, saveExtension;
+  final String extenderName, extenderLoader;
+  final bool supportsLight, supportsMedium, archiveInvalidation;
 
   GameCapability? capability(GameCapabilityId id) {
     for (final capability in capabilities) {
@@ -114,17 +128,18 @@ class GameDefinitionInfo {
 enum GameContextPlatform { windows, proton, wine }
 
 enum GameInstallationSource {
-  steam('skyrim-se-steam', 'Steam'),
-  gog('skyrim-se-gog', 'GOG Windows'),
-  direct('skyrim-se-direct', 'DRM-free Windows');
+  steam('Steam'),
+  gog('GOG Windows'),
+  direct('DRM-free Windows'),
+  epic('Epic Windows');
 
-  const GameInstallationSource(this.gameId, this.label);
-  final String gameId;
+  const GameInstallationSource(this.label);
   final String label;
 
   static GameInstallationSource fromGameId(String? id) => switch (id) {
-    'skyrim-se-gog' => gog,
-    'skyrim-se-direct' => direct,
+    final String value when value.endsWith('-gog') => gog,
+    final String value when value.endsWith('-direct') => direct,
+    final String value when value.endsWith('-epic') => epic,
     _ => steam,
   };
 }

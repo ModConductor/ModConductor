@@ -83,6 +83,67 @@ module ProtonFixtures =
           RuntimeDirectory = runtime
           ToolId = "fixture_tool" }
 
+    let createFor (definition: GameDefinition) x86 primary =
+        let game, old = create primary
+
+        write
+            (Path.Combine(old.RuntimeDirectory, "toolmanifest.vdf"))
+            "manifest { version 2 commandline \"/proton %verb%\" }"
+
+        File.Delete(Path.Combine(game, Skyrim.definition.Executable))
+        File.Delete(Path.Combine(game, Skyrim.definition.Launcher))
+        GameContextFixtures.createFor definition x86 game
+
+        let data =
+            Path.Combine(Path.GetDirectoryName old.CompatData, string definition.SteamAppId)
+
+        if old.CompatData <> data then
+            Directory.Move(old.CompatData, data)
+
+        let steam, library =
+            match old.Association with
+            | ProtonAssociation.Steam(steam, library) -> steam, library
+            | ProtonAssociation.Manual -> invalidOp "The fixture Steam roots are missing."
+
+        let manifest = Path.Combine(library, "steamapps", "appmanifest_489830.acf")
+
+        let contents =
+            File.ReadAllText(manifest).Replace("489830", string definition.SteamAppId)
+
+        File.Delete manifest
+
+        File.WriteAllText(
+            Path.Combine(
+                library,
+                "steamapps",
+                "appmanifest_" + string definition.SteamAppId + ".acf"
+            ),
+            contents
+        )
+
+        let user = Path.Combine(data, "pfx", "drive_c", "users", "steamuser")
+
+        Directory.CreateDirectory(
+            Path.Combine(Array.ofList (user :: "Documents" :: definition.Documents))
+        )
+        |> ignore
+
+        Directory.CreateDirectory(
+            Path.Combine(Array.ofList (user :: "Documents" :: definition.Saves))
+        )
+        |> ignore
+
+        Directory.CreateDirectory(
+            Path.Combine(Array.ofList (user :: "AppData" :: "Local" :: definition.LocalAppData))
+        )
+        |> ignore
+
+        game,
+        { old with
+            AppId = definition.SteamAppId
+            CompatData = data
+            Association = ProtonAssociation.Steam(steam, library) }
+
     let observe (writer: Utf8JsonWriter) primary =
         let area = Path.Combine(primary, "proton")
         let game, selected = create area
@@ -118,7 +179,7 @@ module ProtonFixtures =
                 | ProtonAssociation.Steam(root, _) -> [ { Path = root; Origin = "Fixture" } ]
                 | ProtonAssociation.Manual -> []
 
-            let search = Search.discover game roots CancellationToken.None
+            let search = Search.discover Skyrim.definition game roots CancellationToken.None
 
             writer.WriteBoolean(
                 "defaultPrefixAndToolFound",

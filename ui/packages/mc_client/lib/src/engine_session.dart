@@ -106,6 +106,8 @@ class EngineSession {
   BethesdaClient get bethesda => _bethesda!;
   FilePlansClient? _filePlans;
   FilePlansClient get filePlans => _filePlans!;
+  GameCatalogueClient? _gameCatalogue;
+  GameCatalogueClient get gameCatalogue => _gameCatalogue!;
   GameContextsClient? _gameContexts;
   GameContextsClient get gameContexts => _gameContexts!;
   ModOrganizationClient? _modOrganization;
@@ -259,6 +261,7 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _gameContexts = GrpcGameContextsClient(channel, options);
+    _gameCatalogue = GrpcGameCatalogueClient(channel, options);
     _steamDiscovery = GrpcSteamDiscoveryClient(channel, options);
     _protonContexts = GrpcProtonContextsClient(channel, options);
     _skse = SkseClient(channel, CallOptions(metadata: options.metadata));

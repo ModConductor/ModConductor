@@ -68,7 +68,10 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                     | Error error -> return Error error
                     | Ok projection ->
                         let cached =
-                            if refresh then
+                            if
+                                refresh
+                                || evidence.DefinitionId = ModConductor.GameContexts.GameId.StarfieldSteam
+                            then
                                 None
                             else
                                 cache.Game
@@ -81,7 +84,7 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                                 (fun () ->
                                     match cached with
                                     | None ->
-                                        GameFiles.acquireProjected
+                                        GameDataInputs.acquire
                                             projection
                                             evidence
                                             sources.Stamp.WorkspaceId

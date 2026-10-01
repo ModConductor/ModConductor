@@ -25,6 +25,7 @@ class ProfileSettingsInspector extends StatefulWidget {
     this.imageClient,
     this.onImageChanged,
     this.gameImage,
+    this.savesAvailable = true,
   });
   final ProfileDataController controller;
   final ProfileDataClient? client;
@@ -40,6 +41,7 @@ class ProfileSettingsInspector extends StatefulWidget {
   final ProfileImagesClient? imageClient;
   final VoidCallback? onImageChanged;
   final Uri? gameImage;
+  final bool savesAvailable;
   @override
   State<ProfileSettingsInspector> createState() =>
       _ProfileSettingsInspectorState();
@@ -204,6 +206,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
       context,
       current,
       widget.profile.name,
+      savesAvailable: widget.savesAvailable,
     );
     if (choice == null || !mounted) return;
     final disabling =
@@ -306,6 +309,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
         imageClient: widget.imageClient,
         onImageChanged: widget.onImageChanged,
         gameImage: widget.gameImage,
+        savesAvailable: widget.savesAvailable,
       );
     },
   );

@@ -40,13 +40,13 @@ type NxmService
                 result.Problem <- detail.Title
                 result.ProblemDetail <- detail.Detail
             | Ok file ->
-                result.Game <-
-                    (match file.Game with
-                     | "skyrimspecialedition" -> "Skyrim Special Edition"
-                     | "fallout4" -> "Fallout 4"
-                     | _ -> "Another game")
+                let definition =
+                    GameCatalog.definitions
+                    |> List.tryFind (fun game -> (GameCatalog.rules game.Id).NexusGame = file.Game)
 
-                if file.Game <> "skyrimspecialedition" then
+                result.Game <- definition |> Option.map _.Name |> Option.defaultValue "Another game"
+
+                if definition.IsNone then
                     result.Problem <- "This download is for a different game"
                     result.ProblemDetail <- "Use a download for this workspace’s game."
                 elif request.WorkspaceId <> "" then
@@ -60,13 +60,13 @@ type NxmService
                     | Ok value when
                         value.Binding
                         |> Option.exists (fun binding ->
-                            binding.Evidence.DefinitionRevision = (Skyrim.forGame binding.GameId)
-                                .Revision)
+                            binding.Evidence.DefinitionRevision = (GameCatalog.forGame
+                                binding.GameId)
+                                .Revision
+                            && (GameCatalog.rules binding.GameId).NexusGame = file.Game)
                         ->
                         ()
-                    | _ ->
-                        result.Problem <-
-                            "This workspace needs a matching Skyrim Special Edition game context."
+                    | _ -> result.Problem <- "Select a matching game context for this workspace."
 
                 if result.Problem = "" then
                     match session.Status.Account with

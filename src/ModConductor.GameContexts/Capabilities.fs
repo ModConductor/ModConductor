@@ -4,6 +4,7 @@ namespace ModConductor.GameContexts
 type CapabilityId =
     | GameInstallationValidation
     | SkyrimSpecialEdition
+    | BethesdaGame
     | ArchiveInspection
     | IndividualSaveEditing
     | LegacyExtensionAbi
@@ -13,6 +14,7 @@ module CapabilityId =
         function
         | CapabilityId.GameInstallationValidation -> "game-installation-validation"
         | CapabilityId.SkyrimSpecialEdition -> "skyrim-special-edition"
+        | CapabilityId.BethesdaGame -> "bethesda-game"
         | CapabilityId.ArchiveInspection -> "archive-inspection"
         | CapabilityId.IndividualSaveEditing -> "individual-save-editing"
         | CapabilityId.LegacyExtensionAbi -> "legacy-extension-abi"
@@ -49,12 +51,12 @@ type CompiledCapability =
       Disposition: CapabilityDisposition }
 
 module CapabilityPolicy =
-    let private skyrimBothPlatforms =
-        [ for definition in [ Skyrim.definition; Skyrim.gog; Skyrim.direct ] do
+    let private bothPlatforms =
+        [ for definition in GameCatalog.definitions do
               yield
                   { DefinitionId = definition.Id
                     Platforms =
-                      if definition.Id = GameId.SkyrimSpecialEditionSteam then
+                      if GameCatalog.steam definition.Id then
                           [ ContextPlatform.Windows; ContextPlatform.Proton ]
                       else
                           [ ContextPlatform.Windows; ContextPlatform.Wine ] } ]
@@ -65,28 +67,37 @@ module CapabilityPolicy =
             Name = "Game installation checks"
             Kind = CapabilityKind.CoreOutcome
             Audience = CapabilityAudience.User
-            Contexts = skyrimBothPlatforms
+            Contexts = bothPlatforms
+            Disposition = CapabilityDisposition.Available }
+          { Id = CapabilityId.BethesdaGame
+            Revision = 1
+            Name = "Bethesda game support"
+            Kind = CapabilityKind.GameAdapter
+            Audience = CapabilityAudience.User
+            Contexts = bothPlatforms
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.SkyrimSpecialEdition
             Revision = 1
             Name = "Skyrim Special Edition support"
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
-            Contexts = skyrimBothPlatforms
+            Contexts =
+              bothPlatforms
+              |> List.filter (fun context -> GameCatalog.isSkyrimSE context.DefinitionId)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.ArchiveInspection
             Revision = 1
             Name = "Game archive inspection"
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
-            Contexts = skyrimBothPlatforms
+            Contexts = bothPlatforms
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.IndividualSaveEditing
             Revision = 1
             Name = "Individual save editing"
             Kind = CapabilityKind.OptionalLegacy
             Audience = CapabilityAudience.User
-            Contexts = skyrimBothPlatforms
+            Contexts = bothPlatforms
             Disposition =
               CapabilityDisposition.Unavailable "Individual save editing is not available." }
           { Id = CapabilityId.LegacyExtensionAbi
@@ -94,7 +105,7 @@ module CapabilityPolicy =
             Name = "Old extension loading"
             Kind = CapabilityKind.ObsoleteMechanism
             Audience = CapabilityAudience.PolicyOnly
-            Contexts = skyrimBothPlatforms
+            Contexts = bothPlatforms
             Disposition =
               CapabilityDisposition.Unsupported(
                   "Mod Conductor cannot load extensions that require Qt widgets, Windows handles, or a Python ABI."

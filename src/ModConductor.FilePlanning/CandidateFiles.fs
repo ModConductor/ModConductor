@@ -55,6 +55,48 @@ module CandidateFiles =
                           Identity = entry.Identity }
             | Ok _ -> ()
 
+        let rec inspectKnown (directory: HeldDirectory) components =
+            match components with
+            | [] -> None
+            | [ declared ] ->
+                directory.Names
+                |> Seq.tryFind (fun name ->
+                    name.Equals(declared, StringComparison.OrdinalIgnoreCase))
+                |> Option.bind (fun name ->
+                    directory.InspectEntry name |> Option.map (fun entry -> [ name ], entry))
+            | declared :: rest ->
+                directory.Names
+                |> Seq.tryFind (fun name ->
+                    name.Equals(declared, StringComparison.OrdinalIgnoreCase))
+                |> Option.bind (fun name ->
+                    match directory.InspectEntry name with
+                    | Some entry when entry.Kind = EntryKind.Directory ->
+                        use child = directory.Directory(name, Some entry.Identity)
+
+                        inspectKnown child rest
+                        |> Option.map (fun (parts, leaf) -> name :: parts, leaf)
+                    | _ -> None)
+
+        for declared in
+            (ModConductor.GameContexts.GameCatalog.rules evidence.DefinitionId).LightExtensions do
+            let logical =
+                LogicalPath.create (declared.Split('/') |> Array.toList)
+                |> Result.defaultWith (string >> invalidOp)
+
+            if predicate logical && not (links.ContainsKey logical) then
+                match inspectKnown root (LogicalPath.components logical) with
+                | Some(parts, entry) when entry.Kind = EntryKind.RegularFile ->
+                    let actual =
+                        LogicalPath.create parts |> Result.defaultWith (string >> invalidOp)
+
+                    add
+                        logical
+                        { Root = path
+                          RootIdentity = identity
+                          Path = actual
+                          Identity = entry.Identity }
+                | _ -> ()
+
         use originals = (projection.Originals :> seq<_>).GetEnumerator()
 
         while not limitReached && originals.MoveNext() do
@@ -67,6 +109,30 @@ module CandidateFiles =
             Error(FilePlanError.LimitExceeded "The plugin scan exceeds its candidate limit.")
         else
             Ok(List.ofSeq found)
+
+    let private observeInputs
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
+        projection
+        predicate
+        limit
+        token
+        =
+        if evidence.DefinitionId <> ModConductor.GameContexts.GameId.StarfieldSteam then
+            observe evidence projection predicate limit token
+        else
+            GameDataInputs.primaryEvidence evidence
+            |> Result.bind (fun primary ->
+                observe evidence GameProjection.empty predicate limit token
+                |> Result.bind (fun secondary ->
+                    match primary with
+                    | None -> Ok secondary
+                    | Some evidence ->
+                        observe evidence projection predicate limit token
+                        |> Result.map (fun primary ->
+                            secondary @ primary
+                            |> List.groupBy (fun entry ->
+                                (LogicalPath.display entry.Target).ToUpperInvariant())
+                            |> List.map (snd >> List.last))))
 
     let acquire (repository: IFileCandidateRepository) profile predicate limit token =
         task {
@@ -85,7 +151,7 @@ module CandidateFiles =
                     | Ok projection ->
                         let! observed =
                             Task.Run(
-                                (fun () -> observe evidence projection predicate limit token),
+                                (fun () -> observeInputs evidence projection predicate limit token),
                                 token
                             )
 

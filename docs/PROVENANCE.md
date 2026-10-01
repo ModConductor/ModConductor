@@ -174,3 +174,28 @@ GNOME Keyring, not a human keyring or live provider credentials.
 
 MO2 `settings.cpp:2552–2660` informed the credential-storage comparison. MC does
 not adopt MO2 client identifiers, credentials, authentication code or source text.
+
+## Bethesda title rules
+
+MC-093 uses the official MO2 Bethesda plugins at
+[`3916bdda9d99cd8aff95d5fa600a4ca36ed3d8ec`](https://github.com/ModOrganizer2/modorganizer-game_bethesda/tree/3916bdda9d99cd8aff95d5fa600a4ca36ed3d8ec/src/games)
+as behavior references for the 16 title definitions, plugin formats, activation,
+archives, save extensions and runtime locations. The local MO2 core checkout did
+not contain those plugins. Targeted official source reads supplied the missing
+references. MC does not copy MO2's Windows VFS or game-plugin implementations.
+
+The official Basic Games
+[`Oblivion Remastered` implementation](https://github.com/ModOrganizer2/modorganizer-basic_games/blob/3bd9da97c159a1bc05fd21e81199e997ed16e0f6/games/game_oblivion_remaster.py)
+supplies the nested executable, Data, settings, saves and hybrid component routes.
+The [bsatk archive reader](https://github.com/ModOrganizer2/bsatk/blob/17f3290b1bacff2445919c592a163d510aecf21b/src/bsaarchive.cpp)
+supplies format references for Morrowind BSA and newer BA2 headers. MC uses its
+own scoped F# readers and the existing archive ownership boundary.
+
+The standard .NET10.0.11
+[Unix copy implementation](https://github.com/dotnet/runtime/blob/v10.0.11/src/native/libs/System.Native/pal_io.c#L1230-L1358)
+attempts Linux FICLONE before normal copy. MC calls `File.Copy` only for active
+plugin leaves that need independent timestamps. No custom native clone code or
+new package is included. Physical cloning was not measured by the fixtures.
+
+[GAMES.md](GAMES.md) separates implemented behavior from real-game and Windows
+runtime qualification.

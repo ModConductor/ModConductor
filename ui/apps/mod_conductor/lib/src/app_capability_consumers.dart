@@ -28,6 +28,7 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
   }
 
   void _syncWorkspaceConsumers() {
+    _gameCatalogue.attach(widget.gameCatalogue);
     final workspace = _workspaces.confirmedWorkspace;
     _game.attach(
       widget.gameContexts,
@@ -104,7 +105,7 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
   }
 
   void _syncCapabilityConsumers() {
-    final skyrim = _supportsSkyrim;
+    final skyrim = _supportsBethesda;
     final archives = _supportsArchives;
     final workspace = _workspaces.workspace;
     final profile = workspace?.selectedProfile;
@@ -113,7 +114,7 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
       skyrim ? widget.executables : null,
       skyrim ? workspace : null,
       available: skyrim && _workspaces.canEdit,
-      fnis: skyrim ? widget.fnis : null,
+      fnis: _supportsSkyrim ? widget.fnis : null,
     );
     _executables.attach(
       skyrim ? widget.executables : null,
@@ -156,10 +157,11 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
       orders: skyrim ? widget.pluginOrders : null,
     );
     _sortOrder.attach(
-      skyrim ? widget.loot : null,
+      _supportsSkyrim ? widget.loot : null,
       _plugins,
       skyrim ? profile?.id : null,
     );
+    _archives.definition = _game.state?.definition;
     _archives.resumeAction = _plugins.resumeAction;
     _archives.attach(
       skyrim ? widget.archivePolicies : null,
@@ -183,7 +185,9 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
       editable: skyrim && _workspaces.canEdit,
     );
     _watchSetup(
-      skyrim && widget.status is DesktopConnected ? widget.skyrimSetup : null,
+      _supportsSkyrim && widget.status is DesktopConnected
+          ? widget.skyrimSetup
+          : null,
       skyrim ? workspace?.id : null,
       skyrim ? profile?.id : null,
     );

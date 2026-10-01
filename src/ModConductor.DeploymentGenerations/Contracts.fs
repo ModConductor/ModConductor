@@ -36,6 +36,7 @@ type internal BuildRequest =
       LinkedBase: bool
       Excluded: Set<TargetFile>
       OwnedFiles: (TargetFile * byte array) list
+      OrderedFiles: Map<TargetFile, DateTime>
       Working: WorkingLocation list
       Previous: Generation option
       Processes: ProcessIdentity list }

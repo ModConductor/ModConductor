@@ -19,6 +19,15 @@ message GameDefinitionInfo {
   uint32 declared_steam_app_id = 5;
   repeated UnavailableGameCapability unavailable_capabilities = 6;
   repeated GameCapabilityInfo capabilities = 7;
+  string artwork_url = 8;
+  string settings_ini = 9;
+  string plugin_ordering = 10;
+  string save_extension = 11;
+  string extender_name = 12;
+  string extender_loader = 13;
+  bool supports_light_plugins = 14;
+  bool supports_medium_plugins = 15;
+  bool archive_invalidation = 16;
 }
 message UnavailableGameCapability { string name = 1; string reason = 2; }
 enum GameContextPlatform { GAME_CONTEXT_PLATFORM_UNSPECIFIED = 0; GAME_CONTEXT_PLATFORM_WINDOWS = 1; GAME_CONTEXT_PLATFORM_PROTON = 2; GAME_CONTEXT_PLATFORM_WINE = 3; }

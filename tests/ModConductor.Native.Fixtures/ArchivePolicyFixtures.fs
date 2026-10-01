@@ -36,7 +36,8 @@ module ArchivePolicyFixtures =
           Deployment = None }
 
     let private input explicit order =
-        { Headers =
+        { GameId = ModConductor.GameContexts.Skyrim.definition.Id
+          Headers =
             { Id = Guid.NewGuid()
               Stamp = stamp
               ObservedAt = DateTimeOffset.UtcNow
@@ -48,6 +49,7 @@ module ArchivePolicyFixtures =
               Issues = []
               Full = 0
               Light = 0
+              Medium = 0
               FullLimit = 254 }
           Explicit = explicit
           Ini =

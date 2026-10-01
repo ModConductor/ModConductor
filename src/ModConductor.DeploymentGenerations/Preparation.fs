@@ -103,6 +103,25 @@ module internal GenerationPreparation =
                 else
                     None))
 
+    let reusedOrdered (request: BuildRequest) target pin modified =
+        request.Previous
+        |> Option.bind (fun generation ->
+            generation.Files
+            |> List.tryFind (fun file -> file.Target = target)
+            |> Option.bind (fun file ->
+                if
+                    List.contains pin generation.References
+                    && file.Length = length pin
+                    && file.Sha256 = sha256 pin
+                then
+                    file.Backing
+                    |> Option.filter (fun backing ->
+                        backing.OwnerGeneration.IsSome
+                        && read backing (fun stream ->
+                            File.GetLastWriteTimeUtc stream.SafeFileHandle = modified))
+                else
+                    None))
+
     let private verifyLocations
         (request: BuildRequest)
         (sources: GenerationSources)
@@ -191,8 +210,12 @@ module internal GenerationPreparation =
         let secondaryCopies =
             managed
             |> List.filter (fun file ->
-                file.Winner.Precedence.Tier = LayerTier.Secondary
-                && reused request file.Winner.Source |> Option.isNone)
+                match request.OrderedFiles.TryFind file.Target with
+                | Some modified ->
+                    reusedOrdered request file.Target file.Winner.Source modified |> Option.isNone
+                | None ->
+                    file.Winner.Precedence.Tier = LayerTier.Secondary
+                    && reused request file.Winner.Source |> Option.isNone)
 
         let seedCopies =
             bindings
@@ -259,7 +282,10 @@ module internal GenerationPreparation =
                 view.ReadOnlyFiles
                 |> List.filter (fun file ->
                     not (request.Excluded.Contains file.Target)
-                    && (request.LinkedBase || file.Winner.Precedence.Tier <> LayerTier.Base))
+                    && (file.Winner.Precedence.Tier <> LayerTier.Base
+                        || (request.LinkedBase
+                            && not (baseAtTarget request sources file.Target file.Winner.Source)
+                            && not (restoredBase request sources file.Target file.Winner.Source))))
 
             let working = view.Writable |> List.map declaredPath
 

@@ -4,6 +4,7 @@ open System
 open System.Collections.Generic
 open System.IO
 open System.Text
+open ModConductor.GameContexts
 
 module OrderDocument =
     let maxBytes = 1024 * 1024
@@ -44,8 +45,16 @@ module OrderDocument =
         else
             Some(text, false)
 
-    let names bytes =
-        lines bytes |> List.choose (fst >> entry)
+    let namesFor activation bytes =
+        if activation = PluginActivation.MorrowindIni then
+            MorrowindActivation.names bytes |> List.map (fun name -> name, true)
+        else
+            lines bytes
+            |> List.choose (fst >> entry)
+            |> List.map (fun (name, enabled) ->
+                name, activation = PluginActivation.Plain || enabled)
+
+    let names bytes = namesFor PluginActivation.Starred bytes
 
     let canWriteName (name: string) =
         not (String.IsNullOrWhiteSpace name)
@@ -54,7 +63,7 @@ module OrderDocument =
         && not (name.StartsWith('#') || name.StartsWith('*'))
         && PluginText.encode name |> Option.isSome
 
-    let write (implicitNames: string list) (order: PluginOrder) =
+    let private writeList activation (implicitNames: string list) (order: PluginOrder) =
         let implicit = HashSet<string>(implicitNames, StringComparer.OrdinalIgnoreCase)
 
         let known =
@@ -62,12 +71,15 @@ module OrderDocument =
 
         let pending =
             Queue<PluginSetting>(
-                order.Entries |> Seq.filter (fun row -> not (implicit.Contains row.Name))
+                order.Entries
+                |> Seq.filter (fun row ->
+                    not (implicit.Contains row.Name)
+                    && (activation <> PluginActivation.Plain || row.Enabled = Some true))
             )
 
         let output = StringBuilder()
 
-        if order.Document.Length = 0 then
+        if order.Document.Length = 0 && activation = PluginActivation.Starred then
             output
                 .Append("# This file is used by Skyrim to keep track of your downloaded content.\n")
                 .Append("# Please do not modify this file.\n")
@@ -79,7 +91,7 @@ module OrderDocument =
             if not (canWriteName row.Name) || row.Enabled.IsNone then
                 raise (InvalidDataException("Choose a valid active state for " + row.Name + "."))
 
-            if row.Enabled = Some true then
+            if row.Enabled = Some true && activation = PluginActivation.Starred then
                 output.Append('*') |> ignore
 
             output.Append(row.Name).Append("\n") |> ignore
@@ -103,3 +115,17 @@ module OrderDocument =
             raise (InvalidDataException "The plugin list exceeds the 1 MiB write limit.")
 
         bytes
+
+    let writeFor activation implicitNames (order: PluginOrder) =
+        if activation = PluginActivation.MorrowindIni then
+            let active =
+                order.Entries
+                |> List.filter (fun row -> row.Enabled = Some true)
+                |> List.map _.Name
+
+            MorrowindActivation.write active order.Document
+        else
+            writeList activation implicitNames order
+
+    let write implicitNames order =
+        writeFor PluginActivation.Starred implicitNames order

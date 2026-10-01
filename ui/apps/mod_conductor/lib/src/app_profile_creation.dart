@@ -10,16 +10,31 @@ class _ProfileCreationAttempt {
   bool selectionAttempted = false;
 }
 
-const _profileSetupGames = [
-  ProfileSetupGame(
-    id: 'skyrim-se-steam',
-    name: 'Skyrim Special Edition',
-    storefront: 'Steam',
-    steamAppId: 489830,
-  ),
-];
-
 mixin _ProfileCreation on _AppStateBase {
+  List<ProfileSetupGame> get _profileSetupGames =>
+      ProfileSetupGame.fromCatalogue(_gameCatalogue.games);
+
+  Widget _gameListWaiting() => McDialog(
+    title: 'Set up profile',
+    contentWidth: 640,
+    actions: [
+      if (!_gameCatalogue.loading)
+        McAction(label: 'Try again', onPressed: _gameCatalogue.load),
+    ],
+    children: [
+      McActionFeedback(
+        kind: _gameCatalogue.loading
+            ? McActionFeedbackKind.pending
+            : McActionFeedbackKind.failure,
+        message:
+            _gameCatalogue.problem ??
+            (_gameCatalogue.loading
+                ? 'Loading games'
+                : 'The game list is not available.'),
+      ),
+    ],
+  );
+
   String _profileSetupFailure(Object failure) {
     if (failure case GameContextException(:final detail, :final candidate)) {
       final problems = candidate?.problems.map((item) => item.detail).toList();
@@ -104,9 +119,11 @@ mixin _ProfileCreation on _AppStateBase {
         ),
       );
     }
+    if (_profileSetupGames.isEmpty) return _gameListWaiting();
     return ProfileSetupSurface(
       key: ValueKey(('profile-setup', profile.id)),
       initialName: profile.name,
+      initialGameId: state.definition?.id,
       nameEditable: false,
       games: _profileSetupGames,
       discovery: widget.steamDiscovery,
@@ -130,19 +147,24 @@ mixin _ProfileCreation on _AppStateBase {
     final attempt = _ProfileCreationAttempt();
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => ProfileSetupSurface(
-        initialName: '',
-        games: _profileSetupGames,
-        discovery: widget.steamDiscovery,
-        chooseDirectory: widget.chooseGameDirectory,
-        chooseExecutable: widget.chooseExecutable,
-        protonContexts: widget.protonContexts,
-        actionLabel: 'Create profile',
-        canCancel: true,
-        onCancel: () => Navigator.pop(dialogContext),
-        onComplete: () => Navigator.pop(dialogContext),
-        onSubmit: (selection) =>
-            _submitProfileCreation(workspace, attempt, selection),
+      builder: (dialogContext) => ListenableBuilder(
+        listenable: _gameCatalogue,
+        builder: (_, _) => _profileSetupGames.isEmpty
+            ? _gameListWaiting()
+            : ProfileSetupSurface(
+                initialName: '',
+                games: _profileSetupGames,
+                discovery: widget.steamDiscovery,
+                chooseDirectory: widget.chooseGameDirectory,
+                chooseExecutable: widget.chooseExecutable,
+                protonContexts: widget.protonContexts,
+                actionLabel: 'Create profile',
+                canCancel: true,
+                onCancel: () => Navigator.pop(dialogContext),
+                onComplete: () => Navigator.pop(dialogContext),
+                onSubmit: (selection) =>
+                    _submitProfileCreation(workspace, attempt, selection),
+              ),
       ),
     );
   }

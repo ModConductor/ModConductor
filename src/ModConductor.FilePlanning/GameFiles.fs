@@ -45,6 +45,17 @@ module GameFiles =
 
             use root = HeldDirectory.Open(rootPath, identity)
 
+            let rules = GameCatalog.rules evidence.DefinitionId
+
+            let ownsPluginList =
+                rules.GamePlugins = Some((GameCatalog.forGame evidence.DefinitionId).Data)
+
+            let configuration path =
+                ownsPluginList
+                && ([ "plugins.txt"; "loadorder.txt" ]
+                    |> List.exists (fun name ->
+                        name.Equals(LogicalPath.display path, StringComparison.OrdinalIgnoreCase)))
+
             let produce ((entries, total, metadata): ObservedEntry list * int64 * int64) =
                 let totalFiles =
                     entries |> List.filter (fun entry -> not entry.Directory) |> List.length
@@ -68,7 +79,7 @@ module GameFiles =
                 for entry in entries do
                     token.ThrowIfCancellationRequested()
 
-                    if not entry.Directory then
+                    if not entry.Directory && not (configuration entry.Path) then
                         files.Add
                             { Path = entry.Path
                               Identity =
@@ -110,7 +121,8 @@ module GameFiles =
                     SHA256.HashData(data.GetBuffer().AsSpan(0, int data.Length))
                     |> Convert.ToHexStringLower
 
-                { ContextFingerprint = evidence.Fingerprint
+                { Inputs = []
+                  ContextFingerprint = evidence.Fingerprint
                   Root = rootPath
                   Identity = identity
                   Entries = entries
@@ -132,12 +144,20 @@ module GameFiles =
 
             GameInventory.inventory root projection token |> Result.map produce)
 
-    let current (observation: GameObservation) token =
-        protect (fun () ->
-            use root = HeldDirectory.Open(observation.Root, observation.Identity)
+    let rec current (observation: GameObservation) token =
+        if not observation.Inputs.IsEmpty then
+            observation.Inputs
+            |> List.fold
+                (fun state input ->
+                    state
+                    |> Result.bind (fun valid -> current input token |> Result.map ((&&) valid)))
+                (Ok true)
+        else
+            protect (fun () ->
+                use root = HeldDirectory.Open(observation.Root, observation.Identity)
 
-            GameInventory.inventory root observation.Projection token
-            |> Result.map (fun (entries, _, _) -> entries = observation.Entries))
+                GameInventory.inventory root observation.Projection token
+                |> Result.map (fun (entries, _, _) -> entries = observation.Entries))
 
     let internal reuse projection (observation: GameObservation) token =
         protect (fun () ->

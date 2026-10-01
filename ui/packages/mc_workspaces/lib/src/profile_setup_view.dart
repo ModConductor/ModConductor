@@ -36,12 +36,13 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
           ),
           const SizedBox(height: McSpacing.large),
           InstallationSetupFields(
-            gameName: game?.name ?? widget.games.first.name,
+            gameName: game?.name ?? 'Select game',
             gameChoices: widget.games.map((option) => option.name).toList(),
             onGameChanged: (value) => selectGame(
               widget.games.firstWhere((option) => option.name == value),
             ),
             source: source,
+            sourceChoices: game?.sources ?? const [],
             onSourceChanged: selectSource,
             folder: folder,
             wineExecutable: wineExecutable,

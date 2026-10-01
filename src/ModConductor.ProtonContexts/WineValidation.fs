@@ -56,7 +56,9 @@ module WineValidation =
                             File.ReadAllText(Path.Combine(prefix, "user.reg")) |> WineRegistry.read
 
                         let definition =
-                            Skyrim.forRuntime game.DefinitionId game.Executable.Value.FileVersion
+                            GameCatalog.forRuntime
+                                game.DefinitionId
+                                game.Executable.Value.FileVersion
 
                         let paths =
                             PrefixPaths.locationsWith true definition prefix prefixIdentity registry
@@ -92,6 +94,11 @@ module WineValidation =
                             game.Problems
                             @ [ { Path = selection.Prefix
                                   Detail = "The Wine context cannot be read." } ] }
+
+        let checkedGame =
+            { checkedGame with
+                Locations =
+                    GameLocations.apply game.DefinitionId game.RootPath checkedGame.Locations }
 
         { checkedGame with
             Fingerprint = ContextIdentity.fingerprint checkedGame }

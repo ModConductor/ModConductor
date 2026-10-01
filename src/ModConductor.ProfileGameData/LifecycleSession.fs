@@ -121,7 +121,10 @@ type internal ProfileDataLifecycleOperations
                     let! desiredPlugins = desiredPluginsResult
 
                     let needed =
-                        (scope.Context |> Option.bind _.Applied).IsSome
+                        (ModConductor.GameContexts.GameCatalog.rules
+                            scope.Game.Binding.Value.GameId)
+                            .GameSaves.IsSome
+                        || (scope.Context |> Option.bind _.Applied).IsSome
                         || (scope.Profile
                             |> Option.exists (fun value ->
                                 value.Options.Settings

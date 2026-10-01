@@ -67,6 +67,15 @@ module internal ComponentRoutes =
         task {
             let workspace, profile = sources.Stamp.WorkspaceId, sources.Stamp.ProfileId
 
+            let! routeSources =
+                match sources.Context.Binding, retained with
+                | Some binding, Some saved when binding.GameId = GameId.OblivionRemasteredSteam ->
+                    database.Enqueue(fun () ->
+                        { sources with
+                            Profile =
+                                GenerationProfile.restore database.Connection null workspace saved })
+                | _ -> System.Threading.Tasks.Task.FromResult sources
+
             let componentGeneration =
                 retainedGeneration |> Option.orElse (existing |> Option.bind _.Active)
 
@@ -184,6 +193,12 @@ module internal ComponentRoutes =
                         afterFnis
 
                 let replacements = explicit |> List.map (fun row -> row.Mod.ModId) |> Set.ofList
+
+                let previous =
+                    if sources.Context.Binding.Value.GameId = GameId.OblivionRemasteredSteam then
+                        RemasteredComponents.read workspace gameRoot routeSources selected
+                    else
+                        previous
 
                 previous
                 |> Result.map (fun rows ->

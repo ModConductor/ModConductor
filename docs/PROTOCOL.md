@@ -15,7 +15,8 @@ instruction. Preserve field identities and reserve removed fields.
 | `mod_library.proto` | Mod inventory, metadata, publication, and saved files |
 | `profile_mods.proto` | Per-profile enablement and precedence changes |
 | `mod_organization.proto` | Workspace category edits and revision-pinned mod queries |
-| `game_contexts.proto` | Workspace installation selection and checked evidence |
+| `game_catalogue.proto` | Engine-owned title and store catalogue |
+| `game_contexts.proto` | Profile installation selection, checked evidence and title capabilities |
 | `steam_discovery.proto` | Read-only Steam installation search and per-origin observations |
 | `proton_contexts.proto` | Existing prefix/runtime choices, mapping observations and Windows user paths |
 | `file_plans.proto` | Observed Data files, planned sources, exact-copy visibility and history |

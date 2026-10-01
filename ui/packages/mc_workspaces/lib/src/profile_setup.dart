@@ -17,12 +17,49 @@ class ProfileSetupGame {
     required this.name,
     required this.storefront,
     required this.steamAppId,
+    this.variants = const [],
+    this.artworkUrl = '',
   });
 
   final String id;
   final String name;
   final String storefront;
   final int steamAppId;
+  final List<GameDefinitionInfo> variants;
+  final String artworkUrl;
+  List<GameInstallationSource> get sources => variants.isEmpty
+      ? [GameInstallationSource.fromGameId(id)]
+      : variants
+            .map((game) => GameInstallationSource.fromGameId(game.id))
+            .toList();
+  String forSource(GameInstallationSource source) => variants.isEmpty
+      ? id
+      : variants
+            .firstWhere(
+              (game) => GameInstallationSource.fromGameId(game.id) == source,
+            )
+            .id;
+
+  static List<ProfileSetupGame> fromCatalogue(
+    List<GameDefinitionInfo> catalogue,
+  ) {
+    final groups = <String, List<GameDefinitionInfo>>{};
+    for (final definition in catalogue) {
+      groups.putIfAbsent(definition.name, () => []).add(definition);
+    }
+    return groups.values
+        .map(
+          (variants) => ProfileSetupGame(
+            id: variants.first.id,
+            name: variants.first.name,
+            storefront: variants.first.storefront,
+            steamAppId: variants.first.declaredSteamAppId,
+            artworkUrl: variants.first.artworkUrl,
+            variants: variants,
+          ),
+        )
+        .toList();
+  }
 }
 
 class ProfileSetupSelection {
@@ -41,7 +78,7 @@ class ProfileSetupSelection {
   final ProtonSelection? proton;
   final WineSelection? wine;
   final GameInstallationSource source;
-  String get gameId => source.gameId;
+  String get gameId => game.forSource(source);
 }
 
 typedef ProfileSetupSubmit = Future<String?> Function(
@@ -62,6 +99,7 @@ class ProfileSetupSurface extends StatefulWidget {
     this.onCancel,
     this.onComplete,
     this.initialInstallation,
+    this.initialGameId,
     this.initialProton,
     this.initialWine,
     this.initialSource = GameInstallationSource.steam,
@@ -80,7 +118,7 @@ class ProfileSetupSurface extends StatefulWidget {
   final bool canCancel;
   final VoidCallback? onCancel;
   final VoidCallback? onComplete;
-  final String? initialInstallation;
+  final String? initialInstallation, initialGameId;
   final ProtonSelection? initialProton;
   final WineSelection? initialWine;
   final GameInstallationSource initialSource;
@@ -119,7 +157,17 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
   void initState() {
     super.initState();
     name = TextEditingController(text: widget.initialName);
-    game = widget.games.length == 1 ? widget.games.single : null;
+    game =
+        widget.games
+            .where(
+              (game) =>
+                  game.id == widget.initialGameId ||
+                  game.variants.any(
+                    (variant) => variant.id == widget.initialGameId,
+                  ),
+            )
+            .firstOrNull ??
+        widget.games.firstOrNull;
     selectedInstallation = widget.initialInstallation;
     folder.text = widget.initialInstallation ?? '';
     source = widget.initialSource;
@@ -191,6 +239,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
     if (search != null) unawaited(search.cancel());
     setState(() {
       game = value;
+      if (!value.sources.contains(source)) source = value.sources.first;
       pendingSearch = null;
       candidates = const [];
       folder.clear();

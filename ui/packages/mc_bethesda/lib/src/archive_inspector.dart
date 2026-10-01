@@ -46,7 +46,7 @@ class ArchivePolicyInspector extends StatelessWidget {
             if (row.iniKey.isNotEmpty)
               _fact(
                 context,
-                'Skyrim.ini',
+                controller.definition?.settingsIni ?? 'Settings',
                 '${row.iniKey}, position ${(row.iniPosition ?? 0) + 1}',
               ),
             if (row.associatedPlugin.isNotEmpty)
@@ -61,7 +61,9 @@ class ArchivePolicyInspector extends StatelessWidget {
             _fact(
               context,
               'Archive invalidation',
-              'Not available for this game.',
+              controller.definition?.archiveInvalidation == true
+                  ? 'Available in ${controller.definition!.settingsIni}.'
+                  : 'Not available for this game.',
             ),
           ],
         ],

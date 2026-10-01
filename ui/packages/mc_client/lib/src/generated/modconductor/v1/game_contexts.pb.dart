@@ -317,6 +317,15 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
     $core.int? declaredSteamAppId,
     $core.Iterable<UnavailableGameCapability>? unavailableCapabilities,
     $core.Iterable<GameCapabilityInfo>? capabilities,
+    $core.String? artworkUrl,
+    $core.String? settingsIni,
+    $core.String? pluginOrdering,
+    $core.String? saveExtension,
+    $core.String? extenderName,
+    $core.String? extenderLoader,
+    $core.bool? supportsLightPlugins,
+    $core.bool? supportsMediumPlugins,
+    $core.bool? archiveInvalidation,
   }) {
     final result = create();
     if (definitionId != null) result.definitionId = definitionId;
@@ -328,6 +337,18 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
     if (unavailableCapabilities != null)
       result.unavailableCapabilities.addAll(unavailableCapabilities);
     if (capabilities != null) result.capabilities.addAll(capabilities);
+    if (artworkUrl != null) result.artworkUrl = artworkUrl;
+    if (settingsIni != null) result.settingsIni = settingsIni;
+    if (pluginOrdering != null) result.pluginOrdering = pluginOrdering;
+    if (saveExtension != null) result.saveExtension = saveExtension;
+    if (extenderName != null) result.extenderName = extenderName;
+    if (extenderLoader != null) result.extenderLoader = extenderLoader;
+    if (supportsLightPlugins != null)
+      result.supportsLightPlugins = supportsLightPlugins;
+    if (supportsMediumPlugins != null)
+      result.supportsMediumPlugins = supportsMediumPlugins;
+    if (archiveInvalidation != null)
+      result.archiveInvalidation = archiveInvalidation;
     return result;
   }
 
@@ -356,6 +377,15 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
         subBuilder: UnavailableGameCapability.create)
     ..pPM<GameCapabilityInfo>(7, _omitFieldNames ? '' : 'capabilities',
         subBuilder: GameCapabilityInfo.create)
+    ..aOS(8, _omitFieldNames ? '' : 'artworkUrl')
+    ..aOS(9, _omitFieldNames ? '' : 'settingsIni')
+    ..aOS(10, _omitFieldNames ? '' : 'pluginOrdering')
+    ..aOS(11, _omitFieldNames ? '' : 'saveExtension')
+    ..aOS(12, _omitFieldNames ? '' : 'extenderName')
+    ..aOS(13, _omitFieldNames ? '' : 'extenderLoader')
+    ..aOB(14, _omitFieldNames ? '' : 'supportsLightPlugins')
+    ..aOB(15, _omitFieldNames ? '' : 'supportsMediumPlugins')
+    ..aOB(16, _omitFieldNames ? '' : 'archiveInvalidation')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -428,6 +458,87 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(7)
   $pb.PbList<GameCapabilityInfo> get capabilities => $_getList(6);
+
+  @$pb.TagNumber(8)
+  $core.String get artworkUrl => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set artworkUrl($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasArtworkUrl() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearArtworkUrl() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get settingsIni => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set settingsIni($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasSettingsIni() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSettingsIni() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get pluginOrdering => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set pluginOrdering($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasPluginOrdering() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPluginOrdering() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get saveExtension => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set saveExtension($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasSaveExtension() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearSaveExtension() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.String get extenderName => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set extenderName($core.String value) => $_setString(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasExtenderName() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearExtenderName() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get extenderLoader => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set extenderLoader($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasExtenderLoader() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearExtenderLoader() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.bool get supportsLightPlugins => $_getBF(13);
+  @$pb.TagNumber(14)
+  set supportsLightPlugins($core.bool value) => $_setBool(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasSupportsLightPlugins() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearSupportsLightPlugins() => $_clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.bool get supportsMediumPlugins => $_getBF(14);
+  @$pb.TagNumber(15)
+  set supportsMediumPlugins($core.bool value) => $_setBool(14, value);
+  @$pb.TagNumber(15)
+  $core.bool hasSupportsMediumPlugins() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearSupportsMediumPlugins() => $_clearField(15);
+
+  @$pb.TagNumber(16)
+  $core.bool get archiveInvalidation => $_getBF(15);
+  @$pb.TagNumber(16)
+  set archiveInvalidation($core.bool value) => $_setBool(15, value);
+  @$pb.TagNumber(16)
+  $core.bool hasArchiveInvalidation() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearArchiveInvalidation() => $_clearField(16);
 }
 
 class UnavailableGameCapability extends $pb.GeneratedMessage {

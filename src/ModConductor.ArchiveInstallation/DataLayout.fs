@@ -12,4 +12,12 @@ module DataLayout =
               "strings"
               "seq"
               "grass"
-              "skse" ]
+              "skse"
+              "f4se"
+              "sfse"
+              "mwse"
+              "materials"
+              "icons"
+              "bookart"
+              "fonts"
+              "video" ]

@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text
 open System.Threading
+open ModConductor.GameContexts
 
 exception private HeaderReadException of HeaderError
 
@@ -32,7 +33,12 @@ module HeaderReader =
 
         PluginText.decode bytes[.. count - 1]
 
-    let read (name: string) (stream: Stream) (token: CancellationToken) =
+    let private readTes4
+        (rules: GameRules)
+        (name: string)
+        (stream: Stream)
+        (token: CancellationToken)
+        =
         try
             use reader = new BinaryReader(stream, Encoding.UTF8, true)
 
@@ -49,8 +55,12 @@ module HeaderReader =
             let flags = reader.ReadUInt32()
             reader.ReadUInt32() |> ignore
             reader.ReadUInt32() |> ignore
-            let form = reader.ReadUInt16()
-            let tail = reader.ReadUInt16()
+
+            let form, tail =
+                if rules.HeaderBytes = 20 then
+                    0us, 0us
+                else
+                    reader.ReadUInt16(), reader.ReadUInt16()
 
             if form = 0x4548us && tail = 0x5244us then
                 unsupported "Oblivion-style headers are not supported for Skyrim Special Edition."
@@ -61,7 +71,7 @@ module HeaderReader =
             if length > maxHeaderBytes then
                 limit "The TES4 header exceeds the 8 MiB read limit."
 
-            let endPosition = 24L + length
+            let endPosition = int64 rules.HeaderBytes + length
 
             if endPosition > stream.Length then
                 fail "The TES4 header ends before its declared size."
@@ -124,7 +134,7 @@ module HeaderReader =
                 version
                 |> Option.defaultWith (fun () -> fail "The TES4 header has no HEDR subrecord.")
 
-            if version <> 1.7f && version <> 1.71f then
+            if rules.NexusGame = "skyrimspecialedition" && version <> 1.7f && version <> 1.71f then
                 unsupported (
                     "Header version "
                     + version.ToString(Globalization.CultureInfo.InvariantCulture)
@@ -139,8 +149,25 @@ module HeaderReader =
                   FormVersion = form
                   HeaderVersion = version
                   DeclaredRecords = records
-                  Kind = SkyrimPlugins.kind extension flags
-                  Localized = flags &&& 0x80u <> 0u
+                  Kind =
+                    if rules.SupportsMedium && flags &&& 0x400u <> 0u then
+                        if flags &&& 1u <> 0u || extension = ".esm" then
+                            PluginKind.MediumMaster
+                        else
+                            PluginKind.MediumPlugin
+                    elif rules.SupportsMedium && rules.SupportsLight then
+                        let adjusted =
+                            (flags &&& ~~~0x200u)
+                            ||| (if flags &&& 0x100u <> 0u then 0x200u else 0u)
+
+                        SkyrimPlugins.kind extension adjusted
+                    elif rules.SupportsLight then
+                        SkyrimPlugins.kind extension flags
+                    elif flags &&& 1u <> 0u || extension = ".esm" then
+                        PluginKind.Master
+                    else
+                        PluginKind.Plugin
+                  Localized = rules.SupportsLight && flags &&& 0x80u <> 0u
                   Author = author
                   Description = description
                   Masters = List.ofSeq masters }
@@ -150,3 +177,12 @@ module HeaderReader =
         | :? IOException as error -> Error(HeaderError.Unavailable error.Message)
         | :? UnauthorizedAccessException ->
             Error(HeaderError.Unavailable "The plugin file cannot be read.")
+
+    let readFor (rules: GameRules) name stream token =
+        if rules.HeaderBytes = 16 then
+            MorrowindHeaderReader.read name stream token
+        else
+            readTes4 rules name stream token
+
+    let read name stream token =
+        readFor (GameCatalog.rules Skyrim.definition.Id) name stream token

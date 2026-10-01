@@ -61,6 +61,25 @@ module GameContextFixtures =
         File.WriteAllBytes(Path.Combine(path, "SkyrimSE.exe"), bytes)
         File.WriteAllBytes(Path.Combine(path, "SkyrimSELauncher.exe"), bytes)
 
+    let createFor (definition: GameDefinition) x86 path =
+        Directory.CreateDirectory(Path.Combine(path, definition.Data)) |> ignore
+        let bytes = image 104
+
+        if x86 then
+            let section = bytes[392..431]
+            section.CopyTo(bytes, 376)
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(132, 2), 0x14Cus)
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(148, 2), 224us)
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(152, 2), 0x10Bus)
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(244, 4), 16u)
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(264, 4), 0x1000u)
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(268, 4), 1024u)
+
+        File.WriteAllBytes(Path.Combine(path, definition.Executable), bytes)
+
+        if definition.Launcher <> "" then
+            File.WriteAllBytes(Path.Combine(path, definition.Launcher), bytes)
+
     let observe (writer: Utf8JsonWriter) primary =
         let wait = StorageWorker.wait
         let result = StorageWorker.result

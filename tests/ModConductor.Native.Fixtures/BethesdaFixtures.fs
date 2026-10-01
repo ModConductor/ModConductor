@@ -212,24 +212,26 @@ module BethesdaFixtures =
         let deployed = scan ()
 
         check
-            "activeLinkIsExcludedAndOriginalSourceRetained"
+            "privateViewLinksAreNotInputsAndOriginalSourceRetained"
             ((entry "QuietRivers.esp" deployed).Alternatives
              |> List.exists (fun source ->
                  match source.Source with
                  | CandidateSource.Observed source ->
-                     HostPath.value source.Root <> data && source.Path <> path "QuietRivers.esp"
+                     HostPath.value source.Root = data && source.Path = path "QuietRivers.esp"
                  | _ -> false))
 
-        let deployedPath = Path.Combine(data, "QuietRivers.esp")
+        let active = backend.Read profile |> wait |> result
+        let deployedPath = Path.Combine(active.RunnableRoot, "Data", "QuietRivers.esp")
         let retainedLink = Path.Combine(area, "owned-link")
         File.Move(deployedPath, retainedLink)
         File.WriteAllText(deployedPath, "unexpected fixture replacement")
 
         try
             check
-                "changedRelevantLinkIsRefusedWithoutTouchingReplacement"
-                (store.Plugins.Scan(profile, token) |> wait = Error FilePlanError.Blocked
-                 && File.ReadAllText(deployedPath) = "unexpected fixture replacement")
+                "viewReplacementIsNotAPluginInputAndIsLeftUntouched"
+                ((scan () |> entry "QuietRivers.esp").Winner = river.Winner
+                 && File.ReadAllText(deployedPath) = "unexpected fixture replacement"
+                 && File.ReadAllBytes(Path.Combine(data, "QuietRivers.esp")) = original)
         finally
             File.Delete deployedPath
             File.Move(retainedLink, deployedPath)

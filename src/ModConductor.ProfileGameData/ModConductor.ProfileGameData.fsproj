@@ -6,6 +6,7 @@
     <Compile Include="ProfileDataFlow.fs" />
     <Compile Include="IniDocument.fs" />
     <Compile Include="IniArchives.fs" />
+    <Compile Include="IniArchiveRestoration.fs" />
     <Compile Include="IniSavePaths.fs" />
     <Compile Include="Ini.fs" />
     <Compile Include="Files.fs" />

@@ -43,13 +43,14 @@ class ProfilePluginOrder {
     this.applied,
     this.externalChanged,
     this.pending,
-    this.problem,
-  );
+    this.problem, {
+    this.medium = 0,
+  });
   final ProfileDataRef reference;
   final PluginSnapshot headers;
   final List<PluginSetting> entries, unknown;
   final List<PluginOrderIssue> issues;
-  final int full, light, fullLimit;
+  final int full, light, medium, fullLimit;
   final bool saved, applied, externalChanged, pending;
   final String problem;
 }
@@ -192,6 +193,7 @@ class GrpcPluginOrderClient implements PluginOrderClient {
           value.externalChanged,
           value.pending,
           value.pendingProblem,
+          medium: value.medium,
         );
     }
   }

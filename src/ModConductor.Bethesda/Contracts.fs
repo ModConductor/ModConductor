@@ -18,6 +18,8 @@ type PluginKind =
     | Master
     | LightPlugin
     | LightMaster
+    | MediumPlugin
+    | MediumMaster
 
 type PluginHeader =
     { Extension: string

@@ -41,22 +41,28 @@ module internal PeVersion =
         let pe = int64 (u32 dos 60)
         let header = read pe 24
 
-        if u32 header 0 <> 0x4550u || u16 header 4 <> 0x8664us then
+        let machine = u16 header 4
+
+        if u32 header 0 <> 0x4550u || (machine <> 0x8664us && machine <> 0x14Cus) then
             invalid ()
 
         let count = int (u16 header 6)
         let optionalSize = int (u16 header 20)
 
-        if count < 1 || count > 96 || optionalSize < 136 || optionalSize > 4096 then
+        if count < 1 || count > 96 || optionalSize < 120 || optionalSize > 4096 then
             invalid ()
 
         let optional = read (pe + 24L) optionalSize
 
-        if u16 optional 0 <> 0x20Bus || u32 optional 108 < 3u then
+        let resourceOffset = if machine = 0x14Cus then 112 else 128
+        let directoryOffset = if machine = 0x14Cus then 92 else 108
+        let magic = if machine = 0x14Cus then 0x10Bus else 0x20Bus
+
+        if u16 optional 0 <> magic || u32 optional directoryOffset < 3u then
             invalid ()
 
-        let resourceRva = int64 (u32 optional 128)
-        let resourceSize = int64 (u32 optional 132)
+        let resourceRva = int64 (u32 optional resourceOffset)
+        let resourceSize = int64 (u32 optional (resourceOffset + 4))
 
         if resourceRva = 0L || resourceSize < 16L || resourceSize > 16L * 1024L * 1024L then
             invalid ()

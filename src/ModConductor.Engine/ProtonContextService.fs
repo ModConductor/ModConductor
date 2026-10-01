@@ -15,11 +15,14 @@ type ProtonContextService() =
 
     override _.SearchProtonContexts(request, context) =
         task {
+            let definition =
+                GameId.tryParse request.DefinitionId |> Option.map GameCatalog.forGame
+
             let invalidPath (p: string) =
                 p.Length > 4096 || not (IO.Path.IsPathFullyQualified p)
 
             if
-                request.DefinitionId <> GameId.value Skyrim.definition.Id
+                (definition |> Option.forall (fun game -> game.SteamAppId = 0u))
                 || invalidPath request.GamePath
                 || request.AdditionalRoots.Count > 16
                 || (request.AdditionalRoots |> Seq.exists invalidPath)
@@ -48,7 +51,11 @@ type ProtonContextService() =
                     let! report =
                         Task.Run(
                             (fun () ->
-                                Search.discover request.GamePath roots context.CancellationToken),
+                                Search.discover
+                                    definition.Value
+                                    request.GamePath
+                                    roots
+                                    context.CancellationToken),
                             context.CancellationToken
                         )
 

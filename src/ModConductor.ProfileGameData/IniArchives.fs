@@ -6,10 +6,47 @@ open ModConductor.ProfileGameData.IniDocument
 module internal IniArchives =
     let private archiveKeys = [ "SResourceArchiveList"; "SResourceArchiveList2" ]
 
-    let tryArchiveEntries bytes =
+    let private sectionFor keys =
+        if
+            keys
+            |> List.exists (fun (key: string) ->
+                key.StartsWith("Archive ", StringComparison.OrdinalIgnoreCase))
+        then
+            "Archives"
+        else
+            "Archive"
+
+    let private morrowindKeys bytes =
+        let _, text = decode bytes
+        let mutable inside = false
+
+        [ for line in lines text do
+              match section line with
+              | Some name -> inside <- name.Equals("Archives", StringComparison.OrdinalIgnoreCase)
+              | None when inside ->
+                  let split = line.IndexOf '='
+
+                  if split >= 0 then
+                      let key = line.Substring(0, split).Trim()
+
+                      if key.StartsWith("Archive ", StringComparison.OrdinalIgnoreCase) then
+                          match Int32.TryParse(key.Substring 8) with
+                          | true, index when index >= 0 -> yield "Archive " + string index
+                          | _ -> ()
+              | _ -> () ]
+        |> List.distinct
+        |> List.sortBy (fun key -> Int32.Parse(key.Substring 8))
+
+    let tryArchiveEntriesFor archiveKeys bytes =
+        let archiveKeys =
+            if List.isEmpty archiveKeys then
+                morrowindKeys bytes
+            else
+                archiveKeys
+
         let _, text = decode bytes
 
-        tryLocateSettings "Archive" archiveKeys (lines text)
+        tryLocateSettings (sectionFor archiveKeys) archiveKeys (lines text)
         |> Result.map (fun (_, found) ->
             [ for key in archiveKeys do
                   match found |> List.tryFind (fun (name, _, _) -> name = key) with
@@ -29,10 +66,10 @@ module internal IniArchives =
 
                               position <- position + 1 ])
 
-    let archiveValues names =
+    let archiveValuesFor archiveKeys names =
         let joined = String.concat ", " names
 
-        if joined.Length <= 255 then
+        if List.length archiveKeys <= 1 || joined.Length <= 255 then
             Ok(joined, None)
         else
             let search = min 256 (joined.Length - 1)
@@ -41,7 +78,7 @@ module internal IniArchives =
             if split < 0 then
                 Error(
                     ProfileDataError.Invalid
-                        "The Skyrim archive list cannot be split between its two keys."
+                        "The game archive list cannot be split between its two keys."
                 )
             else
                 let first = joined.Substring(0, split)
@@ -49,13 +86,12 @@ module internal IniArchives =
 
                 if first.Length > 256 || second.Length > 255 then
                     Error(
-                        ProfileDataError.Invalid
-                            "The Skyrim archive list does not fit its two keys."
+                        ProfileDataError.Invalid "The game archive list does not fit its two keys."
                     )
                 else
                     Ok(first, Some second)
 
-    let validateNames names =
+    let validateNamesFor archiveKeys names =
         if
             List.isEmpty names
             || names
@@ -64,11 +100,14 @@ module internal IniArchives =
                    || name <> name.Trim()
                    || name.IndexOfAny([| ','; '\r'; '\n'; '\000'; '/'; '\\' |]) >= 0)
         then
-            Error(ProfileDataError.Invalid "Choose valid Skyrim archive filenames.")
+            Error(ProfileDataError.Invalid "Choose valid game archive filenames.")
+        else if List.isEmpty archiveKeys then
+            Ok()
         else
-            archiveValues names |> Result.map ignore
+            archiveValuesFor archiveKeys names |> Result.map ignore
 
-    let private applyValues first second (original: byte array option) =
+    let private applySettings (values: (string * string) list) (original: byte array option) =
+        let archiveKeys = List.map fst values
         let bytes = original |> Option.defaultValue [||]
         let kind, text = decode bytes
         let content = lines text
@@ -79,7 +118,7 @@ module internal IniArchives =
             else
                 "\n"
 
-        let header, found = locateSettings "Archive" archiveKeys content
+        let header, found = locateSettings (sectionFor archiveKeys) archiveKeys content
         let mutable separator = IniSeparatorOverride.None
         let mutable addedSection = false
 
@@ -98,14 +137,14 @@ module internal IniArchives =
                     content[content.Count - 1] <- previous + newline
                     separator <- IniSeparatorOverride.FileTail previous
 
-                content.Add("[Archive]" + newline)
+                content.Add("[" + sectionFor archiveKeys + "]" + newline)
                 addedSection <- true
                 content.Count - 1
 
         let patches = ResizeArray<ArchiveLineOverride>()
 
         let write key value insert =
-            let _, current = locateSettings "Archive" archiveKeys content
+            let _, current = locateSettings (sectionFor archiveKeys) archiveKeys content
 
             match current |> List.tryFind (fun (name, _, _) -> name = key) with
             | Some(_, index, _) ->
@@ -126,8 +165,7 @@ module internal IniArchives =
                       PreviousLine = None }
             | None -> ()
 
-        write "SResourceArchiveList" first true
-        write "SResourceArchiveList2" (defaultArg second "") second.IsSome
+        values |> List.iter (fun (key, value) -> write key value true)
 
         encode kind (String.Concat content),
         { Lines = List.ofSeq patches
@@ -135,88 +173,72 @@ module internal IniArchives =
           Separator = separator
           AbsentFile = original.IsNone }
 
+    let applyArchivesFor archiveKeys names original =
+        validateNamesFor archiveKeys names
+        |> Result.bind (fun () -> archiveValuesFor archiveKeys names)
+        |> Result.map (fun (first, second) ->
+            [ yield List.head archiveKeys, first
+              match List.tryItem 1 archiveKeys, second with
+              | Some key, Some value -> yield key, value
+              | _ -> () ]
+            |> fun values -> applySettings values original)
+
+    let looseFilesEnabled bytes =
+        let _, text = decode bytes
+
+        tryLocateSettings
+            "Archive"
+            [ "bInvalidateOlderFiles"; "sResourceDataDirsFinal" ]
+            (lines text)
+        |> Result.map (fun (_, values) ->
+            values
+            |> List.exists (fun (key, _, value) -> key = "bInvalidateOlderFiles" && value = "1")
+            && values
+               |> List.exists (fun (key, _, value) -> key = "sResourceDataDirsFinal" && value = ""))
+
+    let applyFor (rules: ModConductor.GameContexts.GameRules) names original =
+        match rules.Activation, rules.Invalidation with
+        | ModConductor.GameContexts.PluginActivation.MorrowindIni, _ ->
+            validateNamesFor [] names
+            |> Result.map (fun () ->
+                let existing = original |> Option.map morrowindKeys |> Option.defaultValue []
+                let wanted = names |> List.mapi (fun index name -> "Archive " + string index, name)
+
+                let obsolete =
+                    existing
+                    |> List.filter (fun key ->
+                        wanted |> List.exists (fun (name, _) -> name = key) |> not)
+
+                wanted @ (obsolete |> List.map (fun key -> key, ""))
+                |> fun values -> applySettings values original)
+        | _, None when rules.LooseFilesInvalidation ->
+            validateNamesFor rules.ArchiveKeys names
+            |> Result.bind (fun () -> archiveValuesFor rules.ArchiveKeys names)
+            |> Result.map (fun (first, second) ->
+                [ List.head rules.ArchiveKeys, first
+                  match List.tryItem 1 rules.ArchiveKeys, second with
+                  | Some key, Some value -> key, value
+                  | _ -> ()
+                  "bInvalidateOlderFiles", "1"
+                  "sResourceDataDirsFinal", "" ]
+                |> fun values -> applySettings values original)
+        | _, None -> applyArchivesFor rules.ArchiveKeys names original
+        | _, Some(name, _) ->
+            validateNamesFor rules.ArchiveKeys names
+            |> Result.map (fun () ->
+                let enabled =
+                    names
+                    |> List.exists (fun value ->
+                        value.Equals(name, StringComparison.OrdinalIgnoreCase))
+
+                [ List.head rules.ArchiveKeys, String.concat ", " names
+                  "bInvalidateOlderFiles", "1"
+                  "SInvalidationFile", if enabled then "" else "ArchiveInvalidation.txt" ]
+                |> fun values -> applySettings values original)
+
+    let tryArchiveEntries bytes = tryArchiveEntriesFor archiveKeys bytes
+
     let applyArchives names original =
-        validateNames names
-        |> Result.bind (fun () -> archiveValues names)
-        |> Result.map (fun (first, second) -> applyValues first second original)
+        applyArchivesFor archiveKeys names original
 
-    let private restoreLine (content: ResizeArray<string>) patchLine =
-        let _, found = locateSettings "Archive" archiveKeys content
-
-        match found |> List.tryFind (fun (name, _, _) -> name = patchLine.Key) with
-        | Some(_, index, value) when value = patchLine.Value ->
-            match patchLine.PreviousLine with
-            | Some previous -> content[index] <- previous
-            | None -> content.RemoveAt index
-
-            Ok()
-        | _ ->
-            Error(
-                ProfileDataError.Unavailable
-                    "The active Skyrim archive list changed. Read it again before restoration."
-            )
-
-    let private restoreSeparator (content: ResizeArray<string>) separator =
-        match separator with
-        | IniSeparatorOverride.None -> Ok()
-        | IniSeparatorOverride.SectionHeader previous ->
-            let currentHeader, _ = locateSettings "Archive" archiveKeys content
-
-            match currentHeader with
-            | Some index when content[index] = previous + ending content[index] ->
-                content[index] <- previous
-                Ok()
-            | Some index when content[index].TrimEnd('\r', '\n') = previous ->
-                content[index] <- previous
-                Ok()
-            | _ ->
-                Error(
-                    ProfileDataError.Unavailable
-                        "The active Skyrim archive section changed. Read it again before restoration."
-                )
-        | IniSeparatorOverride.FileTail previous ->
-            if content.Count > 0 && content[content.Count - 1].TrimEnd('\r', '\n') = previous then
-                content[content.Count - 1] <- previous
-                Ok()
-            elif content.Count <> 0 then
-                Error(
-                    ProfileDataError.Unavailable
-                        "The active Skyrim settings changed. Read them again before restoration."
-                )
-            else
-                Ok()
-
-    let removeArchives (patch: ArchiveListOverride) bytes =
-        let kind, text = decode bytes
-        let content = lines text
-        let header, _ = locateSettings "Archive" archiveKeys content
-
-        let restored =
-            patch.Lines
-            |> List.rev
-            |> List.fold
-                (fun state line -> state |> Result.bind (fun () -> restoreLine content line))
-                (Ok())
-
-        restored
-        |> Result.bind (fun () ->
-            match header with
-            | Some index when patch.AddedSection ->
-                let hasValues =
-                    content
-                    |> Seq.skip (index + 1)
-                    |> Seq.takeWhile (section >> Option.isNone)
-                    |> Seq.exists (String.IsNullOrWhiteSpace >> not)
-
-                if not hasValues then
-                    content.RemoveAt index
-            | _ -> ()
-
-            restoreSeparator content patch.Separator)
-        |> Result.map (fun () ->
-            let result = encode kind (String.Concat content)
-
-            if patch.AbsentFile && result.Length = 0 then
-                None
-            else
-                Some result)
+    let validateNames names = validateNamesFor archiveKeys names
