@@ -40,6 +40,9 @@ install_files:
     Abort "The installation directory could not be created."
   ClearErrors
   File /r "${PAYLOAD}\*"
+  SetOutPath "$INSTDIR\notices"
+  File /oname=nsis-LICENSE.txt "${NSIS_NOTICE}"
+  SetOutPath "$INSTDIR"
   IfErrors 0 +2
     Abort "The installation files could not be copied."
   CreateDirectory "$SMPROGRAMS\Mod Conductor"
@@ -68,6 +71,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\Mod Conductor\Uninstall.lnk"
   RMDir "$SMPROGRAMS\Mod Conductor"
   Delete "$INSTDIR\Uninstall.exe"
+  Delete "$INSTDIR\notices\nsis-LICENSE.txt"
   !include "${UNINSTALL_FILES}"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ModConductor"
   ReadRegStr $0 HKCU "Software\Classes\.mcprof" ""

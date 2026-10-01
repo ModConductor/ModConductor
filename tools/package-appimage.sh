@@ -18,7 +18,7 @@ install -m755 packaging/appimage/modconductor.sh "$work/AppDir/usr/bin/modconduc
 cp "$payload/share/applications/dev.modconductor.mod_conductor.desktop" "$work/AppDir/usr/share/applications/"
 cp "$payload/share/mime/packages/modconductor-profile.xml" "$work/AppDir/usr/share/mime/packages/"
 cp -a "$payload/share/icons/hicolor" "$work/AppDir/usr/share/icons/"
-cp docs/third-party/appimage-runtime-LICENSE.txt docs/third-party/linuxdeploy-plugin-gtk-LICENSE.txt "$app/share/doc/modconductor/third-party/"
+cp packaging/appimage/notices/appimage-runtime-LICENSE.txt packaging/appimage/notices/linuxdeploy-plugin-gtk-LICENSE.txt "$app/share/doc/modconductor/third-party/"
 cp packaging/appimage/AppRun.sh packaging/appimage/fonts.conf tools/appimage-package/build.sh tools/appimage-package/bundled-notices.sh "$work/"
 mkdir -p "$work/home" "$work/tmp"
 bash tools/bootstrap-appimage-tools.sh

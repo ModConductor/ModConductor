@@ -10,21 +10,21 @@ own terms. This inventory is not permission to publish.
 
 | MC paths / dependency | Kind (copy, translation, asset, dependency) | Upstream origin and exact version / commit | Changes or adaptation | Licence and copyright notice evidence / retained location |
 | --- | --- | --- | --- | --- |
-| `ui/apps/mod_conductor/linux/`, `windows/`, `.metadata`, generated build/analyzer metadata | Copy / generated scaffold | [Flutter 3.47.2, revision d3b14c876900e553bc736ca19295fc09e3853e8e](https://github.com/flutter/flutter/tree/d3b14c876900e553bc736ca19295fc09e3853e8e/packages/flutter_tools/templates) | `flutter create --empty --platforms=linux,windows`; identifiers substituted by the generator; generic README/demo content removed | BSD-3-Clause; [Flutter notice](third-party/flutter-LICENSE.txt) |
-| `ui/packages/mc_ui_foundation/assets/brand/modconductor.svg`; derived Flutter and Linux PNGs and `ui/apps/mod_conductor/windows/runner/resources/app_icon.ico` | Approved artwork / generated assets | [Mod Conductor SVG](../ui/packages/mc_ui_foundation/assets/brand/modconductor.svg), approved 2026-09-23 | `tools/generate-app-icons.py` renders the PNGs and ICO from that SVG; the Windows installer uses the same ICO | Original artwork is GPL-3.0-or-later under the [development policy](DEVELOPMENT-POLICY.md). The [Flutter template image notice](third-party/flutter-template-images-LICENSE.txt) is retained for scaffold provenance, not for the current icon. |
-| Flutter framework / `sky_engine` | SDK dependency | Flutter 3.47.4 / Dart 3.13.3; engine revision `06a2e2a110089dff50fe635cffd2a61e1b24fbcd`; archive pins in [SDK configuration](../.config/flutter-sdk.json) | SDK consumed, not vendored; SDK packages show `0.0.0` in pub lock and resolve through this SDK pin | BSD-3-Clause plus component terms; [Flutter](third-party/flutter-LICENSE.txt), [Dart](third-party/dart-LICENSE.txt), [complete engine notices](third-party/flutter-engine-LICENSE.txt) |
+| `ui/apps/mod_conductor/linux/`, `windows/`, `.metadata`, generated build/analyzer metadata | Copy / generated scaffold | [Flutter 3.47.2, revision d3b14c876900e553bc736ca19295fc09e3853e8e](https://github.com/flutter/flutter/tree/d3b14c876900e553bc736ca19295fc09e3853e8e/packages/flutter_tools/templates) | `flutter create --empty --platforms=linux,windows`; identifiers substituted by the generator; generic README/demo content removed | BSD-3-Clause; [source notice](../ui/apps/mod_conductor/notices/Flutter-LICENSE.txt) |
+| `ui/packages/mc_ui_foundation/assets/brand/modconductor.svg`; derived Flutter and Linux PNGs and `ui/apps/mod_conductor/windows/runner/resources/app_icon.ico` | Approved artwork / generated assets | [Mod Conductor SVG](../ui/packages/mc_ui_foundation/assets/brand/modconductor.svg), approved 2026-09-23 | `tools/generate-app-icons.py` renders the PNGs and ICO from that SVG; the Windows installer uses the same ICO | Original artwork is GPL-3.0-or-later under the [development policy](DEVELOPMENT-POLICY.md). No Flutter template icon is distributed. |
+| Flutter framework / `sky_engine` | SDK dependency | Flutter 3.47.4 / Dart 3.13.3; engine revision `06a2e2a110089dff50fe635cffd2a61e1b24fbcd`; archive pins in [SDK configuration](../.config/flutter-sdk.json) | SDK consumed, not vendored; SDK packages show `0.0.0` in pub lock and resolve through this SDK pin | BSD-3-Clause plus component terms; generated `data/flutter_assets/NOTICES.Z` in the application bundle |
 | `FSharp.Core` | Engine dependency | [10.1.400](https://www.nuget.org/packages/FSharp.Core/10.1.400), source `dotnet/dotnet` at `14fbf8d5271c98133561eb55185fdb05b286f578` | Unmodified package; explicit central pin; SDK-aligned pin | MIT; [notice](third-party/fsharp-core-LICENSE.txt) |
 | .NET SDK/runtime, ILCompiler and ILLink | Build/runtime dependencies | SDK 10.0.400; runtime and compiler/linker packages 10.0.11, source `dotnet/dotnet` at `e2f47b0110ed922f21a1522da67279133ce28f32` for runtime packages | Unmodified; native compiler host packages for linux-x64 and win-x64 appear in the lock; SDK reference/apphost/runtime packs also follow the runtime pin | MIT plus component terms; [runtime licence](third-party/dotnet-runtime-LICENSE.txt), [component notices](third-party/dotnet-NOTICES.txt) |
-| Fantomas | Local development tool | [7.0.6](https://www.nuget.org/packages/fantomas/7.0.6), source `fsprojects/fantomas` at `ee160202e7ed5a33fd0f25affe10d1b288c36ce6` | Unmodified tool package; exact local manifest pin; not shipped with MC | Apache-2.0; [notice](third-party/fantomas-LICENSE.txt); bundled tool dependencies are recorded in the package's `tools/net8.0/any/fantomas.deps.json` |
-| `characters`, `collection`, `meta`, `vector_math` | Flutter transitive dependencies | pub.dev: [characters 1.4.1](https://pub.dev/packages/characters/versions/1.4.1), [collection 1.19.1](https://pub.dev/packages/collection/versions/1.19.1), [meta 1.18.3](https://pub.dev/packages/meta/versions/1.18.3), [vector_math 2.4.0](https://pub.dev/packages/vector_math/versions/2.4.0) | Unmodified; exact versions and archive hashes in workspace lock | BSD-3-Clause; [characters](third-party/characters-LICENSE.txt), [collection](third-party/collection-LICENSE.txt), [meta](third-party/meta-LICENSE.txt), [vector_math](third-party/vector_math-LICENSE.txt) |
-| `material_color_utilities` | Flutter transitive dependency | [0.13.0 on pub.dev](https://pub.dev/packages/material_color_utilities/versions/0.13.0) | Unmodified Flutter SDK constraint; not a new MC theme/design choice | Apache-2.0; [notice](third-party/material_color_utilities-LICENSE.txt) |
-| `flutter_lints`, `lints` | Consumed analyzer tooling | [flutter_lints 6.0.0](https://pub.dev/packages/flutter_lints/versions/6.0.0), [lints 6.1.0](https://pub.dev/packages/lints/versions/6.1.0) | Included by app analysis options; not application features | BSD-3-Clause; [flutter_lints](third-party/flutter_lints-LICENSE.txt), [lints](third-party/lints-LICENSE.txt) |
-| `actions/checkout`, `actions/setup-dotnet` | CI tooling references | [checkout v7.0.1 at 3d3c42e5aac5ba805825da76410c181273ba90b1](https://github.com/actions/checkout/tree/3d3c42e5aac5ba805825da76410c181273ba90b1), [setup-dotnet v6.0.0 at a98b56852c35b8e3190ac28c8c2271da59106c68](https://github.com/actions/setup-dotnet/tree/a98b56852c35b8e3190ac28c8c2271da59106c68) | Immutable workflow references; identifiers pinned in the workflow | MIT; [checkout](third-party/actions-checkout-LICENSE.txt), [setup-dotnet](third-party/actions-setup-dotnet-LICENSE.txt) |
+| Fantomas | Local development tool | [7.0.6](https://www.nuget.org/packages/fantomas/7.0.6), source `fsprojects/fantomas` at `ee160202e7ed5a33fd0f25affe10d1b288c36ce6` | Unmodified tool package; exact local manifest pin; not shipped with MC | Apache-2.0; not redistributed; bundled tool dependencies are recorded in the tool package |
+| `characters`, `collection`, `meta`, `vector_math` | Flutter transitive dependencies | pub.dev: [characters 1.4.1](https://pub.dev/packages/characters/versions/1.4.1), [collection 1.19.1](https://pub.dev/packages/collection/versions/1.19.1), [meta 1.18.3](https://pub.dev/packages/meta/versions/1.18.3), [vector_math 2.4.0](https://pub.dev/packages/vector_math/versions/2.4.0) | Unmodified; exact versions and archive hashes in workspace lock | BSD-3-Clause; generated `data/flutter_assets/NOTICES.Z` |
+| `material_color_utilities` | Flutter transitive dependency | [0.13.0 on pub.dev](https://pub.dev/packages/material_color_utilities/versions/0.13.0) | Unmodified Flutter SDK constraint; not a new MC theme/design choice | Apache-2.0; generated `data/flutter_assets/NOTICES.Z` |
+| `flutter_lints`, `lints` | Consumed analyzer tooling | [flutter_lints 6.0.0](https://pub.dev/packages/flutter_lints/versions/6.0.0), [lints 6.1.0](https://pub.dev/packages/lints/versions/6.1.0) | Included by app analysis options; not application features | BSD-3-Clause; build-only, not redistributed |
+| `actions/checkout`, `actions/setup-dotnet` | CI tooling references | [checkout v7.0.1 at 3d3c42e5aac5ba805825da76410c181273ba90b1](https://github.com/actions/checkout/tree/3d3c42e5aac5ba805825da76410c181273ba90b1), [setup-dotnet v6.0.0 at a98b56852c35b8e3190ac28c8c2271da59106c68](https://github.com/actions/setup-dotnet/tree/a98b56852c35b8e3190ac28c8c2271da59106c68) | Immutable workflow references; identifiers pinned in the workflow | MIT; CI references only, not redistributed |
 
 Resolved versions and integrity hashes are recorded in the NuGet locks,
 [`ui/pubspec.lock`](../ui/pubspec.lock), [tool manifest](../.config/dotnet-tools.json),
-and [Flutter SDK pin](../.config/flutter-sdk.json). Notices retain upstream terms.
-Line endings and trailing whitespace were normalized without changing terms.
+and [Flutter SDK pin](../.config/flutter-sdk.json). Required notices retain upstream terms.
+Build and test tools are not redistributed with the application.
 
 The foundation bundles Roboto Regular, Medium, and Bold from the pinned Flutter
 SDK's material font archive. Retain its [notice](../ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt).
@@ -39,19 +39,18 @@ Flutter's file_selector provides GTK and Windows shell directory selection.
 The umbrella package also resolves other platform implementations. Those packages
 do not add supported Mod Conductor platforms.
 
-| Package | Version | Notice |
-| --- | --- | --- |
-| file_selector | 1.1.0 | [BSD-3-Clause](third-party/file_selector-LICENSE.txt) |
-| file_selector_linux | 0.9.4+1 | [BSD-3-Clause](third-party/file_selector_linux-LICENSE.txt) |
-| file_selector_windows | 0.9.3+6 | [BSD-3-Clause](third-party/file_selector_windows-LICENSE.txt) |
-| file_selector_platform_interface | 2.7.0 | [BSD-3-Clause](third-party/file_selector_platform_interface-LICENSE.txt) |
-| cross_file | 0.3.5+5 | [BSD-3-Clause](third-party/cross_file-LICENSE.txt) |
-| plugin_platform_interface | 2.1.8 | [BSD-3-Clause](third-party/plugin_platform_interface-LICENSE.txt) |
-| file_selector_android | 0.5.2+10 | [BSD-3-Clause and included aFileChooser Apache-2.0 notice](third-party/file_selector_android-LICENSE.txt) |
-| file_selector_ios | 0.5.3+6 | [BSD-3-Clause](third-party/file_selector_ios-LICENSE.txt) |
-| file_selector_macos | 0.9.5+1 | [BSD-3-Clause](third-party/file_selector_macos-LICENSE.txt) |
-| file_selector_web | 0.9.5 | [BSD-3-Clause](third-party/file_selector_web-LICENSE.txt) |
+The supported Linux/Windows plugins and their Dart dependencies retain their
+BSD-3-Clause notices in generated `data/flutter_assets/NOTICES.Z`.
+Versions and hashes remain in `ui/pubspec.lock`.
 
+| Package | Version |
+| --- | --- |
+| file_selector | 1.1.0 |
+| file_selector_linux | 0.9.4+1 |
+| file_selector_windows | 0.9.3+6 |
+| file_selector_platform_interface | 2.7.0 |
+| cross_file | 0.3.5+5 |
+| plugin_platform_interface | 2.1.8 |
 
 ## Investigation references — not adopted material
 
@@ -72,8 +71,9 @@ whether MO2's GPL applies to any MC implementation.
 
 The local Windows x64 installer is built with unmodified NSIS 3.12, using its
 built-in Modern UI 2 headers and LZMA module without optional plugins. Its
-[retained COPYING terms](third-party/nsis-LICENSE.txt) accompany both local
-Windows package formats. The official 3.12 archive and its SHA-256 pin are
+[retained COPYING terms](../packaging/windows/notices/nsis-LICENSE.txt) are embedded
+in the installer and installed under `notices/nsis-LICENSE.txt`. The portable
+ZIP and non-Windows packages omit these installer-only terms. The official 3.12 archive and its SHA-256 pin are
 recorded in [the build procedure](BUILDING.md). The project licence does not
 authorize signing or publication of these local artifacts.
 
@@ -94,8 +94,8 @@ The Linux x64 AppImage generator uses appimagetool 1.9.1, linuxdeploy
 `7a3fbc31a9e5075073ff8790f26effbac5f84453`, and the type-2 runtime
 20251108. `tools/bootstrap-appimage-tools.sh` pins their official download
 URLs and SHA-256 values. The type-2 runtime and GTK plugin hook are bundled;
-their [runtime](third-party/appimage-runtime-LICENSE.txt) and
-[plugin](third-party/linuxdeploy-plugin-gtk-LICENSE.txt) notices accompany the
+their [runtime](../packaging/appimage/notices/appimage-runtime-LICENSE.txt) and
+[plugin](../packaging/appimage/notices/linuxdeploy-plugin-gtk-LICENSE.txt) notices accompany the
 AppImage. appimagetool and linuxdeploy are build tools only. The Ubuntu 24.04
 build records the copied system-library binary and source package names and
 versions, source paths,
@@ -146,8 +146,9 @@ The two compressed/solid RAR5 archives and encrypted RAR5 fixture in
 `c719b9b1f56621d92063a85361cc8d114f5575a9`, under its BSD-2-Clause test notice.
 The native fixture's numeric payload checks adapt `test_read_format_rar5.c`.
 See the [fixture provenance](../tests/fixtures/archives/provenance.json) and
-[retained notice](third-party/libarchive-rar-fixtures-NOTICE.txt). These are synthetic
-test inputs, not a native libarchive dependency or human archives. The stored RAR5
+[retained notice](../tests/fixtures/archives/libarchive-rar-fixtures-NOTICE.txt). These are synthetic
+test inputs, not a native libarchive dependency or human archives. Their notice
+ships with the source fixtures, not the application payload. The stored RAR5
 fixture is MC-generated from the published RAR5 structural specification; ZIP and
 7z inputs are generated by the fixture. No proprietary RAR executable is used.
 

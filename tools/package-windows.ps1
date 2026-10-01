@@ -15,7 +15,7 @@ $EnginePublish = (Resolve-Path $EnginePublish).Path
 $LootHelper = (Resolve-Path $LootHelper).Path
 $Output = [IO.Path]::GetFullPath($Output)
 if (Test-Path $Output) { throw "Package output exists: $Output" }
-if (!(Test-Path "$FlutterBundle/mod_conductor.exe") -or !(Test-Path "$FlutterBundle/data/flutter_assets")) { throw 'Flutter release bundle missing' }
+if (!(Test-Path "$FlutterBundle/mod_conductor.exe") -or !(Test-Path "$FlutterBundle/data/flutter_assets/NOTICES.Z" -PathType Leaf)) { throw 'Flutter release bundle missing' }
 if ((& $Makensis /VERSION).TrimStart('v') -ne '3.12') { throw 'NSIS 3.12 required' }
 function Copy-Required([string]$source, [string]$destination) {
   if (!(Test-Path $source -PathType Leaf)) { throw "Required package asset missing: $source" }
@@ -40,7 +40,6 @@ Copy-Required "$root/third_party/xdelta3/xdelta3-win-x64.exe" "$payload/engine/x
 Copy-Required "$root/LICENSE" "$payload/LICENSE"
 Copy-Required "$root/docs/SOURCE.md" "$payload/notices/SOURCE.md"
 Copy-Item "$root/docs/third-party/*" "$payload/notices" -Recurse -Force
-Copy-Required "$root/ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt" "$payload/notices/Roboto-LICENSE.txt"
 Copy-Required "$root/third_party/xdelta3/LICENSE" "$payload/notices/xdelta3-LICENSE.txt"
 Copy-Required "$root/third_party/xdelta3/README.md" "$payload/notices/xdelta3-README.md"
 $inputs = Join-Path $Output 'dependency-manifests'
@@ -96,6 +95,7 @@ $nsisArguments = @(
   "/DPAYLOAD=$payload", "/DUNINSTALL_FILES=$uninstallFiles",
   "/DOUTPUT=$installer", "/DVERSION=$Version",
   "/DAPP_ICON=$root/ui/apps/mod_conductor/windows/runner/resources/app_icon.ico",
+  "/DNSIS_NOTICE=$root/packaging/windows/notices/nsis-LICENSE.txt",
   "$root/tools/windows-installer.nsi"
 )
 & $Makensis @nsisArguments

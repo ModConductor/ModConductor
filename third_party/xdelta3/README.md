@@ -17,7 +17,7 @@ Its [CMake pins](https://github.com/jmacd/xdelta/blob/v3.2.0/xdelta3/CMakeLists.
 statically link [XZ Utils liblzma v5.8.3](https://github.com/tukaani-project/xz/tree/v5.8.3)
 and [BLAKE3 1.8.5](https://github.com/BLAKE3-team/BLAKE3/tree/1.8.5).
 XZ's [upstream COPYING](https://github.com/tukaani-project/xz/blob/v5.8.3/COPYING)
-identifies liblzma as 0BSD; its [0BSD text](../../docs/third-party/xz-liblzma-0BSD.txt)
-is retained. BLAKE3 offers CC0-1.0 or Apache-2.0 alternatives; MC records
-the [CC0 text](../../docs/third-party/blake3-CC0.txt). Disabling armor when
+identifies liblzma as 0BSD and states that retaining its text is not required.
+BLAKE3 offers CC0-1.0 or Apache-2.0 alternatives; MC selects
+[CC0](https://github.com/BLAKE3-team/BLAKE3/blob/1.8.5/LICENSE_CC0), which has no notice-retention condition. Disabling armor when
 invoking xdelta3 does not remove statically linked BLAKE3 from the executable.

@@ -40,7 +40,7 @@ for executable in "$bundle/mod_conductor" "$engine/ModConductor.Engine" "$helper
     exit 1
   fi
 done
-[[ -d $bundle/data/flutter_assets ]] || { echo "Flutter bundle missing" >&2; exit 1; }
+[[ -d $bundle/data/flutter_assets && -f $bundle/data/flutter_assets/NOTICES.Z ]] || { echo "Flutter bundle missing" >&2; exit 1; }
 for library in "$bundle"/lib/*.so; do
   elf=$(readelf -d "$library") || { echo "Cannot read ELF metadata: $library" >&2; exit 1; }
   if grep -E 'RPATH|RUNPATH' <<<"$elf" | grep -q /nix/store/; then
@@ -67,7 +67,6 @@ doc="$publish_directory/share/doc/modconductor"
 mkdir -p "$doc/third-party"
 cp LICENSE docs/SOURCE.md "$doc/"
 cp -a docs/third-party/. "$doc/third-party/"
-cp ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt "$doc/third-party/"
 cp third_party/xdelta3/LICENSE "$doc/third-party/xdelta3-LICENSE.txt"
 cp third_party/xdelta3/README.md "$doc/third-party/xdelta3-README.md"
 while IFS= read -r source; do

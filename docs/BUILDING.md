@@ -137,7 +137,7 @@ Use a new output directory for each build. The package step requires the real
 Flutter, NativeAOT, SQLite, static-web-assets, and LOOT helper outputs; it
 does not silently omit a missing native asset. It creates an unsigned per-user
 NSIS installer and portable ZIP from one payload, with bundled third-party
-notices. Adjacent files record payload hashes, artifact checksums, locked
+notices. The installer embeds its separate NSIS notice. The portable ZIP omits it. Adjacent files record payload hashes, artifact checksums, locked
 dependency manifests, an SPDX file inventory, and local build provenance.
 They are evidence for review, not a signing attestation or publication approval.
 

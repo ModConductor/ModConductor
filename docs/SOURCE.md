@@ -46,8 +46,10 @@ archive or a private source cache.
   extra copy inside the binary package.
 - Flutter 3.47.4/Dart 3.13.3 use engine revision
   [`06a2e2a110089dff50fe635cffd2a61e1b24fbcd`](https://github.com/flutter/engine/tree/06a2e2a110089dff50fe635cffd2a61e1b24fbcd).
-  The complete engine component notices are in
-  `docs/third-party/flutter-engine-LICENSE.txt`. The exact Flutter SDK
+  The app bundle's generated `data/flutter_assets/NOTICES.Z` contains the
+  engine, Dart, and pub-package notices. The copied runner source retains
+  `ui/apps/mod_conductor/notices/Flutter-LICENSE.txt` in the source archive.
+  The exact Flutter SDK
   download is pinned by `.config/flutter-sdk.json`; Dart package archive
   hashes are in `ui/pubspec.lock`. `flutter pub get --enforce-lockfile`
   retrieves these sources before the pinned Flutter build. The Flutter SDK

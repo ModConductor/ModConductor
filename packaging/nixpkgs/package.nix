@@ -213,6 +213,7 @@ let
       ]
     } --prefix XDG_DATA_DIRS : ${pkgs.gsettings-desktop-schemas}/share --prefix XDG_DATA_DIRS : ${pkgs.adwaita-icon-theme}/share --prefix XDG_DATA_DIRS : ${pkgs.shared-mime-info}/share --set-default FONTCONFIG_FILE ${pkgs.fontconfig.out}/etc/fonts/fonts.conf";
     postInstall = ''
+      test -f "$out/app/modconductor/data/flutter_assets/NOTICES.Z"
       mkdir -p "$out/app/modconductor/engine" "$out/share/applications" "$out/share/doc/modconductor"
       for size in 48 256; do
         mkdir -p "$out/share/icons/hicolor/''${size}x''${size}/apps"
@@ -236,8 +237,6 @@ let
       update-mime-database "$out/share/mime"
       chmod u+w "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       cp ${liblootLicense} "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
-      ln -s libloot-LICENSE.txt \
-        "$out/share/doc/modconductor/third-party/modconductor-loot-helper-LICENSE.txt"
       for file in .config/flutter-sdk.json ui/pubspec.lock native/ModConductor.Loot.Helper/Cargo.lock; do
         install -Dm644 "${src}/$file" \
           "$out/share/doc/modconductor/dependency-manifests/$file"
