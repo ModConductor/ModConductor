@@ -303,6 +303,24 @@ module internal DeploymentPreparation =
                                                         |> List.filter (fun reviewed ->
                                                             enabled.Contains reviewed.Mod.ModId)
 
+                                                    let! unrealFiles =
+                                                        database.Enqueue(fun () ->
+                                                            let definition =
+                                                                ModConductor.GameContexts.GameCatalog.forGame
+                                                                    evidence.DefinitionId
+
+                                                            ModConductor.GameContexts.GameClient.unreal
+                                                                definition
+                                                            |> Option.map (fun client ->
+                                                                UnrealComponents.orderedFiles
+                                                                    database
+                                                                    sources.Stamp.WorkspaceId
+                                                                    definition
+                                                                    client
+                                                                    gameRoot
+                                                                    enabledComponents)
+                                                            |> Option.defaultValue [])
+
                                                     let withOutputWorking
                                                         (outputWorking: WorkingLocation list)
                                                         =
@@ -320,8 +338,14 @@ module internal DeploymentPreparation =
                                                                   SecondaryStorage = secondary
                                                                   Roots = roots
                                                                   LinkedBase = true
-                                                                  Excluded = excluded
-                                                                  OwnedFiles = ownedFiles
+                                                                  Excluded =
+                                                                    Set.union
+                                                                        excluded
+                                                                        (unrealFiles
+                                                                         |> List.map fst
+                                                                         |> Set.ofList)
+                                                                  OwnedFiles =
+                                                                    ownedFiles @ unrealFiles
                                                                   OrderedFiles =
                                                                     GameViewPlugins.ordered
                                                                         evidence

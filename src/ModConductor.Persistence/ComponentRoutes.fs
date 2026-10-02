@@ -201,6 +201,21 @@ module internal ComponentRoutes =
                     | Some client ->
                         BepInExComponents.read database gameRoot routeSources selected client
                     | None when
+                        (GameClient.unreal (
+                            GameCatalog.forGame sources.Context.Binding.Value.GameId
+                        ))
+                            .IsSome
+                        ->
+                        let definition = GameCatalog.forGame sources.Context.Binding.Value.GameId
+
+                        UnrealComponents.read
+                            database
+                            gameRoot
+                            routeSources
+                            selected
+                            definition
+                            (GameClient.unreal definition).Value
+                    | None when
                         sources.Context.Binding.Value.GameId = GameId.OblivionRemasteredSteam
                         ->
                         RemasteredComponents.read workspace gameRoot routeSources selected

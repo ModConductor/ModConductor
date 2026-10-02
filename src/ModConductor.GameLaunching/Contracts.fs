@@ -17,7 +17,7 @@ type IComponentLoaderSelection =
             Task<ComponentLoader option>
 
 type ComponentLaunchConfiguration =
-    { MonoLoader: bool
+    { LoaderEnabled: bool
       GenerationId: Guid
       GameSha256: string
       Environment: (string * string option) list }

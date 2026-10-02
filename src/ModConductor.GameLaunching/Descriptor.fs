@@ -72,9 +72,10 @@ module internal Descriptor =
             | :? IO.IOException
             | :? UnauthorizedAccessException -> Error "The selected game executable is unavailable."
 
-    let internal createWithHost
+    let internal createDeclaredWithHost
         hostWindows
         hostLinux
+        (definition: GameDefinition)
         (state: GameContextState)
         runnableRoot
         (loader: ComponentLoader option)
@@ -83,7 +84,6 @@ module internal Descriptor =
         match state.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             let evidence = binding.Evidence
-            let definition = GameCatalog.forGame binding.GameId
 
             let app =
                 string (
@@ -94,8 +94,21 @@ module internal Descriptor =
 
             let arguments = GameCatalog.arguments binding.GameId
 
+            let unreal = GameClient.unreal definition
+
+            let arguments =
+                arguments
+                @ (unreal
+                   |> Option.map (fun client ->
+                       ModConductor.Unreal.Launch.arguments
+                           definition
+                           client
+                           runnableRoot
+                           (evidence.Platform = ContextPlatform.Windows))
+                   |> Option.defaultValue [])
+
             let environment =
-                (if GameCatalog.steam binding.GameId then
+                (if definition.SteamAppId <> 0u then
                      [ "SteamAppId", Some app; "SteamGameId", Some app ]
                  else
                      [ "SteamAppId"
@@ -110,6 +123,17 @@ module internal Descriptor =
                      |> List.map (fun name -> name, None))
                 @ (configuration |> Option.map _.Environment |> Option.defaultValue [])
 
+            let environment =
+                environment
+                @ (unreal
+                   |> Option.map (fun client ->
+                       ModConductor.Unreal.Launch.environment
+                           client
+                           (configuration |> Option.exists _.LoaderEnabled)
+                           evidence.Platform
+                           (Environment.GetEnvironmentVariable "WINEDLLOVERRIDES"))
+                   |> Option.defaultValue [])
+
             if (GameClient.mono definition).IsSome then
                 match configuration with
                 | Some selected when selected.GameSha256 <> evidence.Executable.Value.Sha256 ->
@@ -121,7 +145,7 @@ module internal Descriptor =
                         hostLinux
                         binding
                         runnableRoot
-                        (configuration |> Option.exists _.MonoLoader)
+                        (configuration |> Option.exists _.LoaderEnabled)
                         environment
 
             else
@@ -132,7 +156,9 @@ module internal Descriptor =
                         Error
                             "The game changed after the script extender was installed. Check it before Play."
                     | Some loader ->
-                        match (GameCatalog.rules binding.GameId).ExtenderLoader with
+                        match
+                            GameCatalog.tryRules binding.GameId |> Option.bind _.ExtenderLoader
+                        with
                         | Some expected -> loaderPath expected evidence.RootPath runnableRoot loader
                         | None ->
                             Error "This installation does not support the selected script extender."
@@ -173,7 +199,8 @@ module internal Descriptor =
                                 Some(
                                     String.concat
                                         (string IO.Path.PathSeparator)
-                                        (launch.Libraries @ [ runnableRoot ])
+                                        (launch.Libraries @ [ evidence.RootPath; runnableRoot ]
+                                         |> List.distinct)
                                 )
                                 "STEAM_COMPAT_TOOL_PATHS", Some proton.Selection.RuntimeDirectory ] })
                 | Ok executable, ContextPlatform.Wine, _ when hostLinux && evidence.Wine.IsSome ->
@@ -196,6 +223,19 @@ module internal Descriptor =
                 | Ok _, ContextPlatform.NativeLinux, _ ->
                     Error "This game does not declare a native Linux workflow."
         | _ -> Error "Select and refresh the installation before playing."
+
+    let createWithHost hostWindows hostLinux state runnableRoot loader configuration =
+        match state.Binding with
+        | None -> Error "Select and refresh the installation before playing."
+        | Some binding ->
+            createDeclaredWithHost
+                hostWindows
+                hostLinux
+                (GameCatalog.forGame binding.GameId)
+                state
+                runnableRoot
+                loader
+                configuration
 
     let createWith state runnableRoot loader configuration =
         createWithHost

@@ -34,6 +34,8 @@ module ComponentRoots =
             writer.Write(
                 if (GameClient.mono (GameCatalog.forGame evidence.DefinitionId)).IsSome then
                     "mc-unity-mono-game-root-v1"
+                elif (GameClient.unreal (GameCatalog.forGame evidence.DefinitionId)).IsSome then
+                    "mc-unreal-game-root-v1"
                 elif GameCatalog.isSkyrimSE evidence.DefinitionId then
                     "mc-skyrim-game-root-v1"
                 else

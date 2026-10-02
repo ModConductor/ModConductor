@@ -24,6 +24,7 @@ type UnityMonoClient =
 type GameClient =
     | Bethesda
     | UnityMono of UnityMonoClient
+    | Unreal of UnrealClient
 
 type GameDefinition =
     { Id: GameId
@@ -119,7 +120,14 @@ module GameClient =
     let mono (definition: GameDefinition) =
         match definition.Client with
         | GameClient.UnityMono client -> Some client
-        | GameClient.Bethesda -> None
+        | GameClient.Bethesda
+        | GameClient.Unreal _ -> None
+
+    let unreal (definition: GameDefinition) =
+        match definition.Client with
+        | GameClient.Unreal client -> Some client
+        | GameClient.Bethesda
+        | GameClient.UnityMono _ -> None
 
     let executable linux (definition: GameDefinition) =
         match definition.Client with

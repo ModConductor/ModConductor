@@ -1,4 +1,5 @@
 import 'bepinex_client.dart';
+import 'unreal_client.dart';
 import 'diagnostics_client.dart';
 import 'plugin_order_client.dart';
 import 'loot_client.dart';
@@ -69,6 +70,8 @@ class EngineSession {
   DesktopClient get desktop => _desktop!;
   NexusMetadataClient? _nexusMetadata;
   NexusMetadataClient get nexusMetadata => _nexusMetadata!;
+  UnrealClient? _unreal;
+  UnrealClient get unreal => _unreal!;
   BepInExClient? _bepInEx;
   BepInExClient get bepInEx => _bepInEx!;
   ThunderstoreClient? _thunderstore;
@@ -223,6 +226,7 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _bepInEx = GrpcBepInExClient(channel, options);
+    _unreal = GrpcUnrealClient(channel, options);
     _thunderstore = GrpcThunderstoreClient(
       channel,
       CallOptions(metadata: options.metadata),

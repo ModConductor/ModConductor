@@ -160,6 +160,16 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.bepinex": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.SteamDiscovery": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
+        }
+      },
       "modconductor.bethesda": {
         "type": "Project",
         "dependencies": {
@@ -284,9 +294,11 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.BepInEx": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.Executables": "[1.0.0, )",
-          "ModConductor.ProfileGameData": "[1.0.0, )"
+          "ModConductor.ProfileGameData": "[1.0.0, )",
+          "ModConductor.Unreal": "[1.0.0, )"
         }
       },
       "modconductor.generatedoutputs": {
@@ -300,7 +312,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
-          "ModConductor.ArtifactLibrary": "[1.0.0, )"
+          "ModConductor.ArtifactLibrary": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
         }
       },
       "modconductor.loot": {
@@ -367,11 +380,13 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "FastRsyncNet": "[2.5.0, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.ArchiveInstallation": "[1.0.0, )",
           "ModConductor.ArtifactLibrary": "[1.0.0, )",
           "ModConductor.Bain": "[1.0.0, )",
+          "ModConductor.BepInEx": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
           "ModConductor.BundleInstallation": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
@@ -398,8 +413,10 @@
           "ModConductor.ProfileGameData": "[1.0.0, )",
           "ModConductor.ProtonContexts": "[1.0.0, )",
           "ModConductor.Skse": "[1.0.0, )",
+          "ModConductor.Unreal": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )",
-          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
+          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
+          "System.IO.Hashing": "[10.0.12, )"
         }
       },
       "modconductor.platform": {
@@ -444,11 +461,34 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.thunderstore": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.unreal": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )"
+        }
+      },
       "modconductor.workspaces": {
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "FastRsyncNet": {
+        "type": "CentralTransitive",
+        "requested": "[2.5.0, )",
+        "resolved": "2.5.0",
+        "contentHash": "J2zGmEYDf1dqkeu+IgE5Px9kohgjxleDKko3rMB+aDRV0LOt/Zo2KlX7C3nyyRIyoR/3iTy0k7/Z825e5LC/Rg==",
+        "dependencies": {
+          "System.IO.Hashing": "8.0.0"
         }
       },
       "K4os.Compression.LZ4": {
@@ -481,6 +521,12 @@
           "SQLite": "3.53.4",
           "SQLitePCLRaw.config.e_sqlite3": "3.0.5"
         }
+      },
+      "System.IO.Hashing": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "jDix4bBMYnpZdSPcnY+KDV6ik3SRMzpMKby/bZl/XUwIiflwRNAFZ0oOl61R/pSaveIJ8t1gs2BUlrGsPs/bcg=="
       }
     }
   }

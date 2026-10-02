@@ -40,7 +40,7 @@ class McComponentChoiceRow extends StatelessWidget {
   const McComponentChoiceRow({
     super.key,
     required this.name,
-    required this.kind,
+    this.kind,
     required this.current,
     required this.installed,
     required this.selected,
@@ -56,10 +56,14 @@ class McComponentChoiceRow extends StatelessWidget {
     this.onClearArchive,
     this.archiveName,
     this.archiveRequired = false,
+    this.archiveLabel,
+    this.archiveRequiredText = 'Choose an archive.',
     this.enabled = true,
   });
 
-  final String name, kind, current;
+  final String name, current;
+  final String? kind, archiveLabel;
+  final String archiveRequiredText;
   final String? iconUrl, archiveName, updateVersion;
   final Map<String, String>? iconHeaders;
   final BoxFit iconFit;
@@ -87,7 +91,8 @@ class McComponentChoiceRow extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(name, style: Theme.of(context).textTheme.titleMedium),
-                Text(kind, style: Theme.of(context).textTheme.bodySmall),
+                if (kind != null)
+                  Text(kind!, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
@@ -132,8 +137,8 @@ class McComponentChoiceRow extends StatelessWidget {
           if (onChooseArchive != null)
             McIconAction(
               label: archiveName == null
-                  ? 'Choose ENBSeries archive'
-                  : 'Change ENBSeries archive',
+                  ? 'Choose ${archiveLabel ?? name} archive'
+                  : 'Change ${archiveLabel ?? name} archive',
               icon: const Icon(Icons.folder_open_outlined, size: 20),
               size: 40,
               onPressed: enabled && selected ? onChooseArchive : null,
@@ -174,7 +179,7 @@ class McComponentChoiceRow extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: archiveRequired && archiveName == null
             ? Text(
-                'Choose an ENBSeries archive.',
+                archiveRequiredText,
                 style: Theme.of(context).textTheme.bodySmall
                     ?.copyWith(color: colors.error),
               )

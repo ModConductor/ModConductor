@@ -73,5 +73,36 @@ type ModSelectionStore internal (database: StateDatabase, access: LibraryAccess)
     member internal _.ChangeAtCheckpoint(profile, expected, ids, edit, beforeCommit) =
         change profile expected ids edit beforeCommit
 
+    member internal _.SelectOne(profile, expected, ids, chosen) =
+        run profile true (fun connection transaction workspace revision ->
+            if revision <> expected then
+                Error LibraryError.StaleRevision
+            elif
+                not (List.contains chosen ids)
+                || ids
+                   |> List.exists (fun id ->
+                       LibraryRows.find connection transaction id
+                       |> Option.forall (fun row -> row.Entry.WorkspaceId <> workspace))
+            then
+                Error LibraryError.NotFound
+            else
+                let current = SelectionRows.all connection transaction profile
+
+                SelectionPolicy.change ids (SelectionEdit.Enable false) current
+                |> Result.map (fun _ ->
+                    let changed =
+                        current
+                        |> List.filter (fun row ->
+                            List.contains row.Id ids && row.Enabled <> Some(row.Id = chosen))
+                        |> List.map (fun row ->
+                            { row with
+                                Enabled = Some(row.Id = chosen) })
+
+                    SelectionRows.apply connection transaction profile changed
+
+                    { Revision = revision + 1L
+                      Changed = changed
+                      EnabledCount = SelectionRows.enabledCount connection transaction profile }))
+
     interface IModSelection with
         member _.Change(profile, expected, ids, edit) = change profile expected ids edit ignore

@@ -10,6 +10,7 @@ workspace:
   - packages/mc_game_contexts
   - packages/mc_skse
   - packages/mc_bepinex
+  - packages/mc_unreal
   - packages/mc_workspaces
   - packages/mc_ui_collections
   - packages/mc_thunderstore

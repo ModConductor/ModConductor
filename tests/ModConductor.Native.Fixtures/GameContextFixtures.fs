@@ -75,6 +75,9 @@ module GameContextFixtures =
             BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(264, 4), 0x1000u)
             BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(268, 4), 1024u)
 
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(path, definition.Executable)))
+        |> ignore
+
         File.WriteAllBytes(Path.Combine(path, definition.Executable), bytes)
 
         if definition.Launcher <> "" then

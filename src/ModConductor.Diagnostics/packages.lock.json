@@ -111,7 +111,8 @@
           "ModConductor.BepInEx": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.Executables": "[1.0.0, )",
-          "ModConductor.ProfileGameData": "[1.0.0, )"
+          "ModConductor.ProfileGameData": "[1.0.0, )",
+          "ModConductor.Unreal": "[1.0.0, )"
         }
       },
       "modconductor.modlibrary": {
@@ -156,6 +157,14 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.unreal": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
       "modconductor.workspaces": {

@@ -339,7 +339,7 @@ type NexusSession
     member _.ReadMetadata(identity: NexusIdentity) =
         run (fun epoch token ->
             task {
-                if identity.Game <> "skyrimspecialedition" || identity.Mod <= 0L then
+                if not (NexusGame.valid identity.Game) || identity.Mod <= 0L then
                     return Error NexusProblem.NotFound
                 else
                     let! bearer = auth.Access(epoch, token, false)
@@ -374,7 +374,7 @@ type NexusSession
         task {
             let epoch, token = context ()
 
-            if game <> "skyrimspecialedition" then
+            if not (NexusGame.valid game) then
                 return Error NexusProblem.NotFound
             elif feed = "trending" then
                 let! result =
@@ -423,7 +423,7 @@ type NexusSession
     member _.ReadFile(game: string, modId: int64, fileId: int64) =
         run (fun epoch token ->
             task {
-                if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
+                if not (NexusGame.valid game) || modId <= 0L || fileId <= 0L then
                     return Error NexusProblem.NotFound
                 else
                     let! bearer = auth.Access(epoch, token, false)
@@ -449,7 +449,7 @@ type NexusSession
         =
         run (fun epoch token ->
             task {
-                if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
+                if not (NexusGame.valid game) || modId <= 0L || fileId <= 0L then
                     return Error NexusProblem.NotFound
                 else
                     let! bearer = auth.Access(epoch, token, false)

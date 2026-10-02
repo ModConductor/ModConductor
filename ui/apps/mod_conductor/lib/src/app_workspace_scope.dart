@@ -30,7 +30,9 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
   bool get _supportsBethesda =>
       _supports(GameCapabilityId.bethesdaGame) || _supportsSkyrim;
   bool get _supportsUnityMono => _supports(GameCapabilityId.unityMono);
-  bool get _supportsGameMods => _supportsBethesda || _supportsUnityMono;
+  bool get _supportsUnreal => _supports(GameCapabilityId.unreal);
+  bool get _supportsGameMods =>
+      _supportsBethesda || _supportsUnityMono || _supportsUnreal;
   bool get _supportsSkyrim => _supports(GameCapabilityId.skyrimSpecialEdition);
   bool get _hasSkyrimGame =>
       _game.state?.definition?.capability(

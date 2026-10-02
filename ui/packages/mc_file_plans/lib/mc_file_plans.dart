@@ -3,3 +3,5 @@ export 'src/workbench.dart';
 export 'src/file_inspector_controller.dart';
 export 'src/inspector.dart';
 export 'src/text_editor.dart';
+
+export 'src/loader_files.dart';

@@ -71,7 +71,7 @@ module UnityMonoFixtures =
 
         let configuration =
             Some
-                { MonoLoader = true
+                { LoaderEnabled = true
                   GenerationId = Guid.NewGuid()
                   GameSha256 = binding.Evidence.Executable.Value.Sha256
                   Environment = [] }

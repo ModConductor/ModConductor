@@ -15,7 +15,8 @@ type NexusFileReference =
       Version: string option }
 
 type ThunderstoreFileReference =
-    { Reference: ModConductor.Thunderstore.VersionReference; Url: string }
+    { Reference: ModConductor.Thunderstore.VersionReference
+      Url: string }
 
 [<RequireQualifiedAccess>]
 type DownloadSource =
@@ -108,7 +109,9 @@ module DownloadSource =
         function
         | DownloadSource.Url value -> value
         | DownloadSource.Thunderstore value ->
-            ModConductor.Thunderstore.VersionReference.encode value.Reference + "/" + Uri.EscapeDataString value.Url
+            ModConductor.Thunderstore.VersionReference.encode value.Reference
+            + "/"
+            + Uri.EscapeDataString value.Url
         | DownloadSource.Nexus value ->
             String.concat
                 "/"
@@ -122,8 +125,12 @@ module DownloadSource =
         if source.StartsWith("thunderstore:/", StringComparison.Ordinal) then
             let parts = source.Split('/')
             let identity = parts |> Array.take 5 |> String.concat "/"
+
             DownloadSource.Thunderstore
-                { Reference = ModConductor.Thunderstore.VersionReference.tryDecode identity |> Option.defaultWith (fun () -> invalidOp "The saved Thunderstore reference is invalid.")
+                { Reference =
+                    ModConductor.Thunderstore.VersionReference.tryDecode identity
+                    |> Option.defaultWith (fun () ->
+                        invalidOp "The saved Thunderstore reference is invalid.")
                   Url = Uri.UnescapeDataString parts[5] }
         elif
             source.StartsWith("nexus:/", StringComparison.Ordinal)
@@ -156,11 +163,13 @@ module DownloadSource =
     let rec valid =
         function
         | DownloadSource.Thunderstore value ->
-            ModConductor.Thunderstore.VersionReference.valid value.Reference && valid (DownloadSource.Url value.Url)
+            ModConductor.Thunderstore.VersionReference.valid value.Reference
+            && valid (DownloadSource.Url value.Url)
         | DownloadSource.Nexus value ->
             not (String.IsNullOrWhiteSpace value.Account)
             && value.Account.Length <= 256
-            && value.Game = "skyrimspecialedition"
+            && (value.Game.Length > 0
+                && value.Game |> Seq.forall (fun c -> Char.IsAsciiLetterOrDigit c || c = '-'))
             && value.ModId > 0L
             && value.FileId > 0L
         | DownloadSource.Url source ->

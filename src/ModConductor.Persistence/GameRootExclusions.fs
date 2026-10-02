@@ -26,6 +26,10 @@ module internal GameRootExclusions =
                 || (prefix.IsEmpty && (rules.CreationFile |> Option.exists (same name))))
 
         configuration
+        || (GameClient.unreal definition
+            |> Option.exists (fun client ->
+                ModConductor.Unreal.WorkingPaths.exclusions definition client
+                |> List.exists (same relative)))
         || same relative (definition.Data.Replace('\\', '/'))
         || (prefix.IsEmpty
             && name.StartsWith(".modconductor-originals-", StringComparison.OrdinalIgnoreCase))

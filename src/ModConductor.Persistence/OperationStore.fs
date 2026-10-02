@@ -190,6 +190,10 @@ type OperationStore
         )
 
     let bepInEx = BepInExStore(database, modLibrary.Access, selection)
+    let unreal = UnrealStore(database, modLibrary.Access, selection)
+
+    let unrealAcquisition =
+        UnrealAcquisition(database, unreal, downloads, artifacts, installations, modLibrary)
 
     let gameLaunching =
         ModConductor.GameLaunching.GameLaunchSession(
@@ -199,7 +203,8 @@ type OperationStore
             profileGameData,
             skseLoaders,
             configuration = enbSetups,
-            monoLoaders = bepInEx
+            monoLoaders = bepInEx,
+            unrealLoaders = unreal
         )
 
     let prepareComponents
@@ -320,6 +325,8 @@ type OperationStore
             checkpoint
 
     member _.BepInEx = bepInEx
+    member _.Unreal = unreal
+    member _.UnrealAcquisition = unrealAcquisition
     member _.ThunderstoreInventory = ThunderstoreInventory(database)
     member _.ModLibrary = modLibrary
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource

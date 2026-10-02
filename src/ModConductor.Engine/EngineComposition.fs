@@ -248,6 +248,14 @@ let internal registerOperationServices
 
     services.AddSingleton<ModConductor.Engine.BepInExService>() |> ignore
 
+    services.AddSingleton<ModConductor.Persistence.UnrealStore>(store.Unreal)
+    |> ignore
+
+    services.AddSingleton<ModConductor.Persistence.UnrealAcquisition>(store.UnrealAcquisition)
+    |> ignore
+
+    services.AddSingleton<ModConductor.Engine.UnrealService>() |> ignore
+
     services.AddSingleton<ModConductor.HttpDownloads.DownloadSession>(store.Downloads)
     |> ignore
 

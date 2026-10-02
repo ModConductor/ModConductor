@@ -37,7 +37,7 @@ type internal DownloadLeases
 
     member _.Resolve(epoch, token, bearer, game, modId, fileId, subject, requiresLink) =
         task {
-            if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
+            if not (NexusGame.valid game) || modId <= 0L || fileId <= 0L then
                 return Error NexusProblem.NotFound
             elif lock gate (fun () -> accountSubject () <> Some subject) then
                 return Error NexusProblem.DownloadAccount

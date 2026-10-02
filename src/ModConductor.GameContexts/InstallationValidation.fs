@@ -3,14 +3,15 @@ namespace ModConductor.GameContexts
 open System
 open System.IO
 open System.Security.Cryptography
+open System.Reflection.PortableExecutable
 open ModConductor.Platform
 
 module InstallationValidation =
     let locations (definition: GameDefinition) =
-        if (GameClient.mono definition).IsSome then
+        if not (GameCatalog.isBethesda definition.Id) then
             let unavailable =
                 Location.Unavailable
-                    "Native Unity saves and game settings are not managed by Mod Conductor."
+                    "Game saves and global settings are not managed by Mod Conductor."
 
             { Documents = unavailable
               Saves = unavailable
@@ -146,55 +147,75 @@ module InstallationValidation =
 
                         let client = GameClient.executable (OperatingSystem.IsLinux()) definition
 
-                        name client true
+                        Some client
                         |> Option.iter (fun name ->
                             try
-                                let stream, identity = directory.Read(name, None)
-                                use file = stream
-                                let length = file.Length
+                                match InstallationPaths.read directory name None with
+                                | Error detail -> problem name detail
+                                | Ok(stream, identity, actual) ->
+                                    use file = stream
+                                    let length = file.Length
 
-                                if length > 512L * 1024L * 1024L then
-                                    raise (InvalidDataException())
+                                    if length > 512L * 1024L * 1024L then
+                                        raise (InvalidDataException())
 
-                                let modified = File.GetLastWriteTimeUtc file.SafeFileHandle
+                                    let modified = File.GetLastWriteTimeUtc file.SafeFileHandle
 
-                                let version, product =
-                                    match GameClient.mono definition with
-                                    | Some client ->
-                                        match
-                                            UnityMonoValidation.inspect
-                                                definition
-                                                client
-                                                resolved
-                                                file
-                                                (OperatingSystem.IsLinux())
-                                        with
-                                        | Ok unity -> unity, unity
-                                        | Error detail ->
-                                            problem name detail
+                                    let version, product =
+                                        match GameClient.mono definition with
+                                        | Some client ->
+                                            match
+                                                UnityMonoValidation.inspect
+                                                    definition
+                                                    client
+                                                    resolved
+                                                    file
+                                                    (OperatingSystem.IsLinux())
+                                            with
+                                            | Ok unity -> unity, unity
+                                            | Error detail ->
+                                                problem name detail
+                                                "", ""
+                                        | None when (GameClient.unreal definition).IsSome ->
+                                            use pe = new PEReader(file, PEStreamOptions.LeaveOpen)
+
+                                            if
+                                                pe.PEHeaders.CoffHeader.Machine <> Machine.Amd64
+                                            then
+                                                problem
+                                                    name
+                                                    "Select the Windows x64 Unreal client."
+
                                             "", ""
-                                    | None -> PeVersion.read file
+                                        | None -> PeVersion.read file
 
-                                file.Position <- 0L
-                                let hash = SHA256.HashData file |> Convert.ToHexStringLower
+                                    file.Position <- 0L
+                                    let hash = SHA256.HashData file |> Convert.ToHexStringLower
 
-                                if
-                                    file.Length <> length
-                                    || File.GetLastWriteTimeUtc file.SafeFileHandle <> modified
-                                then
-                                    problem name "The executable changed during the check."
-                                else
-                                    use current = fst (directory.Read(name, Some identity))
+                                    if
+                                        file.Length <> length
+                                        || File.GetLastWriteTimeUtc file.SafeFileHandle <> modified
+                                    then
+                                        problem name "The executable changed during the check."
+                                    else
+                                        match
+                                            InstallationPaths.read directory name (Some identity)
+                                        with
+                                        | Error detail -> problem name detail
+                                        | Ok(current, _, _) ->
+                                            use current = current
 
-                                    executable <-
-                                        Some
-                                            { Path = Path.Combine(resolved, name)
-                                              Identity = identity
-                                              Length = length
-                                              Sha256 = hash
-                                              FileVersion = version
-                                              ProductVersion = product }
+                                            executable <-
+                                                Some
+                                                    { Path = Path.Combine(resolved, actual)
+                                                      Identity = identity
+                                                      Length = length
+                                                      Sha256 = hash
+                                                      FileVersion = version
+                                                      ProductVersion = product }
                             with
+                            | :? BadImageFormatException ->
+                                problem name "The game executable has an unsupported format."
                             | :? InvalidDataException ->
                                 problem
                                     name
@@ -249,7 +270,7 @@ module InstallationValidation =
                     ContextPlatform.Windows
                 elif (GameClient.mono definition).IsSome then
                     ContextPlatform.NativeLinux
-                elif GameCatalog.steam definition.Id then
+                elif definition.SteamAppId <> 0u then
                     ContextPlatform.Proton
                 else
                     ContextPlatform.Wine

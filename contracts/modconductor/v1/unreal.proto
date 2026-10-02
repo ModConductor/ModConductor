@@ -1,0 +1,53 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/bepinex.proto";
+
+service Unreal {
+  rpc ReadUnrealLoader(LoaderRequest) returns (UnrealLoaderReply);
+  rpc ChangeUnrealLoader(ChangeLoaderRequest) returns (UnrealLoaderReply);
+  rpc AcquireUnrealLoader(AcquireUnrealLoaderRequest) returns (stream UnrealAcquisitionProgress);
+  rpc ReadUnrealText(UnrealTextRequest) returns (LoaderTextReply);
+  rpc SaveUnrealText(SaveUnrealTextRequest) returns (LoaderTextReply);
+  rpc OpenUnrealLoaderPage(LoaderRequest) returns (UnrealPageReply);
+}
+message UnrealLoaderInfo {
+  string workspace_id = 1;
+  string profile_id = 2;
+  uint64 context_revision = 3;
+  uint64 selection_revision = 4;
+  string loader_id = 5;
+  string name = 6;
+  optional string subtitle = 7;
+  string version = 8;
+  string icon_url = 9;
+  map<string,string> icon_headers = 10;
+  optional string mod_id = 11;
+  bool enabled = 12;
+  bool archive_required = 13;
+  repeated string settings_files = 14;
+  bool log_available = 15;
+  string declared_version = 16;
+  string declared_version_label = 17;
+  string declared_source = 18;
+  string upstream_license = 19;
+  optional string upstream_commit = 20;
+}
+message UnrealLoaderReply { oneof result { UnrealLoaderInfo loader = 1; string problem = 2; } }
+message AcquireUnrealLoaderRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  uint64 context_revision = 3;
+  string archive_path = 4;
+}
+message UnrealAcquisitionProgress {
+  string stage = 1;
+  uint64 bytes = 2;
+  optional uint64 total = 3;
+  optional string mod_id = 4;
+  optional string problem = 5;
+  UnrealLoaderInfo loader = 6;
+}
+message UnrealTextRequest { string workspace_id = 1; string profile_id = 2; string name = 3; bool log = 4; }
+message SaveUnrealTextRequest { string workspace_id = 1; string profile_id = 2; string name = 3; bytes original = 4; string content = 5; }
+message UnrealPageReply { string problem = 1; }

@@ -158,7 +158,7 @@ module UnityMonoRuntimeFixtures =
 
         let config =
             Some
-                { MonoLoader = loader.Enabled
+                { LoaderEnabled = loader.Enabled
                   GenerationId = Guid.Empty
                   GameSha256 = loader.GameSha256
                   Environment = [] }

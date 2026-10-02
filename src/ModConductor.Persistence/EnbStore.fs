@@ -432,7 +432,7 @@ type internal EnbStore(database: StateDatabase) =
 
                     if reader.Read() then
                         Some
-                            { MonoLoader = false
+                            { LoaderEnabled = false
                               GenerationId = generation
                               GameSha256 = reader.GetString 0
                               Environment = [ "WINEDLLOVERRIDES", Some(reader.GetString 1) ] }

@@ -83,6 +83,8 @@ class _SkyrimSetupComponentRow extends StatelessWidget {
       onClearArchive: item.id == 'enb' ? onClearEnbArchive : null,
       archiveName: selection.enbArchivePath?.split(RegExp(r'[/\\]')).last,
       archiveRequired: item.id == 'enb' && selection.needsEnbArchive,
+      archiveLabel: 'ENBSeries',
+      archiveRequiredText: 'Choose an ENBSeries archive.',
     );
   }
 }

@@ -10,6 +10,7 @@ final class GameCapabilityId {
     'skyrim-special-edition',
   );
   static const bethesdaGame = GameCapabilityId._('bethesda-game');
+  static const unreal = GameCapabilityId._('unreal');
   static const unityMono = GameCapabilityId._('unity-mono');
   static const archiveInspection = GameCapabilityId._('archive-inspection');
   static const individualSaveEditing = GameCapabilityId._(
@@ -23,6 +24,7 @@ final class GameCapabilityId {
     'archive-inspection' => archiveInspection,
     'bethesda-game' => bethesdaGame,
     'unity-mono' => unityMono,
+    'unreal' => unreal,
     'individual-save-editing' => individualSaveEditing,
     'legacy-extension-abi' => legacyExtensionAbi,
     _ => GameCapabilityId._(value),

@@ -5,6 +5,11 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.Credentials
 
+module NexusGame =
+    let valid (game: string) =
+        not (String.IsNullOrEmpty game)
+        && game |> Seq.forall (fun c -> Char.IsAsciiLetterOrDigit c || c = '-')
+
 [<RequireQualifiedAccess>]
 type NexusProblem =
     | NotConfigured

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="WorkingPaths.fs" />
+    <Compile Include="PackageRoutes.fs" />
+    <Compile Include="LuaOrder.fs" />
+    <Compile Include="Launch.fs" />
+    <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <ProjectReference Include="../ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

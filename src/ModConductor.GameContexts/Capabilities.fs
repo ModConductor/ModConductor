@@ -6,6 +6,7 @@ type CapabilityId =
     | SkyrimSpecialEdition
     | BethesdaGame
     | UnityMono
+    | Unreal
     | ArchiveInspection
     | IndividualSaveEditing
     | LegacyExtensionAbi
@@ -17,6 +18,7 @@ module CapabilityId =
         | CapabilityId.SkyrimSpecialEdition -> "skyrim-special-edition"
         | CapabilityId.BethesdaGame -> "bethesda-game"
         | CapabilityId.UnityMono -> "unity-mono"
+        | CapabilityId.Unreal -> "unreal"
         | CapabilityId.ArchiveInspection -> "archive-inspection"
         | CapabilityId.IndividualSaveEditing -> "individual-save-editing"
         | CapabilityId.LegacyExtensionAbi -> "legacy-extension-abi"
@@ -93,6 +95,16 @@ module CapabilityPolicy =
               bothPlatforms
               |> List.filter (fun row ->
                   (GameClient.mono (GameCatalog.forGame row.DefinitionId)).IsSome)
+            Disposition = CapabilityDisposition.Available }
+          { Id = CapabilityId.Unreal
+            Revision = 1
+            Name = "Declared Unreal mod workflows"
+            Kind = CapabilityKind.GameAdapter
+            Audience = CapabilityAudience.User
+            Contexts =
+              bothPlatforms
+              |> List.filter (fun row ->
+                  (GameClient.unreal (GameCatalog.forGame row.DefinitionId)).IsSome)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.SkyrimSpecialEdition
             Revision = 1

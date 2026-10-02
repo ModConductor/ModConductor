@@ -23,6 +23,7 @@ import 'package:mc_desktop/mc_desktop.dart' as desktop;
 import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_bepinex/mc_bepinex.dart';
+import 'package:mc_unreal/mc_unreal.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
@@ -158,6 +159,7 @@ class ModConductorApp extends StatefulWidget {
     this.nexus,
     this.thunderstore,
     this.bepInEx,
+    this.unreal,
     this.nexusMetadata,
     this.linkSetup,
     this.bundles,
@@ -209,6 +211,7 @@ class ModConductorApp extends StatefulWidget {
   final NexusClient? nexus;
   final ThunderstoreClient? thunderstore;
   final BepInExClient? bepInEx;
+  final UnrealClient? unreal;
   final NexusMetadataClient? nexusMetadata;
   final LinkSetupClient? linkSetup;
   final BundlesClient? bundles;

@@ -12,14 +12,21 @@ let internal create
 
             if accepted then
                 match nexus.ReadNxm id with
-                | Ok file when file.ModId = ModConductor.Skse.SkseResolver.NexusModId ->
+                | Ok file when
+                    file.Game = "skyrimspecialedition"
+                    && file.ModId = ModConductor.Skse.SkseResolver.NexusModId
+                    ->
                     skse.AcceptNxm id
                 | Ok file when
-                    file.ModId = ModConductor.Enb.EnbCatalogue.LeanModId
-                    || file.ModId = ModConductor.Enb.EnbCatalogue.CathedralModId
+                    file.Game = "skyrimspecialedition"
+                    && (file.ModId = ModConductor.Enb.EnbCatalogue.LeanModId
+                        || file.ModId = ModConductor.Enb.EnbCatalogue.CathedralModId)
                     ->
                     enb.AcceptNxm id
-                | Ok file when file.ModId = ModConductor.Fnis.FnisCatalogue.NexusModId ->
+                | Ok file when
+                    file.Game = "skyrimspecialedition"
+                    && file.ModId = ModConductor.Fnis.FnisCatalogue.NexusModId
+                    ->
                     fnis.AcceptNxm id
                 | Ok _ -> ()
                 | Error _ ->

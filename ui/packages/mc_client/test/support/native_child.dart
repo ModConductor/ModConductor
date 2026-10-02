@@ -96,6 +96,11 @@ class NativeChild {
     return channel;
   }
 
+  UnrealClient unreal({bool authenticate = true}) => GrpcUnrealClient(
+    _localChannel(),
+    CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
+  );
+
   OperationsClient operations() {
     return OperationsClient(
       _localChannel(),

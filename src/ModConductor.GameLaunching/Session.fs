@@ -16,7 +16,8 @@ type GameLaunchSession
         profiles: ProfileGameDataSession,
         loaders: IComponentLoaderSelection,
         ?configuration: IComponentLaunchConfigurationSelection,
-        ?monoLoaders: ModConductor.BepInEx.ILoaderSelection
+        ?monoLoaders: ModConductor.BepInEx.ILoaderSelection,
+        ?unrealLoaders: ModConductor.Unreal.ILoaderSelection
     ) =
     let runs = executables :> IExecutables
     let deployments = deployment :> IDeploymentBackend
@@ -36,17 +37,34 @@ type GameLaunchSession
                     result
                     |> Result.map (fun mono ->
                         Some
-                            { MonoLoader = mono.Enabled
+                            { LoaderEnabled = mono.Enabled
                               GenerationId = defaultArg generation Guid.Empty
                               GameSha256 = mono.GameSha256
                               Environment = [] })
             | true, None -> return Error "The native loader selection is unavailable."
             | false, _ ->
-                match configuration with
-                | Some owner ->
+                let unreal =
+                    state.Binding
+                    |> Option.exists (fun binding ->
+                        (GameClient.unreal (GameCatalog.forGame binding.GameId)).IsSome)
+
+                match unreal, unrealLoaders, configuration with
+                | true, Some owner, _ ->
+                    let! result = owner.Read(workspace, profile)
+
+                    return
+                        result
+                        |> Result.map (fun selected ->
+                            Some
+                                { LoaderEnabled = selected.Enabled
+                                  GenerationId = defaultArg generation Guid.Empty
+                                  GameSha256 = selected.GameSha256
+                                  Environment = [] })
+                | true, None, _ -> return Error "The Unreal loader selection is unavailable."
+                | false, _, Some owner ->
                     let! value = owner.Read(workspace, profile, generation)
                     return Ok value
-                | None -> return Ok None
+                | false, _, None -> return Ok None
         }
 
     let token sources revision generation =

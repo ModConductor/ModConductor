@@ -111,6 +111,7 @@
     <Compile Include="DesktopService.fs" />
     <Compile Include="ThunderstoreWire.fs" />
     <Compile Include="BepInExService.fs" />
+    <Compile Include="UnrealService.fs" />
     <Compile Include="ThunderstoreService.fs" />
     <Compile Include="NexusWire.fs" />
     <Compile Include="NexusService.fs" />

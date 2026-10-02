@@ -21,6 +21,8 @@ dependencies:
     path: ../../packages/mc_desktop
   mc_game_contexts:
     path: ../../packages/mc_game_contexts
+  mc_unreal:
+    path: ../../packages/mc_unreal
   mc_bepinex:
     path: ../../packages/mc_bepinex
   mc_skse:

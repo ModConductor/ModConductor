@@ -23,6 +23,16 @@ let private writeJson includeNativeAot observe =
 
 let private run (args: string array) =
     match args with
+    | [| "--unreal-prepare"; area; manifest |] ->
+        writeJson true (fun writer -> UnrealRuntimeFixtures.prepare writer area manifest)
+    | [| "--unreal-marker"; area; folder |] ->
+        writeJson true (fun writer -> UnrealRuntimeFixtures.register writer area folder)
+    | [| "--unreal-plan"; area; enabled |] ->
+        writeJson true (fun writer ->
+            UnrealRuntimeFixtures.plan writer area (Boolean.Parse enabled))
+    | [| "--unreal-runtime"; area; enabled; seconds |] ->
+        writeJson true (fun writer ->
+            UnrealRuntimeFixtures.run writer area (Boolean.Parse enabled) (Int32.Parse seconds))
     | [| "--unity-mono-prepare"; area; game |] ->
         writeJson true (fun writer -> UnityMonoRuntimeFixtures.prepare writer area game)
     | [| "--unity-mono-runtime"; area; phase |] ->
@@ -184,6 +194,10 @@ let private run (args: string array) =
         Console.WriteLine "ready"
         Console.ReadLine() |> ignore
         0
+    | [| "--unreal"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> UnrealFixtures.observe writer path)
+    | [| "--unreal-files"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> UnrealFixtures.create writer path)
     | [| "--components"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> ComponentFixtures.observe writer path)
     | [| "--skse"; path |] when Path.IsPathFullyQualified path ->

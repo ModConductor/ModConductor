@@ -148,6 +148,14 @@
           "FSharp.Core": "[10.1.400, )"
         }
       },
+      "modconductor.unreal": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )"
+        }
+      },
       "K4os.Compression.LZ4": {
         "type": "CentralTransitive",
         "requested": "[1.3.8, )",

@@ -176,10 +176,37 @@ mixin _ShellContent
             chooseDirectory: widget.chooseGameDirectory,
             chooseExecutable: widget.chooseExecutable,
             footer:
-                _supportsUnityMono &&
-                    widget.bepInEx != null &&
-                    widget.thunderstore != null &&
+                _supportsUnreal &&
+                    widget.unreal != null &&
                     workspace.selectedProfile != null
+                ? UnrealLoaderSection(
+                    key: ValueKey((
+                      'unreal-loader',
+                      workspace.id,
+                      workspace.selectedProfile!.id,
+                    )),
+                    client: widget.unreal!,
+                    workspace: workspace.id,
+                    profile: workspace.selectedProfile!.id,
+                    chooseArchive: () async =>
+                        (await widget.chooseArchive())?.path,
+                    changes: Listenable.merge([
+                      _game,
+                      _mods,
+                      _deployments,
+                      _play,
+                    ]),
+                    onChanged: () => unawaited(
+                      _installationCommitted(
+                        workspace.id,
+                        workspace.selectedProfile!.id,
+                      ),
+                    ),
+                  )
+                : _supportsUnityMono &&
+                      widget.bepInEx != null &&
+                      widget.thunderstore != null &&
+                      workspace.selectedProfile != null
                 ? BepInExSection(
                     key: ValueKey((
                       'loader',
