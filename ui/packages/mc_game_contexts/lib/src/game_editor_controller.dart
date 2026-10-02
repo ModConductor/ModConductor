@@ -35,6 +35,7 @@ class GameEditorController extends ChangeNotifier {
     'windowsRuntime',
     'metadata',
   };
+  bool searching = false, searched = false;
   bool detected = false;
   String detectedEngine = '';
   List<SteamInstallationCandidate> installations = const [];
@@ -105,6 +106,7 @@ class GameEditorController extends ChangeNotifier {
       'metadata',
     };
     matches = const [];
+    searched = false;
     problem = null;
     notifyListeners();
   }
@@ -185,12 +187,15 @@ class GameEditorController extends ChangeNotifier {
   Future<void> search(String value) async {
     final generation = ++_generation;
     busy = true;
+    searching = true;
+    searched = false;
     problem = null;
     notifyListeners();
     try {
       final result = await client.searchGames(value);
       if (_disposed || generation != _generation) return;
       matches = result.games;
+      searched = true;
       problem = result.problem;
     } on Exception {
       if (!_disposed) {
@@ -200,6 +205,7 @@ class GameEditorController extends ChangeNotifier {
     } finally {
       if (!_disposed && generation == _generation) {
         busy = false;
+        searching = false;
         notifyListeners();
       }
     }

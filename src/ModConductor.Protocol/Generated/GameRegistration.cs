@@ -29,54 +29,55 @@ namespace ModConductor.Protocol.V1 {
             "cHJvdG8aJW1vZGNvbmR1Y3Rvci92MS9zdGVhbV9kaXNjb3ZlcnkucHJvdG8i",
             "NQoZTGlzdEluc3RhbGxlZEdhbWVzUmVxdWVzdBIYChBhZGRpdGlvbmFsX3Jv",
             "b3RzGAEgAygJIi8KHlNlYXJjaFRodW5kZXJzdG9yZUdhbWVzUmVxdWVzdBIN",
-            "CgVxdWVyeRgBIAEoCSJbChRUaHVuZGVyc3RvcmVHYW1lSW5mbxIKCgJpZBgB",
+            "CgVxdWVyeRgBIAEoCSJwChRUaHVuZGVyc3RvcmVHYW1lSW5mbxIKCgJpZBgB",
             "IAEoCRIMCgRuYW1lGAIgASgJEhEKCWNvbW11bml0eRgDIAEoCRIWCg5zdXBw",
-            "bGllc19zZXR1cBgEIAEoCCJfChZUaHVuZGVyc3RvcmVHYW1lc1JlcGx5EjQK",
-            "BWdhbWVzGAEgAygLMiUubW9kY29uZHVjdG9yLnYxLlRodW5kZXJzdG9yZUdh",
-            "bWVJbmZvEg8KB3Byb2JsZW0YAiABKAkiXgoRRGV0ZWN0R2FtZVJlcXVlc3QS",
-            "DAoEcGF0aBgBIAEoCRIMCgRuYW1lGAIgASgJEhQKDHN0ZWFtX2FwcF9pZBgD",
-            "IAEoDRIXCg90aHVuZGVyc3RvcmVfaWQYBCABKAkiiAEKD0RldGVjdEdhbWVS",
-            "ZXBseRIvCgVkcmFmdBgBIAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5DdXN0b21H",
-            "YW1lRHJhZnQSGgoSZXhlY3V0YWJsZV9jaG9pY2VzGAIgAygJEg8KB3Byb2Js",
-            "ZW0YAyABKAkSFwoPZGV0ZWN0ZWRfZW5naW5lGAQgASgJIiMKFVJlYWRDdXN0",
-            "b21HYW1lUmVxdWVzdBIKCgJpZBgBIAEoCSJIChVTYXZlQ3VzdG9tR2FtZVJl",
-            "cXVlc3QSLwoFZHJhZnQYASABKAsyIC5tb2Rjb25kdWN0b3IudjEuQ3VzdG9t",
-            "R2FtZURyYWZ0IoYBCg9DdXN0b21HYW1lUmVwbHkSLwoFZHJhZnQYASABKAsy",
-            "IC5tb2Rjb25kdWN0b3IudjEuQ3VzdG9tR2FtZURyYWZ0EjEKBGdhbWUYAiAB",
-            "KAsyIy5tb2Rjb25kdWN0b3IudjEuR2FtZURlZmluaXRpb25JbmZvEg8KB3By",
-            "b2JsZW0YAyABKAkihwUKD0N1c3RvbUdhbWVEcmFmdBIKCgJpZBgBIAEoCRIQ",
-            "CghyZXZpc2lvbhgCIAEoBRIMCgRuYW1lGAMgASgJEhQKDHN0ZWFtX2FwcF9p",
-            "ZBgEIAEoDRIRCgltZWNoYW5pc20YBSABKAkSEgoKZXhlY3V0YWJsZRgGIAEo",
-            "CRIYChBsaW51eF9leGVjdXRhYmxlGAcgASgJEg8KB2NvbnRlbnQYCCABKAkS",
-            "FwoPd2luZG93c19ydW50aW1lGAkgASgJEhUKDWxpbnV4X3J1bnRpbWUYCiAB",
-            "KAkSEAoIbWV0YWRhdGEYCyABKAkSFgoOdW5pdHlfbWV0YWRhdGEYDCABKAkS",
-            "FQoNbGludXhfd3JhcHBlchgNIAEoCRIRCgljb21tdW5pdHkYDiABKAkSGAoQ",
-            "bG9hZGVyX25hbWVzcGFjZRgPIAEoCRIWCg5sb2FkZXJfcGFja2FnZRgQIAEo",
-            "CRIWCg5sb2FkZXJfdmVyc2lvbhgRIAEoCRIUCgxhcmNoaXZlX3Jvb3QYEiAB",
-            "KAkSEwoLbG9hZGVyX3BhZ2UYEyABKAkSFwoPbG9hZGVyX2Rvd25sb2FkGBQg",
-            "ASgJEhYKDmxvYWRlcl9saWNlbnNlGBUgASgJEg0KBXByb3h5GBYgASgJEgwK",
-            "BGNvcmUYFyABKAkSDAoEbW9kcxgYIAEoCRIVCg1zZXR0aW5nc19maWxlGBkg",
-            "ASgJEgsKA2xvZxgaIAEoCRIVCg1nYW1lX2ZlYXR1cmVzGBsgASgJEg8KB2Nv",
-            "bmZpZ3MYHCABKAkSGgoSZ2FtZV9mZWF0dXJlX2ZpZWxkGB0gASgJEhEKCWFy",
-            "Z3VtZW50cxgeIAMoCRIQCghleGNsdWRlZBgfIAMoCTL5AwoQR2FtZVJlZ2lz",
-            "dHJhdGlvbhJkChJMaXN0SW5zdGFsbGVkR2FtZXMSKi5tb2Rjb25kdWN0b3Iu",
-            "djEuTGlzdEluc3RhbGxlZEdhbWVzUmVxdWVzdBoiLm1vZGNvbmR1Y3Rvci52",
-            "MS5TdGVhbVNlYXJjaFJlc3VsdBJzChdTZWFyY2hUaHVuZGVyc3RvcmVHYW1l",
-            "cxIvLm1vZGNvbmR1Y3Rvci52MS5TZWFyY2hUaHVuZGVyc3RvcmVHYW1lc1Jl",
-            "cXVlc3QaJy5tb2Rjb25kdWN0b3IudjEuVGh1bmRlcnN0b3JlR2FtZXNSZXBs",
-            "eRJSCgpEZXRlY3RHYW1lEiIubW9kY29uZHVjdG9yLnYxLkRldGVjdEdhbWVS",
-            "ZXF1ZXN0GiAubW9kY29uZHVjdG9yLnYxLkRldGVjdEdhbWVSZXBseRJaCg5S",
-            "ZWFkQ3VzdG9tR2FtZRImLm1vZGNvbmR1Y3Rvci52MS5SZWFkQ3VzdG9tR2Ft",
-            "ZVJlcXVlc3QaIC5tb2Rjb25kdWN0b3IudjEuQ3VzdG9tR2FtZVJlcGx5EloK",
-            "DlNhdmVDdXN0b21HYW1lEiYubW9kY29uZHVjdG9yLnYxLlNhdmVDdXN0b21H",
-            "YW1lUmVxdWVzdBogLm1vZGNvbmR1Y3Rvci52MS5DdXN0b21HYW1lUmVwbHlC",
-            "G6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "bGllc19zZXR1cBgEIAEoCBITCgthcnR3b3JrX3VybBgFIAEoCSJfChZUaHVu",
+            "ZGVyc3RvcmVHYW1lc1JlcGx5EjQKBWdhbWVzGAEgAygLMiUubW9kY29uZHVj",
+            "dG9yLnYxLlRodW5kZXJzdG9yZUdhbWVJbmZvEg8KB3Byb2JsZW0YAiABKAki",
+            "XgoRRGV0ZWN0R2FtZVJlcXVlc3QSDAoEcGF0aBgBIAEoCRIMCgRuYW1lGAIg",
+            "ASgJEhQKDHN0ZWFtX2FwcF9pZBgDIAEoDRIXCg90aHVuZGVyc3RvcmVfaWQY",
+            "BCABKAkiiAEKD0RldGVjdEdhbWVSZXBseRIvCgVkcmFmdBgBIAEoCzIgLm1v",
+            "ZGNvbmR1Y3Rvci52MS5DdXN0b21HYW1lRHJhZnQSGgoSZXhlY3V0YWJsZV9j",
+            "aG9pY2VzGAIgAygJEg8KB3Byb2JsZW0YAyABKAkSFwoPZGV0ZWN0ZWRfZW5n",
+            "aW5lGAQgASgJIiMKFVJlYWRDdXN0b21HYW1lUmVxdWVzdBIKCgJpZBgBIAEo",
+            "CSJIChVTYXZlQ3VzdG9tR2FtZVJlcXVlc3QSLwoFZHJhZnQYASABKAsyIC5t",
+            "b2Rjb25kdWN0b3IudjEuQ3VzdG9tR2FtZURyYWZ0IoYBCg9DdXN0b21HYW1l",
+            "UmVwbHkSLwoFZHJhZnQYASABKAsyIC5tb2Rjb25kdWN0b3IudjEuQ3VzdG9t",
+            "R2FtZURyYWZ0EjEKBGdhbWUYAiABKAsyIy5tb2Rjb25kdWN0b3IudjEuR2Ft",
+            "ZURlZmluaXRpb25JbmZvEg8KB3Byb2JsZW0YAyABKAkihwUKD0N1c3RvbUdh",
+            "bWVEcmFmdBIKCgJpZBgBIAEoCRIQCghyZXZpc2lvbhgCIAEoBRIMCgRuYW1l",
+            "GAMgASgJEhQKDHN0ZWFtX2FwcF9pZBgEIAEoDRIRCgltZWNoYW5pc20YBSAB",
+            "KAkSEgoKZXhlY3V0YWJsZRgGIAEoCRIYChBsaW51eF9leGVjdXRhYmxlGAcg",
+            "ASgJEg8KB2NvbnRlbnQYCCABKAkSFwoPd2luZG93c19ydW50aW1lGAkgASgJ",
+            "EhUKDWxpbnV4X3J1bnRpbWUYCiABKAkSEAoIbWV0YWRhdGEYCyABKAkSFgoO",
+            "dW5pdHlfbWV0YWRhdGEYDCABKAkSFQoNbGludXhfd3JhcHBlchgNIAEoCRIR",
+            "Cgljb21tdW5pdHkYDiABKAkSGAoQbG9hZGVyX25hbWVzcGFjZRgPIAEoCRIW",
+            "Cg5sb2FkZXJfcGFja2FnZRgQIAEoCRIWCg5sb2FkZXJfdmVyc2lvbhgRIAEo",
+            "CRIUCgxhcmNoaXZlX3Jvb3QYEiABKAkSEwoLbG9hZGVyX3BhZ2UYEyABKAkS",
+            "FwoPbG9hZGVyX2Rvd25sb2FkGBQgASgJEhYKDmxvYWRlcl9saWNlbnNlGBUg",
+            "ASgJEg0KBXByb3h5GBYgASgJEgwKBGNvcmUYFyABKAkSDAoEbW9kcxgYIAEo",
+            "CRIVCg1zZXR0aW5nc19maWxlGBkgASgJEgsKA2xvZxgaIAEoCRIVCg1nYW1l",
+            "X2ZlYXR1cmVzGBsgASgJEg8KB2NvbmZpZ3MYHCABKAkSGgoSZ2FtZV9mZWF0",
+            "dXJlX2ZpZWxkGB0gASgJEhEKCWFyZ3VtZW50cxgeIAMoCRIQCghleGNsdWRl",
+            "ZBgfIAMoCTL5AwoQR2FtZVJlZ2lzdHJhdGlvbhJkChJMaXN0SW5zdGFsbGVk",
+            "R2FtZXMSKi5tb2Rjb25kdWN0b3IudjEuTGlzdEluc3RhbGxlZEdhbWVzUmVx",
+            "dWVzdBoiLm1vZGNvbmR1Y3Rvci52MS5TdGVhbVNlYXJjaFJlc3VsdBJzChdT",
+            "ZWFyY2hUaHVuZGVyc3RvcmVHYW1lcxIvLm1vZGNvbmR1Y3Rvci52MS5TZWFy",
+            "Y2hUaHVuZGVyc3RvcmVHYW1lc1JlcXVlc3QaJy5tb2Rjb25kdWN0b3IudjEu",
+            "VGh1bmRlcnN0b3JlR2FtZXNSZXBseRJSCgpEZXRlY3RHYW1lEiIubW9kY29u",
+            "ZHVjdG9yLnYxLkRldGVjdEdhbWVSZXF1ZXN0GiAubW9kY29uZHVjdG9yLnYx",
+            "LkRldGVjdEdhbWVSZXBseRJaCg5SZWFkQ3VzdG9tR2FtZRImLm1vZGNvbmR1",
+            "Y3Rvci52MS5SZWFkQ3VzdG9tR2FtZVJlcXVlc3QaIC5tb2Rjb25kdWN0b3Iu",
+            "djEuQ3VzdG9tR2FtZVJlcGx5EloKDlNhdmVDdXN0b21HYW1lEiYubW9kY29u",
+            "ZHVjdG9yLnYxLlNhdmVDdXN0b21HYW1lUmVxdWVzdBogLm1vZGNvbmR1Y3Rv",
+            "ci52MS5DdXN0b21HYW1lUmVwbHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2Nv",
+            "bC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor, global::ModConductor.Protocol.V1.SteamDiscoveryReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ListInstalledGamesRequest), global::ModConductor.Protocol.V1.ListInstalledGamesRequest.Parser, new[]{ "AdditionalRoots" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SearchThunderstoreGamesRequest), global::ModConductor.Protocol.V1.SearchThunderstoreGamesRequest.Parser, new[]{ "Query" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ThunderstoreGameInfo), global::ModConductor.Protocol.V1.ThunderstoreGameInfo.Parser, new[]{ "Id", "Name", "Community", "SuppliesSetup" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ThunderstoreGameInfo), global::ModConductor.Protocol.V1.ThunderstoreGameInfo.Parser, new[]{ "Id", "Name", "Community", "SuppliesSetup", "ArtworkUrl" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ThunderstoreGamesReply), global::ModConductor.Protocol.V1.ThunderstoreGamesReply.Parser, new[]{ "Games", "Problem" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.DetectGameRequest), global::ModConductor.Protocol.V1.DetectGameRequest.Parser, new[]{ "Path", "Name", "SteamAppId", "ThunderstoreId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.DetectGameReply), global::ModConductor.Protocol.V1.DetectGameReply.Parser, new[]{ "Draft", "ExecutableChoices", "Problem", "DetectedEngine" }, null, null, null, null),
@@ -514,6 +515,7 @@ namespace ModConductor.Protocol.V1 {
       name_ = other.name_;
       community_ = other.community_;
       suppliesSetup_ = other.suppliesSetup_;
+      artworkUrl_ = other.artworkUrl_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -571,6 +573,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "artwork_url" field.</summary>
+    public const int ArtworkUrlFieldNumber = 5;
+    private string artworkUrl_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ArtworkUrl {
+      get { return artworkUrl_; }
+      set {
+        artworkUrl_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -590,6 +604,7 @@ namespace ModConductor.Protocol.V1 {
       if (Name != other.Name) return false;
       if (Community != other.Community) return false;
       if (SuppliesSetup != other.SuppliesSetup) return false;
+      if (ArtworkUrl != other.ArtworkUrl) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -601,6 +616,7 @@ namespace ModConductor.Protocol.V1 {
       if (Name.Length != 0) hash ^= Name.GetHashCode();
       if (Community.Length != 0) hash ^= Community.GetHashCode();
       if (SuppliesSetup != false) hash ^= SuppliesSetup.GetHashCode();
+      if (ArtworkUrl.Length != 0) hash ^= ArtworkUrl.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -635,6 +651,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(32);
         output.WriteBool(SuppliesSetup);
       }
+      if (ArtworkUrl.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ArtworkUrl);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -661,6 +681,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(32);
         output.WriteBool(SuppliesSetup);
       }
+      if (ArtworkUrl.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ArtworkUrl);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -682,6 +706,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (SuppliesSetup != false) {
         size += 1 + 1;
+      }
+      if (ArtworkUrl.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ArtworkUrl);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -706,6 +733,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.SuppliesSetup != false) {
         SuppliesSetup = other.SuppliesSetup;
+      }
+      if (other.ArtworkUrl.Length != 0) {
+        ArtworkUrl = other.ArtworkUrl;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -742,6 +772,10 @@ namespace ModConductor.Protocol.V1 {
             SuppliesSetup = input.ReadBool();
             break;
           }
+          case 42: {
+            ArtworkUrl = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -775,6 +809,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 32: {
             SuppliesSetup = input.ReadBool();
+            break;
+          }
+          case 42: {
+            ArtworkUrl = input.ReadString();
             break;
           }
         }

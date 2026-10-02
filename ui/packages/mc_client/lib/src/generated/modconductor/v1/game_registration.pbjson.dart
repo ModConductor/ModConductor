@@ -50,6 +50,7 @@ const ThunderstoreGameInfo$json = {
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'community', '3': 3, '4': 1, '5': 9, '10': 'community'},
     {'1': 'supplies_setup', '3': 4, '4': 1, '5': 8, '10': 'suppliesSetup'},
+    {'1': 'artwork_url', '3': 5, '4': 1, '5': 9, '10': 'artworkUrl'},
   ],
 };
 
@@ -57,7 +58,7 @@ const ThunderstoreGameInfo$json = {
 final $typed_data.Uint8List thunderstoreGameInfoDescriptor = $convert.base64Decode(
     'ChRUaHVuZGVyc3RvcmVHYW1lSW5mbxIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbm'
     'FtZRIcCgljb21tdW5pdHkYAyABKAlSCWNvbW11bml0eRIlCg5zdXBwbGllc19zZXR1cBgEIAEo'
-    'CFINc3VwcGxpZXNTZXR1cA==');
+    'CFINc3VwcGxpZXNTZXR1cBIfCgthcnR3b3JrX3VybBgFIAEoCVIKYXJ0d29ya1VybA==');
 
 @$core.Deprecated('Use thunderstoreGamesReplyDescriptor instead')
 const ThunderstoreGamesReply$json = {

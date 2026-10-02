@@ -135,23 +135,18 @@ Future<RegisteredGame?> showGameEditor(
     return await showDialog<RegisteredGame>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) => PopScope(
-          canPop: !controller.busy,
-          child: McDialog(
-            title: 'Add game',
-            contentWidth: 1040,
-            children: [
-              GameEditor(
-                controller: controller,
-                chooseDirectory: chooseDirectory,
-                onSaved: (result) => Navigator.pop(context, result),
-                onCancel: () => Navigator.pop(context),
-              ),
-            ],
+      builder: (context) => McDialog(
+        title: 'Add game',
+        contentWidth: 1040,
+        actions: const [],
+        children: [
+          GameEditor(
+            controller: controller,
+            chooseDirectory: chooseDirectory,
+            onSaved: (result) => Navigator.pop(context, result),
+            onCancel: () => Navigator.pop(context),
           ),
-        ),
+        ],
       ),
     );
   } finally {

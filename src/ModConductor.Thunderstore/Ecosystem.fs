@@ -23,6 +23,7 @@ type EcosystemGame =
     { Id: string
       Name: string
       Community: string
+      ArtworkUrl: string
       Stores: GameStoreIdentity list
       Executables: string list
       Content: string
@@ -65,6 +66,15 @@ module Ecosystem =
                         Tracking = Json.text "trackingMethod" child
                         Default = Json.flag "isDefaultLocation" child
                         Extensions = strings "defaultFileExtensions" child } ])))
+
+    let private artwork game variant community =
+        [ Json.text "icon" (Json.property "meta" community)
+          Json.text "iconUrl" (Json.property "meta" variant)
+          Json.text "iconUrl" (Json.property "meta" game) ]
+        |> List.tryFind ((<>) "")
+        |> Option.map (fun path ->
+            Uri(Uri "https://ccdn.thunderstore.io/assets/", path).AbsoluteUri)
+        |> Option.defaultValue ""
 
     let read (value: JsonElement) =
         let loaders = Json.array "modloaderPackages" value
@@ -118,6 +128,7 @@ module Ecosystem =
                         else
                             name
                       Community = property.Name
+                      ArtworkUrl = artwork game variant community
                       Stores = if distribution.IsEmpty then stores game else distribution
                       Executables = strings "exeNames" variant
                       Content = Json.text "dataFolderName" variant

@@ -132,12 +132,14 @@ class ThunderstoreGameInfo extends $pb.GeneratedMessage {
     $core.String? name,
     $core.String? community,
     $core.bool? suppliesSetup,
+    $core.String? artworkUrl,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (name != null) result.name = name;
     if (community != null) result.community = community;
     if (suppliesSetup != null) result.suppliesSetup = suppliesSetup;
+    if (artworkUrl != null) result.artworkUrl = artworkUrl;
     return result;
   }
 
@@ -159,6 +161,7 @@ class ThunderstoreGameInfo extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..aOS(3, _omitFieldNames ? '' : 'community')
     ..aOB(4, _omitFieldNames ? '' : 'suppliesSetup')
+    ..aOS(5, _omitFieldNames ? '' : 'artworkUrl')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -215,6 +218,15 @@ class ThunderstoreGameInfo extends $pb.GeneratedMessage {
   $core.bool hasSuppliesSetup() => $_has(3);
   @$pb.TagNumber(4)
   void clearSuppliesSetup() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get artworkUrl => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set artworkUrl($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasArtworkUrl() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearArtworkUrl() => $_clearField(5);
 }
 
 class ThunderstoreGamesReply extends $pb.GeneratedMessage {

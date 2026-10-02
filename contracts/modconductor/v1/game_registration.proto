@@ -12,7 +12,7 @@ service GameRegistration {
 }
 message ListInstalledGamesRequest { repeated string additional_roots = 1; }
 message SearchThunderstoreGamesRequest { string query = 1; }
-message ThunderstoreGameInfo { string id = 1; string name = 2; string community = 3; bool supplies_setup = 4; }
+message ThunderstoreGameInfo { string id = 1; string name = 2; string community = 3; bool supplies_setup = 4; string artwork_url = 5; }
 message ThunderstoreGamesReply { repeated ThunderstoreGameInfo games = 1; string problem = 2; }
 message DetectGameRequest { string path = 1; string name = 2; uint32 steam_app_id = 3; string thunderstore_id = 4; }
 message DetectGameReply { CustomGameDraft draft = 1; repeated string executable_choices = 2; string problem = 3; string detected_engine = 4; }

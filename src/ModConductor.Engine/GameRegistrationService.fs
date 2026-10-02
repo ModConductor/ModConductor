@@ -46,6 +46,7 @@ type GameRegistrationService(catalogue: Catalogue, discovery: Discovery) =
                             Id = game.Id,
                             Name = game.Name,
                             Community = game.Community,
+                            ArtworkUrl = game.ArtworkUrl,
                             SuppliesSetup = not game.Executables.IsEmpty
                         ))
                 )

@@ -11,7 +11,7 @@ class _ProfileCreationAttempt {
 }
 
 mixin _ProfileCreation on _AppStateBase, _ProfileCommit {
-  Future<RegisteredGame?> _addGame() async {
+  Future<RegisteredGame?> _addGame(BuildContext context) async {
     final client = widget.gameCatalogue;
     if (client is! GameRegistrationClient) return null;
     return showGameEditor(
@@ -137,7 +137,7 @@ mixin _ProfileCreation on _AppStateBase, _ProfileCommit {
       initialGameId: state.definition?.id,
       nameEditable: false,
       games: _profileSetupGames,
-      onAddGame: _addGame,
+      onAddGame: () => _addGame(context),
       discovery: widget.steamDiscovery,
       chooseDirectory: widget.chooseGameDirectory,
       protonContexts: widget.protonContexts,
@@ -179,7 +179,7 @@ mixin _ProfileCreation on _AppStateBase, _ProfileCommit {
                       ? GameInstallationSource.steam
                       : GameInstallationSource.fromDefinition(declaration),
                   games: games,
-                  onAddGame: _addGame,
+                  onAddGame: () => _addGame(dialogContext),
                   discovery: widget.steamDiscovery,
                   chooseDirectory: widget.chooseGameDirectory,
                   chooseExecutable: widget.chooseExecutable,
