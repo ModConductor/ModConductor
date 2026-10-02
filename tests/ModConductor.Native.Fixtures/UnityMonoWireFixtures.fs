@@ -1,6 +1,8 @@
 namespace ModConductor.Native.Fixtures
 
 open System
+open System.IO
+open System.Text
 open Google.Protobuf
 open ModConductor.Engine
 open ModConductor.Persistence
@@ -56,3 +58,27 @@ module UnityMonoWireFixtures =
             "v1 settings preserve original bytes and text document through save"
             (saved.ResultCase = LoaderTextReply.ResultOneofCase.Text
              && saved.Text = transmitted.Text)
+
+    let observeLog check (store: OperationStore) (workspace: Guid) (profile: Guid) root =
+        let path = Path.Combine(root, "BepInEx", "LogOutput.log")
+
+        let original =
+            Encoding.UTF8.GetBytes "upstream message\r\nembedded callback trace\nnext message\r\n"
+
+        File.WriteAllBytes(path, original)
+        let service = BepInExService store.BepInEx
+
+        let request =
+            LoaderRequest(WorkspaceId = workspace.ToString("N"), ProfileId = profile.ToString("N"))
+
+        let reply =
+            service.ReadLoaderLog(request, Unchecked.defaultof<_>) |> StorageWorker.wait
+
+        let transmitted = LoaderTextReply.Parser.ParseFrom(reply.ToByteArray())
+
+        check
+            "v1 read-only log permits upstream mixed newlines without altering file bytes"
+            (transmitted.ResultCase = LoaderTextReply.ResultOneofCase.Text
+             && transmitted.Text.Original = ByteString.CopyFrom original
+             && transmitted.Text.Document.Content = "upstream message\nembedded callback trace\nnext message\n"
+             && File.ReadAllBytes(path) = original)

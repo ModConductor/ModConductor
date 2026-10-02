@@ -30,20 +30,42 @@ module internal BepInExWire =
         | Ok value -> LoaderReply(Loader = state value)
         | Error detail -> LoaderReply(Problem = detail)
 
+    let private textReply =
+        function
+        | Ok((bytes: byte array), document) ->
+            LoaderTextReply(
+                Text =
+                    LoaderText(
+                        Document = FilePlanWire.textDocument document,
+                        Original = ByteString.CopyFrom bytes
+                    )
+            )
+        | Error detail -> LoaderTextReply(Problem = detail)
+
     let text result =
         result
         |> Result.bind (fun bytes ->
             TextDocuments.editable bytes |> Result.map (fun document -> bytes, document))
-        |> function
-            | Ok(bytes, document) ->
-                LoaderTextReply(
-                    Text =
-                        LoaderText(
-                            Document = FilePlanWire.textDocument document,
-                            Original = ByteString.CopyFrom bytes
-                        )
-                )
-            | Error detail -> LoaderTextReply(Problem = detail)
+        |> textReply
+
+    let log result =
+        result
+        |> Result.bind (fun bytes ->
+            TextDocuments.decode bytes
+            |> Result.map (fun decoded ->
+                let document: ModConductor.FilePlanning.TextDocument =
+                    { Content = decoded.Content.Replace("\r\n", "\n")
+                      Encoding = decoded.Encoding
+                      Newline =
+                        match decoded.Newline with
+                        | Some ModConductor.FilePlanning.TextDocumentNewline.NoLineBreaks ->
+                            ModConductor.FilePlanning.TextDocumentNewline.NoLineBreaks
+                        | _ -> ModConductor.FilePlanning.TextDocumentNewline.Lf
+                      FinalTerminator = decoded.FinalTerminator
+                      Lines = decoded.Lines }
+
+                bytes, document))
+        |> textReply
 
 /// The profile and existing working files remain the authority, not a second loader receipt store.
 type BepInExService(store: BepInExStore) =
@@ -105,5 +127,5 @@ type BepInExService(store: BepInExStore) =
         task {
             let workspace, profile = ids request.WorkspaceId request.ProfileId
             let! result = store.ReadLog(workspace, profile)
-            return BepInExWire.text result
+            return BepInExWire.log result
         }

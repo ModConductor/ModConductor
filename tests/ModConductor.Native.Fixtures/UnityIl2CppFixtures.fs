@@ -214,6 +214,7 @@ module UnityIl2CppFixtures =
 
         let root = UnityMonoEnvironment.deploy store first
         UnityMonoWireFixtures.observe check store workspace first
+        UnityMonoWireFixtures.observeLog check store workspace first root
 
         check
             "archive loader core and game runtime stay out of the plugin destination"
