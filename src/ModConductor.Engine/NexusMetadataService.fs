@@ -53,6 +53,7 @@ type NexusMetadataService
                     |> Option.exists (fun binding ->
                         binding.Evidence.DefinitionRevision = (GameCatalog.forGame binding.GameId)
                             .Revision
+                        && GameCatalog.isBethesda binding.GameId
                         && (GameCatalog.rules binding.GameId).NexusGame <> "")
                     ->
                     let! metadata =

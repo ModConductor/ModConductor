@@ -42,6 +42,7 @@ type NxmService
             | Ok file ->
                 let definition =
                     GameCatalog.definitions
+                    |> List.filter (fun game -> GameCatalog.isBethesda game.Id)
                     |> List.tryFind (fun game -> (GameCatalog.rules game.Id).NexusGame = file.Game)
 
                 result.Game <- definition |> Option.map _.Name |> Option.defaultValue "Another game"
@@ -63,6 +64,7 @@ type NxmService
                             binding.Evidence.DefinitionRevision = (GameCatalog.forGame
                                 binding.GameId)
                                 .Revision
+                            && GameCatalog.isBethesda binding.GameId
                             && (GameCatalog.rules binding.GameId).NexusGame = file.Game)
                         ->
                         ()

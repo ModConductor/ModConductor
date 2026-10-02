@@ -7,7 +7,15 @@ open ModConductor.Platform
 
 module InstallationValidation =
     let locations (definition: GameDefinition) =
-        if OperatingSystem.IsWindows() then
+        if (GameClient.mono definition).IsSome then
+            let unavailable =
+                Location.Unavailable
+                    "Native Unity saves and game settings are not managed by Mod Conductor."
+
+            { Documents = unavailable
+              Saves = unavailable
+              LocalAppData = unavailable }
+        elif OperatingSystem.IsWindows() then
             let locate folder components =
                 let root =
                     Environment.GetFolderPath(folder, Environment.SpecialFolderOption.DoNotVerify)
@@ -136,7 +144,9 @@ module InstallationValidation =
                             with :? IOException ->
                                 ())
 
-                        name definition.Executable true
+                        let client = GameClient.executable (OperatingSystem.IsLinux()) definition
+
+                        name client true
                         |> Option.iter (fun name ->
                             try
                                 let stream, identity = directory.Read(name, None)
@@ -147,7 +157,24 @@ module InstallationValidation =
                                     raise (InvalidDataException())
 
                                 let modified = File.GetLastWriteTimeUtc file.SafeFileHandle
-                                let version, product = PeVersion.read file
+
+                                let version, product =
+                                    match GameClient.mono definition with
+                                    | Some client ->
+                                        match
+                                            UnityMonoValidation.inspect
+                                                definition
+                                                client
+                                                resolved
+                                                file
+                                                (OperatingSystem.IsLinux())
+                                        with
+                                        | Ok unity -> unity, unity
+                                        | Error detail ->
+                                            problem name detail
+                                            "", ""
+                                    | None -> PeVersion.read file
+
                                 file.Position <- 0L
                                 let hash = SHA256.HashData file |> Convert.ToHexStringLower
 
@@ -220,6 +247,8 @@ module InstallationValidation =
               Platform =
                 if OperatingSystem.IsWindows() then
                     ContextPlatform.Windows
+                elif (GameClient.mono definition).IsSome then
+                    ContextPlatform.NativeLinux
                 elif GameCatalog.steam definition.Id then
                     ContextPlatform.Proton
                 else

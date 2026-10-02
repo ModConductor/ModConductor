@@ -25,6 +25,7 @@ type GameId =
     | StarfieldSteam
     | Fallout76Steam
     | OblivionRemasteredSteam
+    | ValheimSteam
 
 module GameId =
     let value =
@@ -52,6 +53,7 @@ module GameId =
         | GameId.StarfieldSteam -> "starfield-steam"
         | GameId.Fallout76Steam -> "fallout76-steam"
         | GameId.OblivionRemasteredSteam -> "oblivion-remastered-steam"
+        | GameId.ValheimSteam -> "valheim-steam"
 
     let tryParse =
         function
@@ -77,4 +79,5 @@ module GameId =
         | "starfield-steam" -> Some GameId.StarfieldSteam
         | "fallout76-steam" -> Some GameId.Fallout76Steam
         | "oblivion-remastered-steam" -> Some GameId.OblivionRemasteredSteam
+        | "valheim-steam" -> Some GameId.ValheimSteam
         | _ -> None

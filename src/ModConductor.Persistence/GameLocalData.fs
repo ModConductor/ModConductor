@@ -42,7 +42,12 @@ module internal GameLocalData =
     let private projectView workspace profile (state: GameContextState) =
         match state.Binding with
         | None -> state
-        | Some binding when binding.NeedsCheck || not binding.Evidence.Valid -> state
+        | Some binding when
+            binding.NeedsCheck
+            || not binding.Evidence.Valid
+            || not (GameCatalog.isBethesda binding.GameId)
+            ->
+            state
         | Some binding ->
             let rules = GameCatalog.rules binding.GameId
 

@@ -149,6 +149,83 @@ Future<void> findInstallations(WidgetTester tester) async {
 
 void main() {
   testWidgets(
+    'switching a Wine profile draft to a native Mono game submits native context',
+    (tester) async {
+      const native = ProfileSetupGame(
+        id: 'valheim-steam',
+        name: 'Valheim',
+        storefront: 'Steam',
+        steamAppId: 892970,
+        variants: [
+          GameDefinitionInfo(
+            id: 'valheim-steam',
+            revision: 1,
+            name: 'Valheim',
+            storefront: 'Steam',
+            declaredSteamAppId: 892970,
+            capabilities: [
+              GameCapability(
+                id: GameCapabilityId.unityMono,
+                revision: 1,
+                name: 'Unity Mono',
+                kind: GameCapabilityKind.gameAdapter,
+                contexts: [
+                  GameCapabilityContext(
+                    definitionId: 'valheim-steam',
+                    platforms: [
+                      GameContextPlatform.nativeLinux,
+                      GameContextPlatform.windows,
+                    ],
+                  ),
+                ],
+                disposition: GameCapabilityDisposition.available,
+              ),
+            ],
+          ),
+        ],
+      );
+      ProfileSetupSelection? submitted;
+      await mount(
+        tester,
+        discovery: Discovery(const []),
+        chooseDirectory: (_) async => '/games/Valheim',
+        games: const [game, native],
+        initialSource: GameInstallationSource.gog,
+        initialWine: const WineSelection(
+          executable: '/bin/wine',
+          prefix: '/prefix',
+        ),
+        onSubmit: (value) async {
+          submitted = value;
+          return null;
+        },
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('profile-setup-name')),
+        'Builder',
+      );
+      await tester.tap(find.text('Skyrim Special Edition').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Valheim').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('find-profile-installation')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('choose-installation-folder')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('submit-profile-setup')),
+      );
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(submitted?.gameId, native.id);
+      expect(submitted?.installation, '/games/Valheim');
+      expect(submitted?.wine, isNull);
+      expect(submitted?.proton, isNull);
+    },
+    skip: !Platform.isLinux,
+  );
+
+  testWidgets(
     'the selected New Vegas registration drives discovery and saving',
     (tester) async {
       final games = ProfileSetupGame.fromCatalogue(const [

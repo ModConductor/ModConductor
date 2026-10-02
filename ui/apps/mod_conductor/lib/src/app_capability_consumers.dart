@@ -105,45 +105,45 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
   }
 
   void _syncCapabilityConsumers() {
-    final skyrim = _supportsBethesda;
-    final archives = _supportsArchives;
+    final modded = _supportsGameMods;
+    final bethesda = _supportsBethesda;
     final workspace = _workspaces.workspace;
     final profile = workspace?.selectedProfile;
     _play.attach(
-      skyrim ? widget.gameLaunching : null,
-      skyrim ? widget.executables : null,
-      skyrim ? workspace : null,
-      available: skyrim && _workspaces.canEdit,
+      modded ? widget.gameLaunching : null,
+      modded ? widget.executables : null,
+      modded ? workspace : null,
+      available: modded && _workspaces.canEdit,
       fnis: _supportsSkyrim ? widget.fnis : null,
     );
     _executables.attach(
-      skyrim ? widget.executables : null,
-      skyrim ? workspace : null,
-      available: skyrim && _workspaces.canEdit,
+      modded ? widget.executables : null,
+      modded ? workspace : null,
+      available: modded && _workspaces.canEdit,
     );
     _artifacts.attach(
-      archives ? widget.artifacts : null,
-      archives ? workspace?.id : null,
+      modded ? widget.artifacts : null,
+      modded ? workspace?.id : null,
     );
     _nexusDetails.attach(
-      skyrim ? widget.nexusMetadata : null,
-      skyrim ? widget.nexus : null,
-      skyrim ? workspace?.id : null,
-      skyrim ? profile?.id : null,
+      bethesda ? widget.nexusMetadata : null,
+      bethesda ? widget.nexus : null,
+      bethesda ? workspace?.id : null,
+      bethesda ? profile?.id : null,
     );
     _outputs.attach(
-      skyrim ? widget.outputs : null,
-      skyrim ? workspace?.id : null,
-      profile: skyrim ? profile?.id : null,
-      available: skyrim && _workspaces.canEdit,
+      modded ? widget.outputs : null,
+      modded ? workspace?.id : null,
+      profile: modded ? profile?.id : null,
+      available: modded && _workspaces.canEdit,
     );
     _deployments.attach(
-      skyrim ? widget.deployments : null,
-      skyrim ? profile?.id : null,
-      skyrim ? profile?.name : null,
-      available: skyrim && _workspaces.canEdit,
+      modded ? widget.deployments : null,
+      modded ? profile?.id : null,
+      modded ? profile?.name : null,
+      available: modded && _workspaces.canEdit,
     );
-    _plugins.resumeAction = !skyrim || workspace == null || profile == null
+    _plugins.resumeAction = !bethesda || workspace == null || profile == null
         ? null
         : () => _profileData.resumeSelected(
             widget.profileData,
@@ -152,44 +152,44 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
             available: _workspaces.canEdit,
           );
     _plugins.attach(
-      skyrim ? widget.bethesda : null,
-      skyrim ? profile?.id : null,
-      orders: skyrim ? widget.pluginOrders : null,
+      bethesda ? widget.bethesda : null,
+      bethesda ? profile?.id : null,
+      orders: bethesda ? widget.pluginOrders : null,
     );
     _sortOrder.attach(
       _supportsSkyrim ? widget.loot : null,
       _plugins,
-      skyrim ? profile?.id : null,
+      bethesda ? profile?.id : null,
     );
     _archives.definition = _game.state?.definition;
     _archives.resumeAction = _plugins.resumeAction;
     _archives.attach(
-      skyrim ? widget.archivePolicies : null,
+      bethesda ? widget.archivePolicies : null,
       _plugins,
-      skyrim ? workspace?.id : null,
-      skyrim ? profile?.id : null,
+      bethesda ? workspace?.id : null,
+      bethesda ? profile?.id : null,
     );
     _files.attach(
-      skyrim ? widget.filePlans : null,
-      skyrim ? profile?.id : null,
-      available: skyrim && _workspaces.canEdit,
+      bethesda ? widget.filePlans : null,
+      bethesda ? profile?.id : null,
+      available: bethesda && _workspaces.canEdit,
     );
     _diagnosticInputsChanged();
     _mods.attach(
-      skyrim ? widget.modLibrary : null,
-      skyrim ? widget.profileMods : null,
-      organizationClient: skyrim ? widget.modOrganization : null,
-      workspaceId: skyrim ? workspace?.id : null,
-      profileId: skyrim ? profile?.id : null,
-      workspaceRevision: skyrim ? workspace?.revision : null,
-      editable: skyrim && _workspaces.canEdit,
+      modded ? widget.modLibrary : null,
+      modded ? widget.profileMods : null,
+      organizationClient: modded ? widget.modOrganization : null,
+      workspaceId: modded ? workspace?.id : null,
+      profileId: modded ? profile?.id : null,
+      workspaceRevision: modded ? workspace?.revision : null,
+      editable: modded && _workspaces.canEdit,
     );
     _watchSetup(
       _supportsSkyrim && widget.status is DesktopConnected
           ? widget.skyrimSetup
           : null,
-      skyrim ? workspace?.id : null,
-      skyrim ? profile?.id : null,
+      modded ? workspace?.id : null,
+      modded ? profile?.id : null,
     );
   }
 }

@@ -36,6 +36,7 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
           ),
           const SizedBox(height: McSpacing.large),
           InstallationSetupFields(
+            nativeClient: game?.nativeClient ?? false,
             gameName: game?.name ?? 'Select game',
             gameChoices: widget.games.map((option) => option.name).toList(),
             onGameChanged: (value) => selectGame(

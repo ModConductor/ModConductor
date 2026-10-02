@@ -104,6 +104,16 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.bepinex": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.SteamDiscovery": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
+        }
+      },
       "modconductor.bethesda": {
         "type": "Project",
         "dependencies": {
@@ -215,6 +225,7 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.BepInEx": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.Executables": "[1.0.0, )",
           "ModConductor.ProfileGameData": "[1.0.0, )"

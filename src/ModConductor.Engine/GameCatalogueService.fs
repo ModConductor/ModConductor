@@ -17,7 +17,7 @@ type GameCatalogueService() =
         task {
             let address =
                 GameId.tryParse request.GameId
-                |> Option.bind (GameCatalog.rules >> _.ExtenderUrl)
+                |> Option.bind (GameCatalog.tryRules >> Option.bind _.ExtenderUrl)
 
             match address with
             | None ->

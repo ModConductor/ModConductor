@@ -54,3 +54,5 @@ export 'src/fnis_client.dart';
 export 'src/skyrim_setup_client.dart';
 
 export 'src/thunderstore_client.dart';
+
+export 'src/bepinex_client.dart';

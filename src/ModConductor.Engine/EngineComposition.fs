@@ -243,6 +243,11 @@ let internal registerOperationServices
 
     services.AddSingleton<ModConductor.Engine.ThunderstoreService>() |> ignore
 
+    services.AddSingleton<ModConductor.Persistence.BepInExStore>(store.BepInEx)
+    |> ignore
+
+    services.AddSingleton<ModConductor.Engine.BepInExService>() |> ignore
+
     services.AddSingleton<ModConductor.HttpDownloads.DownloadSession>(store.Downloads)
     |> ignore
 

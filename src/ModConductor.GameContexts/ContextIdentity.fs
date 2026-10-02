@@ -47,6 +47,7 @@ module ContextIdentity =
             | ContextPlatform.Windows -> 1
             | ContextPlatform.Proton -> 2
             | ContextPlatform.Wine -> 3
+            | ContextPlatform.NativeLinux -> 4
         )
 
         text evidence.RootPath

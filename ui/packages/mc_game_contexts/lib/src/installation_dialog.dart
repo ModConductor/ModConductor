@@ -155,7 +155,11 @@ class _InstallationDialogState extends State<InstallationDialog> {
         selectedGame.id,
         current.revision,
         folder.text,
-        proton: source == GameInstallationSource.steam ? proton : null,
+        proton:
+            source == GameInstallationSource.steam &&
+                selectedGame.capability(GameCapabilityId.unityMono) == null
+            ? proton
+            : null,
         wine: Platform.isLinux && source != GameInstallationSource.steam
             ? WineSelection(
                 executable: wineExecutable.text.trim(),
@@ -308,6 +312,8 @@ class _InstallationDialogState extends State<InstallationDialog> {
           onBrowse: browse,
           onProblem: (value) => setState(() => error = value),
           onFindSteam: widget.steamDiscovery == null ? null : findInSteam,
+          nativeClient:
+              selectedGame.capability(GameCapabilityId.unityMono) != null,
           onSelectProton: widget.protonContexts == null ? null : chooseProton,
           proton: proton,
           busy: busy,

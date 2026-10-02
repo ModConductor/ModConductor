@@ -94,6 +94,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
     GameContextPlatform.windows => 'Windows',
     GameContextPlatform.proton => 'Proton',
     GameContextPlatform.wine => 'Wine',
+    GameContextPlatform.nativeLinux => 'Native Linux',
   };
   String location(GameLocation value) => switch (value) {
     LocatedGameFolder(:final path, :final exists) =>
@@ -126,7 +127,6 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
       final c = widget.controller;
       final state = c.state;
       final binding = state?.binding;
-      final evidence = binding?.evidence;
       return SingleChildScrollView(
         child: Column(
           children: [
@@ -190,7 +190,12 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${state.definition!.storefront} · ${platformName(evidence!.platform)}',
+                              state.definition!.capability(
+                                        GameCapabilityId.unityMono,
+                                      ) !=
+                                      null
+                                  ? state.definition!.storefront
+                                  : '${state.definition!.storefront} · ${platformName(binding.evidence.platform)}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -209,20 +214,25 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                         : binding.failure ??
                               (binding.needsCheck
                                   ? 'Installation needs a check'
-                                  : evidence.platform ==
+                                  : binding.evidence.platform ==
                                             GameContextPlatform.proton &&
-                                        evidence.proton == null
+                                        binding.evidence.proton == null
                                   ? 'Proton not selected'
-                                  : evidence.platform ==
+                                  : binding.evidence.platform ==
                                             GameContextPlatform.wine &&
-                                        !evidence.runtimeReady
+                                        !binding.evidence.runtimeReady
                                   ? 'Wine not selected'
                                   : 'Installation found'),
                     detail: binding.needsCheck || c.needsRead
-                        ? 'Last checked: ${checkedAt(evidence.checkedAt)}'
-                        : !evidence.runtimeReady
+                        ? 'Last checked: ${checkedAt(binding.evidence.checkedAt)}'
+                        : !binding.evidence.runtimeReady
                         ? 'Save and settings locations are unavailable.'
-                        : 'Game version ${evidence.executable!.fileVersion}',
+                        : state.definition?.capability(
+                                GameCapabilityId.unityMono,
+                              ) !=
+                              null
+                        ? null
+                        : 'Game version ${binding.evidence.executable!.fileVersion}',
                     tone: binding.failure != null
                         ? McStatusTone.error
                         : McStatusTone.neutral,
@@ -239,7 +249,8 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                         focusNode: changeFocus,
                         onPressed: c.canChange ? change : null,
                       ),
-                      if (evidence.platform == GameContextPlatform.proton)
+                      if (binding.evidence.platform ==
+                          GameContextPlatform.proton)
                         McAction(
                           key: const ValueKey('change-proton'),
                           label: binding.proton == null
@@ -280,19 +291,32 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                           rows: [
                             McFact('Game', state.definition!.name),
                             McFact('Store', state.definition!.storefront),
-                            McFact('Platform', platformName(evidence.platform)),
+                            McFact(
+                              'Platform',
+                              platformName(binding.evidence.platform),
+                            ),
                             McFact(
                               'Installation folder',
                               binding.path,
                               path: true,
                             ),
-                            if (evidence.dataPath case final data?)
+                            if (binding.evidence.dataPath case final data?)
                               McFact('Data folder', data, path: true),
-                            if (evidence.executable case final executable?) ...[
+                            if (binding.evidence.executable
+                                case final executable?) ...[
                               McFact('Executable', executable.path, path: true),
-                              McFact('File version', executable.fileVersion),
+                              McFact(
+                                state.definition?.capability(
+                                          GameCapabilityId.unityMono,
+                                        ) !=
+                                        null
+                                    ? 'Unity version'
+                                    : 'File version',
+                                executable.fileVersion,
+                              ),
                             ],
-                            if (evidence.launcherPath case final launcher?)
+                            if (binding.evidence.launcherPath
+                                case final launcher?)
                               McFact('Launcher', launcher, path: true),
                           ],
                         ),
@@ -306,7 +330,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                             ],
                           ),
                         ],
-                        if (evidence.proton case final proton?) ...[
+                        if (binding.evidence.proton case final proton?) ...[
                           const SizedBox(height: 20),
                           McFactGroup(
                             title: 'Runtime',
@@ -367,33 +391,38 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                           McFactGroup(
                             title: 'Folders',
                             rows: [
-                              ...locationFacts('Documents', evidence.documents),
-                              ...locationFacts('Saves', evidence.saves),
+                              ...locationFacts(
+                                'Documents',
+                                binding.evidence.documents,
+                              ),
+                              ...locationFacts('Saves', binding.evidence.saves),
                               ...locationFacts(
                                 'Local AppData',
-                                evidence.localAppData,
+                                binding.evidence.localAppData,
                               ),
                             ],
                           ),
                         ],
-                        if (evidence.problems.isNotEmpty) ...[
+                        if (binding.evidence.problems.isNotEmpty) ...[
                           const SizedBox(height: 20),
                           McDiagnosticTable(
                             title: 'Installation problems',
                             diagnostics: [
                               for (
                                 var index = 0;
-                                index < evidence.problems.length;
+                                index < binding.evidence.problems.length;
                                 index++
                               )
                                 McDiagnosticItem(
-                                  id: '${evidence.problems[index].path}:${evidence.problems[index].detail}:$index',
-                                  title: evidence.problems[index].detail,
-                                  affected: evidence.problems[index].path,
+                                  id: '${binding.evidence.problems[index].path}:${binding.evidence.problems[index].detail}:$index',
+                                  title:
+                                      binding.evidence.problems[index].detail,
+                                  affected:
+                                      binding.evidence.problems[index].path,
                                   evidence: [
                                     McFact(
                                       'Problem',
-                                      evidence.problems[index].detail,
+                                      binding.evidence.problems[index].detail,
                                     ),
                                   ],
                                 ),
@@ -410,34 +439,41 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                       tilePadding: EdgeInsets.zero,
                       title: const Text('Capabilities'),
                       children: [
-                        McFactGroup(
-                          title: state.definition!.name,
-                          rows: [
-                            McFact(
-                              'Plugins',
-                              'ESM · ESP${state.definition!.supportsLight ? ' · ESL' : ''}',
-                            ),
-                            McFact(
-                              'Plugin order',
-                              switch (state.definition!.pluginOrdering) {
-                                'FileTime' => 'Manual · file timestamps',
-                                'None' => 'No sorting',
-                                _ => 'Plugins.txt',
-                              },
-                            ),
-                            McFact('Settings', state.definition!.settingsIni),
-                            McFact(
-                              'Saves',
-                              state.definition!.saveExtension.isEmpty
-                                  ? 'No local saves'
-                                  : state.definition!.saveExtension
-                                        .substring(1)
-                                        .toUpperCase(),
-                            ),
-                            if (state.definition!.archiveInvalidation)
-                              const McFact('Archives', 'Archive invalidation'),
-                          ],
-                        ),
+                        if (state.definition!.capability(
+                              GameCapabilityId.bethesdaGame,
+                            ) !=
+                            null)
+                          McFactGroup(
+                            title: state.definition!.name,
+                            rows: [
+                              McFact(
+                                'Plugins',
+                                'ESM · ESP${state.definition!.supportsLight ? ' · ESL' : ''}',
+                              ),
+                              McFact(
+                                'Plugin order',
+                                switch (state.definition!.pluginOrdering) {
+                                  'FileTime' => 'Manual · file timestamps',
+                                  'None' => 'No sorting',
+                                  _ => 'Plugins.txt',
+                                },
+                              ),
+                              McFact('Settings', state.definition!.settingsIni),
+                              McFact(
+                                'Saves',
+                                state.definition!.saveExtension.isEmpty
+                                    ? 'No local saves'
+                                    : state.definition!.saveExtension
+                                          .substring(1)
+                                          .toUpperCase(),
+                              ),
+                              if (state.definition!.archiveInvalidation)
+                                const McFact(
+                                  'Archives',
+                                  'Archive invalidation',
+                                ),
+                            ],
+                          ),
                         for (final capability in state.definition!.capabilities)
                           McCapabilityState(
                             key: ValueKey(('capability', capability.id.value)),

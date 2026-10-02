@@ -110,74 +110,91 @@ module internal Descriptor =
                      |> List.map (fun name -> name, None))
                 @ (configuration |> Option.map _.Environment |> Option.defaultValue [])
 
-            let selected =
-                match loader with
-                | None -> gamePath binding.GameId evidence runnableRoot
-                | Some loader when loader.GameSha256 <> evidence.Executable.Value.Sha256 ->
-                    Error
-                        "The game changed after the script extender was installed. Check it before Play."
-                | Some loader ->
-                    match (GameCatalog.rules binding.GameId).ExtenderLoader with
-                    | Some expected -> loaderPath expected evidence.RootPath runnableRoot loader
-                    | None ->
-                        Error "This installation does not support the selected script extender."
-
-            let configured =
+            if (GameClient.mono definition).IsSome then
                 match configuration with
-                | Some value when value.GameSha256 <> evidence.Executable.Value.Sha256 ->
+                | Some selected when selected.GameSha256 <> evidence.Executable.Value.Sha256 ->
                     Error
-                        "The game changed after the graphics component was installed. Check it before Play."
-                | _ -> selected
-
-            match configured, evidence.Platform, evidence.Proton with
-            | Error problem, _, _ -> Error problem
-            | Ok executable, ContextPlatform.Windows, _ when hostWindows ->
-                Ok(
-                    binding.Id,
-                    "Windows",
-                    { Executable = executable
-                      Arguments = arguments
-                      WorkingDirectory = runnableRoot
-                      Environment = environment }
-                )
-            | Ok executable, ContextPlatform.Proton, Some proton when hostLinux ->
-                proton.Launch
-                |> Result.map (fun launch ->
-                    binding.Id,
-                    proton.RuntimeName,
-                    { Executable = launch.Executable
-                      Arguments = launch.Arguments @ [ executable ] @ arguments
-                      WorkingDirectory = runnableRoot
-                      Environment =
+                        "The game changed after its loader selection was read. Refresh the installation before Play."
+                | _ ->
+                    MonoDescriptor.create
+                        hostWindows
+                        hostLinux
+                        binding
+                        runnableRoot
+                        (configuration |> Option.exists _.MonoLoader)
                         environment
-                        @ [ "STEAM_COMPAT_APP_ID", Some app
-                            "STEAM_COMPAT_DATA_PATH", Some proton.Selection.CompatData
-                            "STEAM_COMPAT_CLIENT_INSTALL_PATH", Some launch.SteamRoot
-                            "STEAM_COMPAT_INSTALL_PATH", Some runnableRoot
-                            "STEAM_COMPAT_LIBRARY_PATHS",
-                            Some(
-                                String.concat
-                                    (string IO.Path.PathSeparator)
-                                    (launch.Libraries @ [ runnableRoot ])
-                            )
-                            "STEAM_COMPAT_TOOL_PATHS", Some proton.Selection.RuntimeDirectory ] })
-            | Ok executable, ContextPlatform.Wine, _ when hostLinux && evidence.Wine.IsSome ->
-                let wine = evidence.Wine.Value
 
-                Ok(
-                    binding.Id,
-                    "Wine",
-                    { Executable = wine.Selection.Executable
-                      Arguments = executable :: arguments
-                      WorkingDirectory = runnableRoot
-                      Environment = environment @ [ "WINEPREFIX", Some wine.Selection.Prefix ] }
-                )
-            | Ok _, ContextPlatform.Wine, _ ->
-                Error "Select a checked Wine executable and existing prefix on Linux."
-            | Ok _, ContextPlatform.Windows, _ ->
-                Error "This game uses Proton on Linux. Select and refresh its Proton context."
-            | Ok _, ContextPlatform.Proton, _ ->
-                Error "Select a checked Proton launch context on Linux."
+            else
+                let selected =
+                    match loader with
+                    | None -> gamePath binding.GameId evidence runnableRoot
+                    | Some loader when loader.GameSha256 <> evidence.Executable.Value.Sha256 ->
+                        Error
+                            "The game changed after the script extender was installed. Check it before Play."
+                    | Some loader ->
+                        match (GameCatalog.rules binding.GameId).ExtenderLoader with
+                        | Some expected -> loaderPath expected evidence.RootPath runnableRoot loader
+                        | None ->
+                            Error "This installation does not support the selected script extender."
+
+                let configured =
+                    match configuration with
+                    | Some value when value.GameSha256 <> evidence.Executable.Value.Sha256 ->
+                        Error
+                            "The game changed after the graphics component was installed. Check it before Play."
+                    | _ -> selected
+
+                match configured, evidence.Platform, evidence.Proton with
+                | Error problem, _, _ -> Error problem
+                | Ok executable, ContextPlatform.Windows, _ when hostWindows ->
+                    Ok(
+                        binding.Id,
+                        "Windows",
+                        { Executable = executable
+                          Arguments = arguments
+                          WorkingDirectory = runnableRoot
+                          Environment = environment }
+                    )
+                | Ok executable, ContextPlatform.Proton, Some proton when hostLinux ->
+                    proton.Launch
+                    |> Result.map (fun launch ->
+                        binding.Id,
+                        proton.RuntimeName,
+                        { Executable = launch.Executable
+                          Arguments = launch.Arguments @ [ executable ] @ arguments
+                          WorkingDirectory = runnableRoot
+                          Environment =
+                            environment
+                            @ [ "STEAM_COMPAT_APP_ID", Some app
+                                "STEAM_COMPAT_DATA_PATH", Some proton.Selection.CompatData
+                                "STEAM_COMPAT_CLIENT_INSTALL_PATH", Some launch.SteamRoot
+                                "STEAM_COMPAT_INSTALL_PATH", Some runnableRoot
+                                "STEAM_COMPAT_LIBRARY_PATHS",
+                                Some(
+                                    String.concat
+                                        (string IO.Path.PathSeparator)
+                                        (launch.Libraries @ [ runnableRoot ])
+                                )
+                                "STEAM_COMPAT_TOOL_PATHS", Some proton.Selection.RuntimeDirectory ] })
+                | Ok executable, ContextPlatform.Wine, _ when hostLinux && evidence.Wine.IsSome ->
+                    let wine = evidence.Wine.Value
+
+                    Ok(
+                        binding.Id,
+                        "Wine",
+                        { Executable = wine.Selection.Executable
+                          Arguments = executable :: arguments
+                          WorkingDirectory = runnableRoot
+                          Environment = environment @ [ "WINEPREFIX", Some wine.Selection.Prefix ] }
+                    )
+                | Ok _, ContextPlatform.Wine, _ ->
+                    Error "Select a checked Wine executable and existing prefix on Linux."
+                | Ok _, ContextPlatform.Windows, _ ->
+                    Error "This game uses Proton on Linux. Select and refresh its Proton context."
+                | Ok _, ContextPlatform.Proton, _ ->
+                    Error "Select a checked Proton launch context on Linux."
+                | Ok _, ContextPlatform.NativeLinux, _ ->
+                    Error "This game does not declare a native Linux workflow."
         | _ -> Error "Select and refresh the installation before playing."
 
     let createWith state runnableRoot loader configuration =
@@ -194,7 +211,8 @@ module internal Descriptor =
 
     let projectTool platform (tool: string) (arguments: string list) (launch: NativeLaunch) =
         match platform with
-        | ContextPlatform.Windows ->
+        | ContextPlatform.Windows
+        | ContextPlatform.NativeLinux ->
             { launch with
                 Executable = tool
                 Arguments = arguments }
@@ -225,14 +243,25 @@ module internal Descriptor =
             match toolPath binding.Evidence.RootPath runnableRoot executable with
             | Error problem -> Error problem
             | Ok tool ->
-                let projected = projectTool binding.Evidence.Platform tool arguments launch
+                let projection =
+                    if binding.Evidence.Platform = ContextPlatform.NativeLinux then
+                        ModConductor.BepInEx.Bootstrap.linux
+                            runnableRoot
+                            tool
+                            arguments
+                            launch.Environment
+                            None
+                        |> Result.map snd
+                    else
+                        Ok(projectTool binding.Evidence.Platform tool arguments launch)
 
-                Ok
+                projection
+                |> Result.map (fun projected ->
                     { ContextId = context
                       Runtime = runtime
                       GenerationId = generation
                       ToolExecutable = tool
-                      Launch = projected }
+                      Launch = projected })
         | Error problem, _ -> Error problem
         | _, None -> Error "Select and refresh the installation before running FNIS."
 

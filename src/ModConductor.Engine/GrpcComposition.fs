@@ -118,6 +118,7 @@ let internal mapGrpc (app: WebApplication) =
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.CredentialService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ThunderstoreService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.BepInExService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusMetadataService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusInteractionsService>() |> ignore

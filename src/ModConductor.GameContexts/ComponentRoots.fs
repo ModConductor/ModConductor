@@ -32,7 +32,9 @@ module ComponentRoots =
             use writer = new BinaryWriter(bytes, Encoding.UTF8, true)
 
             writer.Write(
-                if GameCatalog.isSkyrimSE evidence.DefinitionId then
+                if (GameClient.mono (GameCatalog.forGame evidence.DefinitionId)).IsSome then
+                    "mc-unity-mono-game-root-v1"
+                elif GameCatalog.isSkyrimSE evidence.DefinitionId then
                     "mc-skyrim-game-root-v1"
                 else
                     "mc-bethesda-game-root-v1"

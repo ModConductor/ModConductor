@@ -15,15 +15,39 @@ type GameLaunchSession
         executables: ExecutableSession,
         profiles: ProfileGameDataSession,
         loaders: IComponentLoaderSelection,
-        ?configuration: IComponentLaunchConfigurationSelection
+        ?configuration: IComponentLaunchConfigurationSelection,
+        ?monoLoaders: ModConductor.BepInEx.ILoaderSelection
     ) =
     let runs = executables :> IExecutables
     let deployments = deployment :> IDeploymentBackend
 
-    let launchConfiguration workspace profile generation =
-        match configuration with
-        | Some owner -> owner.Read(workspace, profile, generation)
-        | None -> System.Threading.Tasks.Task.FromResult None
+    let launchConfiguration workspace profile generation (state: GameContextState) =
+        task {
+            let mono =
+                state.Binding
+                |> Option.exists (fun binding ->
+                    (GameClient.mono (GameCatalog.forGame binding.GameId)).IsSome)
+
+            match mono, monoLoaders with
+            | true, Some owner ->
+                let! result = owner.Read(workspace, profile)
+
+                return
+                    result
+                    |> Result.map (fun mono ->
+                        Some
+                            { MonoLoader = mono.Enabled
+                              GenerationId = defaultArg generation Guid.Empty
+                              GameSha256 = mono.GameSha256
+                              Environment = [] })
+            | true, None -> return Error "The native loader selection is unavailable."
+            | false, _ ->
+                match configuration with
+                | Some owner ->
+                    let! value = owner.Read(workspace, profile, generation)
+                    return Ok value
+                | None -> return Ok None
+        }
 
     let token sources revision generation =
         SHA256.HashData(
@@ -59,10 +83,17 @@ type GameLaunchSession
                     let! latest = executables.LatestGame workspace
                     let! dataRevision = profiles.Revision(workspace, profile)
                     let! loader = loaders.Read(workspace, profile, deployed.ActiveGeneration)
-                    let! launch = launchConfiguration workspace profile deployed.ActiveGeneration
+
+                    let! launch =
+                        launchConfiguration workspace profile deployed.ActiveGeneration state
 
                     let runtime, problem =
-                        match Descriptor.createWith state deployed.RunnableRoot loader launch with
+                        match
+                            launch
+                            |> Result.bind (
+                                Descriptor.createWith state deployed.RunnableRoot loader
+                            )
+                        with
                         | Ok(_, runtime, _) -> runtime, None
                         | Error error -> "", Some error
 
@@ -119,11 +150,6 @@ type GameLaunchSession
                                 deployed |> Result.toOption |> Option.bind _.ActiveGeneration
                             )
 
-                        let! launch =
-                            launchConfiguration
-                                request.WorkspaceId
-                                request.ProfileId
-                                (deployed |> Result.toOption |> Option.bind _.ActiveGeneration)
 
                         match state, deployed with
                         | Ok state, Ok deployed when
@@ -135,8 +161,18 @@ type GameLaunchSession
                                 (dataRevision |> Result.defaultValue -1L)
                                 deployed.ActiveGeneration = request.SourceToken
                             ->
+                            let! launch =
+                                launchConfiguration
+                                    request.WorkspaceId
+                                    request.ProfileId
+                                    deployed.ActiveGeneration
+                                    state
+
                             match
-                                Descriptor.createWith state deployed.RunnableRoot loader launch
+                                launch
+                                |> Result.bind (
+                                    Descriptor.createWith state deployed.RunnableRoot loader
+                                )
                             with
                             | Error error -> return Error(ExecutableError.Unavailable error)
                             | Ok(context, runtime, launch) ->
@@ -158,7 +194,11 @@ type GameLaunchSession
                                 return!
                                     executables.BeginGame(
                                         game,
-                                        Preparation.run deployment profiles deployed.Sources
+                                        Preparation.run
+                                            deployment
+                                            profiles
+                                            deployed.Sources
+                                            (GameCatalog.isBethesda state.Binding.Value.GameId)
                                     )
                         | Error error, _ -> return Error error
                         | _, Error error ->
@@ -180,17 +220,19 @@ type GameLaunchSession
                     deployed.WorkspaceId = workspace && deployed.ActiveGeneration = Some generation
                     ->
                     let! loader = loaders.Read(workspace, profile, Some generation)
-                    let! launch = launchConfiguration workspace profile (Some generation)
+                    let! launch = launchConfiguration workspace profile (Some generation) state
 
                     return
-                        Descriptor.createToolWith
-                            state
-                            deployed.RunnableRoot
-                            loader
-                            launch
-                            generation
-                            executable
-                            arguments
+                        launch
+                        |> Result.bind (fun launch ->
+                            Descriptor.createToolWith
+                                state
+                                deployed.RunnableRoot
+                                loader
+                                launch
+                                generation
+                                executable
+                                arguments)
                         |> Result.mapError ExecutableError.Unavailable
                 | Error error, _ -> return Error error
                 | _, Error error ->

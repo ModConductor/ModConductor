@@ -56,7 +56,10 @@ type NexusService
                     binding.Evidence.DefinitionRevision = (GameCatalog.forGame binding.GameId)
                         .Revision)
                 ->
-                let selected = (GameCatalog.rules state.Binding.Value.GameId).NexusGame
+                let selected =
+                    GameCatalog.tryRules state.Binding.Value.GameId
+                    |> Option.map _.NexusGame
+                    |> Option.defaultValue ""
 
                 return
                     if selected = "" then

@@ -201,6 +201,8 @@ const skyrimDefinition = GameDefinitionInfo(
   name: 'Skyrim Special Edition',
   storefront: 'Steam',
   declaredSteamAppId: 489830,
+  artworkUrl:
+      'https://cdn.cloudflare.steamstatic.com/steam/apps/489830/header.jpg',
   capabilities: [
     GameCapability(
       id: GameCapabilityId.gameInstallationValidation,
@@ -280,6 +282,11 @@ class FakeGameContexts extends Fake implements GameContextsClient {
     ProtonSelection? proton,
     WineSelection? wine,
   }) async => boundGame(workspaceId, profileId);
+}
+
+class FakeGameCatalogue extends Fake implements GameCatalogueClient {
+  @override
+  Future<List<GameDefinitionInfo>> read() async => [skyrimDefinition];
 }
 
 class UncheckedSkyrimContexts extends Fake implements GameContextsClient {
@@ -494,6 +501,7 @@ Future<void> mountApp(
       diagnostics: diagnostics,
       skyrimSetup: skyrimSetup,
       gameContexts: gameContexts,
+      gameCatalogue: FakeGameCatalogue(),
       steamDiscovery: steamDiscovery,
       chooseDirectory: chooseDirectory ?? (_) async => null,
     ),
@@ -616,9 +624,9 @@ void main() {
       find.byType(WorkspaceBrowser),
     );
     expect(browser.workbenchReady, isFalse);
-    expect(browser.gameName, 'Skyrim Special Edition');
+    expect(browser.gameContext?.definition?.name, 'Skyrim Special Edition');
     expect(
-      browser.gameImage.toString(),
+      browser.gameContext?.definition?.artworkUrl.toString(),
       'https://cdn.cloudflare.steamstatic.com/steam/apps/489830/header.jpg',
     );
   });
@@ -638,8 +646,8 @@ void main() {
     final browser = tester.widget<WorkspaceBrowser>(
       find.byType(WorkspaceBrowser),
     );
-    expect(browser.gameName, isNull);
-    expect(browser.gameImage, isNull);
+    expect(browser.gameContext?.definition?.name, 'Other game');
+    expect(browser.gameContext?.definition?.artworkUrl, isEmpty);
   });
 
   testWidgets('a lost create response recovers one usable profile', (

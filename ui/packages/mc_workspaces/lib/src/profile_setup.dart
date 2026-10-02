@@ -27,6 +27,9 @@ class ProfileSetupGame {
   final int steamAppId;
   final List<GameDefinitionInfo> variants;
   final String artworkUrl;
+  bool get nativeClient => variants.any(
+    (game) => game.capability(GameCapabilityId.unityMono) != null,
+  );
   List<GameInstallationSource> get sources => variants.isEmpty
       ? [GameInstallationSource.fromGameId(id)]
       : variants
@@ -300,9 +303,16 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
           name: name.text.trim(),
           game: selectedGame,
           installation: installation,
-          proton: source == GameInstallationSource.steam ? proton : null,
+          proton:
+              !selectedGame.nativeClient &&
+                  source == GameInstallationSource.steam
+              ? proton
+              : null,
           source: source,
-          wine: Platform.isLinux && source != GameInstallationSource.steam
+          wine:
+              !selectedGame.nativeClient &&
+                  Platform.isLinux &&
+                  source != GameInstallationSource.steam
               ? WineSelection(
                   executable: wineExecutable.text.trim(),
                   prefix: winePrefix.text.trim(),

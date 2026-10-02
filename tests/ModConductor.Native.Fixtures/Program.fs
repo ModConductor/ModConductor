@@ -23,6 +23,10 @@ let private writeJson includeNativeAot observe =
 
 let private run (args: string array) =
     match args with
+    | [| "--unity-mono-prepare"; area; game |] ->
+        writeJson true (fun writer -> UnityMonoRuntimeFixtures.prepare writer area game)
+    | [| "--unity-mono-runtime"; area; phase |] ->
+        writeJson true (fun writer -> UnityMonoRuntimeFixtures.run writer area phase)
     | [| "--thunderstore"; area |] ->
         writeJson true (fun writer -> ThunderstoreFixtures.observe writer area)
     | [| "--thunderstore-public"; area |] ->
@@ -148,6 +152,8 @@ let private run (args: string array) =
         Console.Out.Flush()
         Console.ReadLine() |> ignore
         0
+    | [| "--unity-mono"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> UnityMonoFixtures.observe writer path)
     | [| "--downloads"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> DownloadFixtures.observe writer path)
     | [| "--artifact-worker"; a; b; c; d; e |] ->

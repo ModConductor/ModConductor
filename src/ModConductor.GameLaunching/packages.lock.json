@@ -29,6 +29,16 @@
           "FSharp.Core": "[10.1.400, )"
         }
       },
+      "modconductor.bepinex": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.SteamDiscovery": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
+        }
+      },
       "modconductor.bethesda": {
         "type": "Project",
         "dependencies": {
@@ -130,6 +140,12 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "modconductor.thunderstore": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
         }
       },
       "K4os.Compression.LZ4": {

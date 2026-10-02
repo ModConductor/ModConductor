@@ -23,6 +23,7 @@ const GameContextPlatform$json = {
     {'1': 'GAME_CONTEXT_PLATFORM_WINDOWS', '2': 1},
     {'1': 'GAME_CONTEXT_PLATFORM_PROTON', '2': 2},
     {'1': 'GAME_CONTEXT_PLATFORM_WINE', '2': 3},
+    {'1': 'GAME_CONTEXT_PLATFORM_NATIVE_LINUX', '2': 4},
   ],
 };
 
@@ -30,7 +31,8 @@ const GameContextPlatform$json = {
 final $typed_data.Uint8List gameContextPlatformDescriptor = $convert.base64Decode(
     'ChNHYW1lQ29udGV4dFBsYXRmb3JtEiUKIUdBTUVfQ09OVEVYVF9QTEFURk9STV9VTlNQRUNJRk'
     'lFRBAAEiEKHUdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5ET1dTEAESIAocR0FNRV9DT05URVhU'
-    'X1BMQVRGT1JNX1BST1RPThACEh4KGkdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5FEAM=');
+    'X1BMQVRGT1JNX1BST1RPThACEh4KGkdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5FEAMSJgoiR0'
+    'FNRV9DT05URVhUX1BMQVRGT1JNX05BVElWRV9MSU5VWBAE');
 
 @$core.Deprecated('Use gameCapabilityKindDescriptor instead')
 const GameCapabilityKind$json = {

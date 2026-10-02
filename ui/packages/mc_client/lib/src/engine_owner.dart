@@ -1,3 +1,4 @@
+import 'bepinex_client.dart';
 import 'thunderstore_client.dart';
 import 'diagnostics_client.dart';
 import 'plugin_order_client.dart';
@@ -101,6 +102,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.desktop : null;
   NexusMetadataClient? get nexusMetadata =>
       _state is EngineConnected ? _session?.nexusMetadata : null;
+  BepInExClient? get bepInEx =>
+      _state is EngineConnected ? _session?.bepInEx : null;
   ThunderstoreClient? get thunderstore =>
       _state is EngineConnected ? _session?.thunderstore : null;
   NexusClient? get nexus => _state is EngineConnected ? _session?.nexus : null;

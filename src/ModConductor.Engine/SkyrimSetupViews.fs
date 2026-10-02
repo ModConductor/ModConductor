@@ -184,7 +184,8 @@ module internal SkyrimSetupViews =
 
         match binding.Evidence.Platform with
         | ContextPlatform.Windows
-        | ContextPlatform.Wine -> explicitlyMissing
+        | ContextPlatform.Wine
+        | ContextPlatform.NativeLinux -> explicitlyMissing
         | ContextPlatform.Proton ->
             explicitlyMissing
             || (binding.NeedsCheck

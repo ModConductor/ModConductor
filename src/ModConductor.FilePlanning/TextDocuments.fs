@@ -3,7 +3,7 @@ namespace ModConductor.FilePlanning
 open System
 open System.Text
 
-type internal DecodedText =
+type DecodedText =
     { Content: string
       Encoding: TextDocumentEncoding
       EncodingName: string
@@ -13,7 +13,7 @@ type internal DecodedText =
       MixedNewlines: bool
       LoneCarriageReturn: bool }
 
-module internal TextDocuments =
+module TextDocuments =
     let bytesLimit = 1024 * 1024
     let linesLimit = 20000
 

@@ -10,6 +10,7 @@ module NewVegas =
           Storefront = "Steam"
           SteamAppId = 22380u
           SteamAppIds = [ 22380u; 22490u ]
+          Client = GameClient.Bethesda
           Executable = "FalloutNV.exe"
           Launcher = "FalloutNVLauncher.exe"
           Data = "Data"

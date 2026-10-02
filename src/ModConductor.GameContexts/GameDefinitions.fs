@@ -3,6 +3,28 @@ namespace ModConductor.GameContexts
 open System
 open ModConductor.Platform
 
+type MonoLoaderPackage =
+    { Community: string
+      Namespace: string
+      Name: string
+      Version: string
+      ArchiveRoot: string
+      LinuxWrapper: string }
+
+type UnityMonoClient =
+    { IndependentExecutable: bool
+      LinuxExecutable: string
+      WindowsRuntime: string
+      LinuxRuntime: string
+      ManagedAssembly: string
+      UnityMetadata: string
+      Loader: MonoLoaderPackage }
+
+[<RequireQualifiedAccess>]
+type GameClient =
+    | Bethesda
+    | UnityMono of UnityMonoClient
+
 type GameDefinition =
     { Id: GameId
       Revision: int
@@ -10,6 +32,7 @@ type GameDefinition =
       Storefront: string
       SteamAppId: uint32
       SteamAppIds: uint32 list
+      Client: GameClient
       Executable: string
       Launcher: string
       Data: string
@@ -27,6 +50,7 @@ module Skyrim =
           Storefront = "Steam"
           SteamAppId = 489830u
           SteamAppIds = [ 489830u ]
+          Client = GameClient.Bethesda
           Executable = "SkyrimSE.exe"
           Launcher = "SkyrimSELauncher.exe"
           Data = "Data"
@@ -58,3 +82,49 @@ module Skyrim =
         | true, value ->
             value.Major = 1 && value.Minor = 6 && (value.Build = 659 || value.Build = 1179)
         | _ -> false
+
+module Valheim =
+    let definition =
+        { Id = GameId.ValheimSteam
+          Revision = 1
+          Name = "Valheim"
+          Storefront = "Steam"
+          SteamAppId = 892970u
+          SteamAppIds = [ 892970u ]
+          Client =
+            GameClient.UnityMono
+                { IndependentExecutable = true
+                  LinuxExecutable = "valheim.x86_64"
+                  WindowsRuntime = "MonoBleedingEdge/EmbedRuntime/mono-2.0-bdwgc.dll"
+                  LinuxRuntime = "MonoBleedingEdge/x86_64/libmonobdwgc-2.0.so"
+                  ManagedAssembly = "Managed/Assembly-CSharp.dll"
+                  UnityMetadata = "globalgamemanagers"
+                  Loader =
+                    { Community = "valheim"
+                      Namespace = "denikson"
+                      Name = "BepInExPack_Valheim"
+                      Version = "5.4.2333"
+                      ArchiveRoot = "BepInExPack_Valheim"
+                      LinuxWrapper = "start_game_bepinex.sh" } }
+          Executable = "valheim.exe"
+          Launcher = ""
+          Data = "valheim_Data"
+          Documents = []
+          Saves = []
+          LocalAppData = []
+          IniFiles = []
+          TargetPolicy = TargetPolicy.windows }
+
+module GameClient =
+    let mono (definition: GameDefinition) =
+        match definition.Client with
+        | GameClient.UnityMono client -> Some client
+        | GameClient.Bethesda -> None
+
+    let executable linux (definition: GameDefinition) =
+        match definition.Client with
+        | GameClient.UnityMono client when linux -> client.LinuxExecutable
+        | _ -> definition.Executable
+
+    let independentExecutable definition =
+        mono definition |> Option.exists _.IndependentExecutable

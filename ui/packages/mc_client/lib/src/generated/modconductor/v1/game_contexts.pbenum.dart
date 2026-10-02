@@ -27,16 +27,20 @@ class GameContextPlatform extends $pb.ProtobufEnum {
   static const GameContextPlatform GAME_CONTEXT_PLATFORM_WINE =
       GameContextPlatform._(
           3, _omitEnumNames ? '' : 'GAME_CONTEXT_PLATFORM_WINE');
+  static const GameContextPlatform GAME_CONTEXT_PLATFORM_NATIVE_LINUX =
+      GameContextPlatform._(
+          4, _omitEnumNames ? '' : 'GAME_CONTEXT_PLATFORM_NATIVE_LINUX');
 
   static const $core.List<GameContextPlatform> values = <GameContextPlatform>[
     GAME_CONTEXT_PLATFORM_UNSPECIFIED,
     GAME_CONTEXT_PLATFORM_WINDOWS,
     GAME_CONTEXT_PLATFORM_PROTON,
     GAME_CONTEXT_PLATFORM_WINE,
+    GAME_CONTEXT_PLATFORM_NATIVE_LINUX,
   ];
 
   static final $core.List<GameContextPlatform?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
   static GameContextPlatform? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

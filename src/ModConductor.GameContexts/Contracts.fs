@@ -9,6 +9,7 @@ type ContextPlatform =
     | Windows
     | Proton
     | Wine
+    | NativeLinux
 
 [<RequireQualifiedAccess>]
 type Location =
@@ -115,20 +116,23 @@ type InstallationEvidence =
 module ContextRuntime =
     let ready (evidence: InstallationEvidence) =
         match evidence.Platform with
-        | ContextPlatform.Windows -> true
+        | ContextPlatform.Windows
+        | ContextPlatform.NativeLinux -> true
         | ContextPlatform.Proton -> evidence.Proton.IsSome
         | ContextPlatform.Wine -> evidence.Wine.IsSome
 
     let prefix (evidence: InstallationEvidence) =
         match evidence.Platform with
-        | ContextPlatform.Windows -> None
+        | ContextPlatform.Windows
+        | ContextPlatform.NativeLinux -> None
         | ContextPlatform.Proton -> evidence.Proton |> Option.map _.PrefixPath
         | ContextPlatform.Wine -> evidence.Wine |> Option.map _.Selection.Prefix
 
     let paths (evidence: InstallationEvidence) =
         let original =
             match evidence.Platform with
-            | ContextPlatform.Windows -> []
+            | ContextPlatform.Windows
+            | ContextPlatform.NativeLinux -> []
             | ContextPlatform.Proton ->
                 evidence.Proton |> Option.map _.Paths |> Option.defaultValue []
             | ContextPlatform.Wine -> evidence.Wine |> Option.map _.Paths |> Option.defaultValue []
@@ -162,6 +166,7 @@ module ContextRuntime =
     let name (evidence: InstallationEvidence) =
         match evidence.Platform with
         | ContextPlatform.Windows -> "Windows"
+        | ContextPlatform.NativeLinux -> "Native Linux"
         | ContextPlatform.Proton ->
             evidence.Proton |> Option.map _.RuntimeName |> Option.defaultValue "Proton"
         | ContextPlatform.Wine -> "Wine"

@@ -1,0 +1,41 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/thunderstore.proto";
+import "modconductor/v1/file_plans.proto";
+
+service BepInEx {
+  rpc ReadLoader(LoaderRequest) returns (LoaderReply);
+  rpc ChangeLoader(ChangeLoaderRequest) returns (LoaderReply);
+  rpc ReadLoaderSettings(LoaderRequest) returns (LoaderTextReply);
+  rpc SaveLoaderSettings(SaveLoaderSettingsRequest) returns (LoaderTextReply);
+  rpc ReadLoaderLog(LoaderRequest) returns (LoaderTextReply);
+}
+message LoaderRequest { string workspace_id = 1; string profile_id = 2; }
+message ChangeLoaderRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  uint64 context_revision = 3;
+  uint64 selection_revision = 4;
+  bool enabled = 5;
+}
+message LoaderInfo {
+  string workspace_id = 1;
+  string profile_id = 2;
+  uint64 context_revision = 3;
+  uint64 selection_revision = 4;
+  ThunderstoreVersionReference package = 5;
+  optional string mod_id = 6;
+  bool enabled = 7;
+  bool settings_available = 8;
+  bool log_available = 9;
+}
+message LoaderReply { oneof result { LoaderInfo loader = 1; string problem = 2; } }
+message LoaderText { TextDocument document = 1; bytes original = 2; }
+message LoaderTextReply { oneof result { LoaderText text = 1; string problem = 2; } }
+message SaveLoaderSettingsRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  bytes original = 3;
+  string content = 4;
+}

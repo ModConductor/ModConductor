@@ -29,13 +29,14 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
 
   bool get _supportsBethesda =>
       _supports(GameCapabilityId.bethesdaGame) || _supportsSkyrim;
+  bool get _supportsUnityMono => _supports(GameCapabilityId.unityMono);
+  bool get _supportsGameMods => _supportsBethesda || _supportsUnityMono;
   bool get _supportsSkyrim => _supports(GameCapabilityId.skyrimSpecialEdition);
   bool get _hasSkyrimGame =>
       _game.state?.definition?.capability(
         GameCapabilityId.skyrimSpecialEdition,
       ) !=
       null;
-  bool get _supportsArchives => _supports(GameCapabilityId.archiveInspection);
   bool get _supportsInstallation =>
       _supports(GameCapabilityId.gameInstallationValidation);
 

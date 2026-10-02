@@ -125,6 +125,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     credentials: _owner.credentials,
     nexus: _owner.nexus,
     thunderstore: _owner.thunderstore,
+    bepInEx: _owner.bepInEx,
     nexusMetadata: _owner.nexusMetadata,
     linkSetup: _owner.linkSetup,
     bundles: _owner.bundles,

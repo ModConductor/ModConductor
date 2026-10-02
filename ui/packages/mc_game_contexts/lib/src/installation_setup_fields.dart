@@ -23,6 +23,7 @@ class InstallationSetupFields extends StatefulWidget {
     this.onSelectProton,
     this.proton,
     this.busy = false,
+    this.nativeClient = false,
     this.gameChoices,
     this.onGameChanged,
     this.sourceChoices = GameInstallationSource.values,
@@ -43,7 +44,7 @@ class InstallationSetupFields extends StatefulWidget {
   final Future<void> Function() onBrowse;
   final VoidCallback? onFindSteam, onSelectProton;
   final ProtonSelection? proton;
-  final bool busy;
+  final bool busy, nativeClient;
   final List<String> candidates;
   final ValueChanged<String>? onCandidateChanged;
   final ValueChanged<String>? onProblem;
@@ -177,7 +178,7 @@ class _InstallationSetupFieldsState extends State<InstallationSetupFields> {
           ),
         ],
       ],
-      if (Platform.isLinux) ...[
+      if (Platform.isLinux && !widget.nativeClient) ...[
         const SizedBox(height: McSpacing.large),
         const Divider(height: 1),
         const SizedBox(height: McSpacing.large),

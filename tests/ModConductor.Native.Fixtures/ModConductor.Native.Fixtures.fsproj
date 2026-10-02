@@ -59,6 +59,11 @@
     <Compile Include="ThunderstoreSamples.fs"/>
     <Compile Include="ThunderstoreReaderFixtures.fs"/>
     <Compile Include="ThunderstoreFixtures.fs"/>
+    <Compile Include="UnityMonoSamples.fs"/>
+    <Compile Include="UnityMonoEnvironment.fs"/>
+    <Compile Include="UnityMonoWireFixtures.fs"/>
+    <Compile Include="UnityMonoFixtures.fs"/>
+    <Compile Include="UnityMonoRuntimeFixtures.fs"/>
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />
     <ProjectReference Include="../../src/ModConductor.Credentials/ModConductor.Credentials.fsproj" />

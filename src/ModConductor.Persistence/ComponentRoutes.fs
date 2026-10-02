@@ -195,10 +195,16 @@ module internal ComponentRoutes =
                 let replacements = explicit |> List.map (fun row -> row.Mod.ModId) |> Set.ofList
 
                 let previous =
-                    if sources.Context.Binding.Value.GameId = GameId.OblivionRemasteredSteam then
+                    match
+                        GameClient.mono (GameCatalog.forGame sources.Context.Binding.Value.GameId)
+                    with
+                    | Some client ->
+                        BepInExComponents.read database gameRoot routeSources selected client
+                    | None when
+                        sources.Context.Binding.Value.GameId = GameId.OblivionRemasteredSteam
+                        ->
                         RemasteredComponents.read workspace gameRoot routeSources selected
-                    else
-                        previous
+                    | None -> previous
 
                 previous
                 |> Result.map (fun rows ->
@@ -212,5 +218,6 @@ module internal ComponentRoutes =
             | Some binding ->
                 match ComponentRoots.gameRootId workspace binding.Evidence with
                 | Error _ -> return Error RecoveryError.Stale
-                | Ok gameRoot -> return review binding.Evidence gameRoot
+                | Ok gameRoot ->
+                    return! database.Enqueue(fun () -> review binding.Evidence gameRoot)
         }

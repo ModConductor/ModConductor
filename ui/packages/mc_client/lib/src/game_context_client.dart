@@ -134,6 +134,8 @@ GameInstallationEvidence _evidence(wire.GameInstallationEvidence e) =>
           GameContextPlatform.proton,
         wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_WINE =>
           GameContextPlatform.wine,
+        wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_NATIVE_LINUX =>
+          GameContextPlatform.nativeLinux,
         _ => throw const FormatException('Unknown game platform.'),
       },
       rootPath: e.rootPath,
@@ -176,6 +178,8 @@ GameContextPlatform? _platform(wire.GameContextPlatform value) =>
         GameContextPlatform.proton,
       wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_WINE =>
         GameContextPlatform.wine,
+      wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_NATIVE_LINUX =>
+        GameContextPlatform.nativeLinux,
       _ => null,
     };
 

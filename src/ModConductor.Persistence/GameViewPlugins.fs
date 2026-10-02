@@ -14,7 +14,7 @@ module internal GameViewPlugins =
     let private path parts =
         LogicalPath.create parts |> Result.defaultWith (string >> invalidOp)
 
-    let selection
+    let private bethesdaSelection
         (evidence: InstallationEvidence)
         (source: Location)
         (dataFiles: SnapshotFile list)
@@ -128,7 +128,13 @@ module internal GameViewPlugins =
         let excluded = invalidation |> List.map fst |> Set.ofList |> Set.union excluded
         excluded, owned @ invalidation
 
-    let ordered (evidence: InstallationEvidence) (files: SnapshotFile list) saved root token =
+    let private bethesdaOrdered
+        (evidence: InstallationEvidence)
+        (files: SnapshotFile list)
+        saved
+        root
+        token
+        =
         let rules =
             GameCatalog.runtimeRules evidence.DefinitionId evidence.Executable.Value.FileVersion
 
@@ -187,3 +193,15 @@ module internal GameViewPlugins =
                               LockedIndex = None }) })
 
             PluginLists.timestamps root order
+
+    let selection evidence source files scope dataRoot gameRoot token =
+        if GameCatalog.isBethesda evidence.DefinitionId then
+            bethesdaSelection evidence source files scope dataRoot gameRoot token
+        else
+            Set.empty, []
+
+    let ordered evidence files saved root token =
+        if GameCatalog.isBethesda evidence.DefinitionId then
+            bethesdaOrdered evidence files saved root token
+        else
+            Map.empty

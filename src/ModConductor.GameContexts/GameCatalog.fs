@@ -23,7 +23,8 @@ module GameCatalog =
           CreationDefinitions.falloutVr
           CreationDefinitions.starfield
           CreationDefinitions.fallout76
-          CreationDefinitions.oblivionRemastered ]
+          CreationDefinitions.oblivionRemastered
+          Valheim.definition ]
 
     let forGame =
         function
@@ -50,6 +51,7 @@ module GameCatalog =
         | GameId.StarfieldSteam -> CreationDefinitions.starfield
         | GameId.Fallout76Steam -> CreationDefinitions.fallout76
         | GameId.OblivionRemasteredSteam -> CreationDefinitions.oblivionRemastered
+        | GameId.ValheimSteam -> Valheim.definition
 
     let forRuntime game version =
         if game = GameId.SkyrimSpecialEditionDirect && Skyrim.isGogRuntime version then
@@ -58,6 +60,11 @@ module GameCatalog =
                 Storefront = Skyrim.direct.Storefront }
         else
             forGame game
+
+    let isBethesda game =
+        match (forGame game).Client with
+        | GameClient.Bethesda -> true
+        | GameClient.UnityMono _ -> false
 
     let rules =
         function
@@ -87,6 +94,10 @@ module GameCatalog =
         | GameId.StarfieldSteam -> CreationRules.starfield
         | GameId.Fallout76Steam -> CreationRules.fallout76
         | GameId.OblivionRemasteredSteam -> CreationRules.oblivionRemastered
+        | GameId.ValheimSteam -> invalidOp "This game does not declare Bethesda rules."
+
+    let tryRules game =
+        if isBethesda game then Some(rules game) else None
 
     let steam game = (forGame game).SteamAppId <> 0u
 
@@ -94,7 +105,8 @@ module GameCatalog =
         List.contains app (forGame game).SteamAppIds
 
     let isSkyrimSE game =
-        (rules game).NexusGame = "skyrimspecialedition"
+        tryRules game
+        |> Option.exists (fun rules -> rules.NexusGame = "skyrimspecialedition")
 
     let arguments game =
         if game = GameId.FalloutNewVegasEpic then

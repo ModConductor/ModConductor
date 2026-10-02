@@ -87,6 +87,7 @@ type PluginSession(repository: IFileCandidateRepository) =
     let acquire profile token =
         let lightExtensions =
             GameCatalog.definitions
+            |> List.filter (fun game -> GameCatalog.isBethesda game.Id)
             |> List.collect (fun game -> (GameCatalog.rules game.Id).LightExtensions)
             |> List.distinct
 
@@ -108,6 +109,10 @@ type PluginSession(repository: IFileCandidateRepository) =
 
             match acquired with
             | Error error -> return Error error
+            | Ok observation when
+                not (GameCatalog.isBethesda observation.Sources.Context.Binding.Value.GameId)
+                ->
+                return Error(FilePlanError.Unsupported "This game does not use Bethesda plugins.")
             | Ok observation ->
                 let sources = observation.Sources
                 let binding = sources.Context.Binding.Value

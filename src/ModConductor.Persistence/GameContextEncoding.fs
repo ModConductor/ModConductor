@@ -49,6 +49,7 @@ module internal GameContextEncoding =
             | ContextPlatform.Windows -> 1
             | ContextPlatform.Proton -> 2
             | ContextPlatform.Wine -> 3
+            | ContextPlatform.NativeLinux -> 4
         )
 
         text "root" e.RootPath
@@ -136,6 +137,7 @@ module internal GameContextEncoding =
             | 1 -> ContextPlatform.Windows
             | 2 -> ContextPlatform.Proton
             | 3 -> ContextPlatform.Wine
+            | 4 -> ContextPlatform.NativeLinux
             | _ -> invalidOp "Invalid stored context platform."
           RootPath = text root "root"
           RootIdentity = optional root "rootIdentity" identity

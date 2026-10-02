@@ -10,6 +10,7 @@ final class GameCapabilityId {
     'skyrim-special-edition',
   );
   static const bethesdaGame = GameCapabilityId._('bethesda-game');
+  static const unityMono = GameCapabilityId._('unity-mono');
   static const archiveInspection = GameCapabilityId._('archive-inspection');
   static const individualSaveEditing = GameCapabilityId._(
     'individual-save-editing',
@@ -21,6 +22,7 @@ final class GameCapabilityId {
     'skyrim-special-edition' => skyrimSpecialEdition,
     'archive-inspection' => archiveInspection,
     'bethesda-game' => bethesdaGame,
+    'unity-mono' => unityMono,
     'individual-save-editing' => individualSaveEditing,
     'legacy-extension-abi' => legacyExtensionAbi,
     _ => GameCapabilityId._(value),
@@ -125,7 +127,7 @@ class GameDefinitionInfo {
   }
 }
 
-enum GameContextPlatform { windows, proton, wine }
+enum GameContextPlatform { windows, proton, wine, nativeLinux }
 
 enum GameInstallationSource {
   steam('Steam'),
@@ -231,7 +233,7 @@ class GameInstallationEvidence {
   final WineSelection? wine;
 
   bool get runtimeReady => switch (platform) {
-    GameContextPlatform.windows => true,
+    GameContextPlatform.windows || GameContextPlatform.nativeLinux => true,
     GameContextPlatform.proton => proton != null,
     GameContextPlatform.wine => wine != null,
   };

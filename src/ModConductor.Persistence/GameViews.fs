@@ -115,49 +115,7 @@ module internal GameViews =
 
                 let relative = String.concat "/" (prefix @ [ name ])
 
-                let creation =
-                    (ModConductor.GameContexts.GameCatalog.rules definition.Id).CreationFile
-
-                let rules = ModConductor.GameContexts.GameCatalog.rules definition.Id
-
-                let ownedConfiguration =
-                    rules.GameSettings
-                    |> Option.exists (fun folder ->
-                        definition.IniFiles
-                        |> List.exists (fun ini ->
-                            relative.Equals(
-                                (if folder = "" then ini else folder + "/" + ini),
-                                StringComparison.OrdinalIgnoreCase
-                            )))
-
-                let ownedPlugins =
-                    rules.GamePlugins
-                    |> Option.exists (fun folder ->
-                        [ "plugins.txt"; "loadorder.txt" ]
-                        |> List.exists (fun file ->
-                            relative.Equals(
-                                (if folder = "" then file else folder + "/" + file),
-                                StringComparison.OrdinalIgnoreCase
-                            )))
-
-                let reserved =
-                    ownedConfiguration
-                    || ownedPlugins
-                    || (rules.GameSaves
-                        |> Option.exists (fun path ->
-                            relative.Equals(path, StringComparison.OrdinalIgnoreCase)))
-                    || relative.Equals(
-                        definition.Data.Replace('\\', '/'),
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                    || (prefix.IsEmpty
-                        && ((creation
-                             |> Option.exists (fun file ->
-                                 name.Equals(file, StringComparison.OrdinalIgnoreCase)))
-                            || name.StartsWith(
-                                ".modconductor-originals-",
-                                StringComparison.OrdinalIgnoreCase
-                            )))
+                let reserved = GameRootExclusions.reserved definition prefix name
 
                 if not reserved then
                     count <- count + 1

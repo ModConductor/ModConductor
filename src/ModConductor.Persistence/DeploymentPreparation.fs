@@ -161,6 +161,8 @@ module internal DeploymentPreparation =
                                             target
                                             originals
 
+                                    IndependentClient.prepare evidence game
+
                                     let rootSource =
                                         GameViews.rootSource
                                             (ModConductor.GameContexts.GameCatalog.forGame
@@ -480,8 +482,12 @@ module internal DeploymentPreparation =
                                     | Error error -> return Error(profileError error)
                                     | Ok privateScope ->
                                         match privateScope.Availability with
-                                        | Some detail ->
+                                        | Some detail when
+                                            ModConductor.GameContexts.GameCatalog.isBethesda
+                                                evidence.DefinitionId
+                                            ->
                                             return Error(RecoveryError.Unavailable detail)
+                                        | Some _ -> return! withAvailableScope privateScope
                                         | None -> return! withAvailableScope privateScope
                                 }
 

@@ -189,6 +189,8 @@ type OperationStore
             fnisSetups
         )
 
+    let bepInEx = BepInExStore(database, modLibrary.Access, selection)
+
     let gameLaunching =
         ModConductor.GameLaunching.GameLaunchSession(
             gameContexts,
@@ -196,7 +198,8 @@ type OperationStore
             executables,
             profileGameData,
             skseLoaders,
-            configuration = enbSetups
+            configuration = enbSetups,
+            monoLoaders = bepInEx
         )
 
     let prepareComponents
@@ -316,6 +319,7 @@ type OperationStore
             token
             checkpoint
 
+    member _.BepInEx = bepInEx
     member _.ThunderstoreInventory = ThunderstoreInventory(database)
     member _.ModLibrary = modLibrary
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource

@@ -3,7 +3,7 @@ namespace ModConductor.GameContexts
 open System.IO
 
 module GameLocations =
-    let apply game root (locations: UserLocations) =
+    let private bethesda game root (locations: UserLocations) =
         let rules = GameCatalog.rules game
 
         let selected (relative: string option) previous =
@@ -21,3 +21,9 @@ module GameLocations =
                 Location.Unavailable "This title has no local saves."
             else
                 selected rules.GameSaves locations.Saves }
+
+    let apply game root locations =
+        if GameCatalog.isBethesda game then
+            bethesda game root locations
+        else
+            locations

@@ -64,7 +64,12 @@ module internal GameProcesses =
             [ definition.Executable
               definition.Launcher
               GameCatalog.launchExecutable evidence.DefinitionId ]
-            @ ((GameCatalog.rules evidence.DefinitionId).ExtenderLoader |> Option.toList)
+            @ (GameCatalog.tryRules evidence.DefinitionId
+               |> Option.bind _.ExtenderLoader
+               |> Option.toList)
+            @ (GameClient.mono definition
+               |> Option.map (fun client -> [ client.LinuxExecutable ])
+               |> Option.defaultValue [])
             |> List.filter (String.IsNullOrWhiteSpace >> not)
 
         let targets =

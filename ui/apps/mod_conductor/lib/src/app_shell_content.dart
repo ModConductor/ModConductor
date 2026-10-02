@@ -22,31 +22,39 @@ mixin _ShellContent
     workbenchReady: _gameReady,
     profileInspectorBuilder: widget.profileData == null
         ? null
-        : (context, workspace, profile, game, close, bindGuard) =>
-              ProfileSettingsInspector(
-                controller: _profileData,
-                client: widget.profileData,
-                workspace: workspace,
-                profile: profile,
-                profiles: _workspaces.page?.profiles ?? const [],
-                available:
-                    _workspaces.canEdit && game?.binding?.needsCheck == false,
-                onClose: close,
-                onNavigationGuardChanged: bindGuard,
-                onResumeProfileChange: _workspaces.resumeProfileChange,
-                pluginHeadersId: profile.id == _game.state?.profileId
-                    ? _plugins.order?.headers.id
-                    : null,
-                savesAvailable:
-                    game?.definition?.saveExtension.isNotEmpty == true,
-                imageClient: widget.workspaces is ProfileImagesClient
-                    ? widget.workspaces as ProfileImagesClient
-                    : null,
-                onImageChanged: _workspaces.imageChanged,
-                gameImage: game?.definition?.artworkUrl.isNotEmpty == true
-                    ? Uri.parse(game!.definition!.artworkUrl)
-                    : null,
-              ),
+        : (
+            context,
+            workspace,
+            profile,
+            game,
+            close,
+            bindGuard,
+          ) => ProfileSettingsInspector(
+            controller: _profileData,
+            client: widget.profileData,
+            workspace: workspace,
+            profile: profile,
+            profiles: _workspaces.page?.profiles ?? const [],
+            available:
+                _workspaces.canEdit &&
+                game?.binding?.needsCheck == false &&
+                game?.definition?.capability(GameCapabilityId.bethesdaGame) !=
+                    null,
+            onClose: close,
+            onNavigationGuardChanged: bindGuard,
+            onResumeProfileChange: _workspaces.resumeProfileChange,
+            pluginHeadersId: profile.id == _game.state?.profileId
+                ? _plugins.order?.headers.id
+                : null,
+            savesAvailable: game?.definition?.saveExtension.isNotEmpty == true,
+            imageClient: widget.workspaces is ProfileImagesClient
+                ? widget.workspaces as ProfileImagesClient
+                : null,
+            onImageChanged: _workspaces.imageChanged,
+            gameImage: game?.definition?.artworkUrl.isNotEmpty == true
+                ? Uri.parse(game!.definition!.artworkUrl)
+                : null,
+          ),
     discoveryBuilder: widget.thunderstore == null
         ? null
         : (context, workspace, visible) => ThunderstoreBrowser(
@@ -59,7 +67,7 @@ mixin _ShellContent
               workspace.selectedProfile?.id,
             ),
           ),
-    executableBuilder: !_supportsBethesda || widget.executables == null
+    executableBuilder: !_supportsGameMods || widget.executables == null
         ? null
         : (context, workspace) => ExecutablesBrowser(
             controller: _executables,
@@ -69,7 +77,7 @@ mixin _ShellContent
             outputs: widget.outputs,
             workspace: workspace,
           ),
-    artifactBuilder: !_supportsArchives || widget.artifacts == null
+    artifactBuilder: !_supportsGameMods || widget.artifacts == null
         ? null
         : (context, workspace, openMods) => ArtifactBrowser(
             nexus: widget.nexus,
@@ -135,7 +143,7 @@ mixin _ShellContent
     compactCloseAction:
         widget.gameLaunching != null && MediaQuery.sizeOf(context).width < 950,
     headerActions:
-        !_supportsBethesda ||
+        !_supportsGameMods ||
             (widget.deployments == null && widget.migration == null)
         ? null
         : (context, workspace) => [
@@ -168,9 +176,31 @@ mixin _ShellContent
             chooseDirectory: widget.chooseGameDirectory,
             chooseExecutable: widget.chooseExecutable,
             footer:
-                widget.skyrimSetup == null ||
-                    workspace.selectedProfile == null ||
-                    !_hasSkyrimGame
+                _supportsUnityMono &&
+                    widget.bepInEx != null &&
+                    widget.thunderstore != null &&
+                    workspace.selectedProfile != null
+                ? BepInExSection(
+                    key: ValueKey((
+                      'loader',
+                      workspace.id,
+                      workspace.selectedProfile!.id,
+                    )),
+                    client: widget.bepInEx!,
+                    packages: widget.thunderstore!,
+                    workspace: workspace.id,
+                    profile: workspace.selectedProfile!.id,
+                    changes: Listenable.merge([_mods, _deployments, _play]),
+                    onChanged: () => unawaited(
+                      _installationCommitted(
+                        workspace.id,
+                        workspace.selectedProfile!.id,
+                      ),
+                    ),
+                  )
+                : widget.skyrimSetup == null ||
+                      workspace.selectedProfile == null ||
+                      !_hasSkyrimGame
                 ? (_game.state?.definition?.extenderName.isNotEmpty == true
                       ? ScriptExtenderSection(
                           definition: _game.state!.definition!,
@@ -189,10 +219,11 @@ mixin _ShellContent
                     ),
                   ),
           ),
-    modLibraryBuilder: !_supportsBethesda
+    modLibraryBuilder: !_supportsGameMods
         ? null
         : (context, workspace, modsVisible) {
             final canDiscover =
+                _supportsBethesda &&
                 widget.nexus != null &&
                 widget.nexusMetadata != null &&
                 widget.modOrganization != null &&
@@ -268,10 +299,12 @@ mixin _ShellContent
                                         _workspaces.showArchives();
                                       },
                                 )
-                              : widget.filePlans == null
+                              : (widget.filePlans == null || !_supportsBethesda)
                               ? ModLibraryBrowser(
                                   controller: _mods,
-                                  onOpenNexus: widget.nexusMetadata == null
+                                  onOpenNexus:
+                                      !_supportsBethesda ||
+                                          widget.nexusMetadata == null
                                       ? null
                                       : _nexusDetails.open,
                                   maintenance: widget.maintenance,

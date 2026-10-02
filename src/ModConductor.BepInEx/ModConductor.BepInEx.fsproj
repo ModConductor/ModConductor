@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="PackageRoutes.fs" />
+    <Compile Include="Bootstrap.fs" />
+    <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <ProjectReference Include="../ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />
+    <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
+    <ProjectReference Include="../ModConductor.Thunderstore/ModConductor.Thunderstore.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

@@ -45,10 +45,10 @@ module GameFiles =
 
             use root = HeldDirectory.Open(rootPath, identity)
 
-            let rules = GameCatalog.rules evidence.DefinitionId
-
             let ownsPluginList =
-                rules.GamePlugins = Some((GameCatalog.forGame evidence.DefinitionId).Data)
+                GameCatalog.tryRules evidence.DefinitionId
+                |> Option.exists (fun rules ->
+                    rules.GamePlugins = Some((GameCatalog.forGame evidence.DefinitionId).Data))
 
             let configuration path =
                 ownsPluginList

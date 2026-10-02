@@ -5,6 +5,7 @@ type CapabilityId =
     | GameInstallationValidation
     | SkyrimSpecialEdition
     | BethesdaGame
+    | UnityMono
     | ArchiveInspection
     | IndividualSaveEditing
     | LegacyExtensionAbi
@@ -15,6 +16,7 @@ module CapabilityId =
         | CapabilityId.GameInstallationValidation -> "game-installation-validation"
         | CapabilityId.SkyrimSpecialEdition -> "skyrim-special-edition"
         | CapabilityId.BethesdaGame -> "bethesda-game"
+        | CapabilityId.UnityMono -> "unity-mono"
         | CapabilityId.ArchiveInspection -> "archive-inspection"
         | CapabilityId.IndividualSaveEditing -> "individual-save-editing"
         | CapabilityId.LegacyExtensionAbi -> "legacy-extension-abi"
@@ -56,10 +58,16 @@ module CapabilityPolicy =
               yield
                   { DefinitionId = definition.Id
                     Platforms =
-                      if GameCatalog.steam definition.Id then
+                      if (GameClient.mono definition).IsSome then
+                          [ ContextPlatform.Windows; ContextPlatform.NativeLinux ]
+                      elif GameCatalog.steam definition.Id then
                           [ ContextPlatform.Windows; ContextPlatform.Proton ]
                       else
                           [ ContextPlatform.Windows; ContextPlatform.Wine ] } ]
+
+    let private bethesda =
+        bothPlatforms
+        |> List.filter (fun row -> GameCatalog.isBethesda row.DefinitionId)
 
     let private catalog =
         [ { Id = CapabilityId.GameInstallationValidation
@@ -74,7 +82,17 @@ module CapabilityPolicy =
             Name = "Bethesda game support"
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
-            Contexts = bothPlatforms
+            Contexts = bethesda
+            Disposition = CapabilityDisposition.Available }
+          { Id = CapabilityId.UnityMono
+            Revision = 1
+            Name = "Native Unity Mono client support"
+            Kind = CapabilityKind.GameAdapter
+            Audience = CapabilityAudience.User
+            Contexts =
+              bothPlatforms
+              |> List.filter (fun row ->
+                  (GameClient.mono (GameCatalog.forGame row.DefinitionId)).IsSome)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.SkyrimSpecialEdition
             Revision = 1
@@ -90,7 +108,7 @@ module CapabilityPolicy =
             Name = "Game archive inspection"
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
-            Contexts = bothPlatforms
+            Contexts = bethesda
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.IndividualSaveEditing
             Revision = 1

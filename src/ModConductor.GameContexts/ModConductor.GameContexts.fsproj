@@ -16,6 +16,7 @@
     <Compile Include="PeVersion.fs" />
     <Compile Include="ContextIdentity.fs" />
     <Compile Include="ComponentRoots.fs" />
+    <Compile Include="UnityMonoValidation.fs" />
     <Compile Include="InstallationValidation.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <PackageReference Include="FSharp.Core" />

@@ -78,7 +78,9 @@ module CandidateFiles =
                     | _ -> None)
 
         for declared in
-            (ModConductor.GameContexts.GameCatalog.rules evidence.DefinitionId).LightExtensions do
+            (ModConductor.GameContexts.GameCatalog.tryRules evidence.DefinitionId
+             |> Option.map _.LightExtensions
+             |> Option.defaultValue []) do
             let logical =
                 LogicalPath.create (declared.Split('/') |> Array.toList)
                 |> Result.defaultWith (string >> invalidOp)

@@ -97,6 +97,7 @@ module internal Preparation =
         (deployment: DeploymentBackend)
         (profiles: ProfileGameDataSession)
         (sources: SourceStamp)
+        applyBethesdaData
         : PrepareGameRun =
         fun game token progress ->
             task {
@@ -146,5 +147,13 @@ module internal Preparation =
                                       GenerationId = receipt.Proposed
                                       Fingerprint = prepared.Fingerprint } }
 
-                    return! applyProfile profiles current lease token progress
+                    if not applyBethesdaData then
+                        return
+                            { current with
+                                Preparation =
+                                    { current.Preparation with
+                                        Phase = GamePreparationPhase.Ready } },
+                            lease
+                    else
+                        return! applyProfile profiles current lease token progress
             }

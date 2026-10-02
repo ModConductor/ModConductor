@@ -10,6 +10,7 @@ module internal GameContextWire =
         | ContextPlatform.Windows -> GameContextPlatform.Windows
         | ContextPlatform.Proton -> GameContextPlatform.Proton
         | ContextPlatform.Wine -> GameContextPlatform.Wine
+        | ContextPlatform.NativeLinux -> GameContextPlatform.NativeLinux
 
     let wineSelection (value: WineSelection) =
         WineSelectionInfo(Executable = value.Executable, Prefix = value.Prefix)
@@ -101,7 +102,7 @@ module internal GameContextWire =
         result
 
     let definition (d: GameDefinition) =
-        let rules = GameCatalog.rules d.Id
+        let rules = GameCatalog.tryRules d.Id
 
         let artworkApp =
             (GameCatalog.definitions
@@ -128,14 +129,18 @@ module internal GameContextWire =
                          "https://cdn.cloudflare.steamstatic.com/steam/apps/"
                          + string artworkApp
                          + "/header.jpg"),
-                SettingsIni = rules.Ini,
-                PluginOrdering = string rules.Ordering,
-                SaveExtension = defaultArg rules.SaveExtension "",
-                ExtenderName = defaultArg rules.ExtenderName "",
-                ExtenderLoader = defaultArg rules.ExtenderLoader "",
-                SupportsLightPlugins = rules.SupportsLight,
-                SupportsMediumPlugins = rules.SupportsMedium,
-                ArchiveInvalidation = (rules.Invalidation.IsSome || rules.LooseFilesInvalidation)
+                SettingsIni = (rules |> Option.map _.Ini |> Option.defaultValue ""),
+                PluginOrdering =
+                    (rules |> Option.map (fun row -> string row.Ordering) |> Option.defaultValue ""),
+                SaveExtension = (rules |> Option.bind _.SaveExtension |> Option.defaultValue ""),
+                ExtenderName = (rules |> Option.bind _.ExtenderName |> Option.defaultValue ""),
+                ExtenderLoader = (rules |> Option.bind _.ExtenderLoader |> Option.defaultValue ""),
+                SupportsLightPlugins = (rules |> Option.exists _.SupportsLight),
+                SupportsMediumPlugins = (rules |> Option.exists _.SupportsMedium),
+                ArchiveInvalidation =
+                    (rules
+                     |> Option.exists (fun row ->
+                         row.Invalidation.IsSome || row.LooseFilesInvalidation))
             )
 
         let capabilities = CapabilityPolicy.forUsers d.Id
