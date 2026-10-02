@@ -296,7 +296,12 @@ module internal Preparation =
                        |> List.filter (fun original ->
                            not (capturedTargets.Contains original.Target)))
 
-                let parents = RecoveryParents.prepare context (proposed |> List.map fst)
+                let parents =
+                    RecoveryParents.prepare
+                        context
+                        (proposed |> List.map fst)
+                        (request.NormalDirectories
+                         |> List.map (RecoveryFiles.nativeTarget request.Generation))
 
                 Ok
                     { Id = request.Id

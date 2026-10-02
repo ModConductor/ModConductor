@@ -8,8 +8,8 @@ module internal RecoveryParents =
     let private depth (target: TargetFile) =
         LogicalPath.components target.Path |> List.length
 
-    let prepare (context: Context) targets =
-        let required =
+    let prepare (context: Context) targets directories =
+        let parents targets =
             targets
             |> List.collect (fun target ->
                 let parts = LogicalPath.components target.Path
@@ -20,7 +20,8 @@ module internal RecoveryParents =
                               Path =
                                   LogicalPath.create (List.take count parts)
                                   |> Result.defaultWith (fun _ -> invalidOp "Invalid parent path.") } ])
-            |> Set.ofList
+
+        let required = parents targets @ parents directories @ directories |> Set.ofList
 
         let existing =
             context.Directories

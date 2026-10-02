@@ -377,6 +377,7 @@ module internal GenerationFixtures =
                      [ target "branch" ]
                  else
                      [])
+              NormalDirectories = []
               PreserveOriginals = [ target "shared.txt" ]
               ExpectedSources = stamp }
 

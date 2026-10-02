@@ -16,6 +16,7 @@ module WorkingPaths =
     let dummy = Guid "47c33c31-8f86-46f5-a7cc-933716e548b5"
 
     let log = Guid "18921d2b-c276-41d5-a0bc-38eceecf09d0"
+    let errorLog = Guid "489a1e4d-5493-442b-9c67-eae0186c7d8b"
 
     let logs backend =
         [ log, "LogOutput.log"
@@ -31,6 +32,10 @@ module WorkingPaths =
                 + ".log"
             else
                 name)
+        |> fun logs ->
+            match backend with
+            | ModConductor.GameContexts.UnityBackend.Mono -> logs
+            | ModConductor.GameContexts.UnityBackend.Il2Cpp -> logs @ [ errorLog, "ErrorLog.log" ]
 
     let private path names =
         LogicalPath.create names |> Result.defaultWith (string >> invalidOp)
@@ -53,6 +58,20 @@ module WorkingPaths =
                     Target = WritableTarget.File(gameRoot, path [ "BepInEx"; name ]) } ]
 
 module PackageRoutes =
+    let normalDirectories (reviewed: ReviewedComponent) =
+        if
+            reviewed.Writable
+            |> List.exists (fun declaration -> declaration.Id = WorkingPaths.errorLog)
+        then
+            [ for name in [ "plugins"; "patchers" ] do
+                  yield
+                      { Root = reviewed.GameRoot
+                        Path =
+                          LogicalPath.create [ "BepInEx"; name ]
+                          |> Result.defaultWith (string >> invalidOp) } ]
+        else
+            []
+
     let private same left right =
         String.Equals(left, right, StringComparison.OrdinalIgnoreCase)
 

@@ -78,12 +78,14 @@ module internal DeploymentTargetProjection =
         (roots: RootBinding list)
         (observation: GameObservation)
         (built: PreparedGeneration)
+        (normalDirectories: TargetFile list)
         (token: CancellationToken)
         =
         let allTargets: TargetFile list =
             (built.Generation.Files |> List.map _.Target)
             @ (built.Generation.Observed |> List.map _.Target)
             @ (built.Generation.Working |> List.map _.Target)
+            @ normalDirectories
 
         let knownFor (binding: RootBinding) =
             if binding.Root.Id = stamp.WorkspaceId then
@@ -126,7 +128,11 @@ module internal DeploymentTargetProjection =
                         Working =
                             built.Generation.Working
                             |> List.filter (fun file -> file.Target.Root = root.Root.Id) }
-                    token)
+                    token
+                |> List.filter (fun boundary ->
+                    normalDirectories
+                    |> List.exists (ownedLinkCovers root.Root.Policy boundary)
+                    |> not))
 
         let mapped =
             roots
@@ -175,6 +181,7 @@ module internal DeploymentTargetProjection =
               Roots = roots
               Generation = generation
               DirectoryBoundaries = boundaries
+              NormalDirectories = normalDirectories
               PreserveOriginals = []
               ExpectedSources = Some stamp }
 

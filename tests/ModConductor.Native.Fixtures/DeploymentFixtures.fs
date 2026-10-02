@@ -158,6 +158,53 @@ module DeploymentFixtures =
                      )
                  ))
 
+            let normalParents = create (Path.Combine(root, "normal-directories"))
+            let existingDirectory = Path.Combine(normalParents.Game, "existing-normal")
+            Directory.CreateDirectory existingDirectory |> ignore
+            use normalStore = new OperationStore(normalParents.State)
+
+            let normalRequest =
+                { request normalParents (id 1014) 0L normalParents.First with
+                    NormalDirectories = [ target "owned-normal"; target "existing-normal" ] }
+
+            get (normalStore.Deployment.Start normalRequest)
+            |> ok
+            |> apply normalStore
+            |> ignore
+
+            let normalContext = context normalStore
+
+            flag
+                writer
+                "normalDirectoriesOnlyOwnCreatedParents"
+                (Directory.Exists(Path.Combine(normalParents.Game, "owned-normal"))
+                 && (normalContext.Directories
+                     |> List.exists (fun row -> row.Target = target "owned-normal"))
+                 && not (
+                     normalContext.Directories
+                     |> List.exists (fun row -> row.Target = target "existing-normal")
+                 ))
+
+            let foreignPath = Path.Combine(normalParents.Game, "owned-normal", "foreign.txt")
+            File.WriteAllText(foreignPath, "unmanaged content")
+
+            let removingParents =
+                start
+                    normalStore
+                    normalParents
+                    (id 1015)
+                    normalContext.Revision
+                    normalParents.Second
+
+            flag
+                writer
+                "nonemptyNormalDirectoryStillRefusesRemoval"
+                (match run normalStore removingParents false (fun _ _ -> ()) with
+                 | Error _ ->
+                     File.ReadAllText(foreignPath) = "unmanaged content"
+                     && Directory.Exists existingDirectory
+                 | _ -> false)
+
             flag
                 writer
                 "staleActivationRefused"
@@ -237,6 +284,7 @@ module DeploymentFixtures =
                         current.Roots
                         observation
                         projected
+                        []
                         CancellationToken.None
                  with
                  | Error RecoveryError.InvalidPlan -> true
@@ -322,7 +370,7 @@ module DeploymentFixtures =
             flag
                 writer
                 "largeParentSetPrepared"
-                ((RecoveryParents.prepare current parentTargets).Length >= 4098)
+                ((RecoveryParents.prepare current parentTargets []).Length >= 4098)
 
             let unchangedInput = input 1L (HostPath.value area.Second.Directory.Path) []
             let retainedPlan = ready unchangedInput

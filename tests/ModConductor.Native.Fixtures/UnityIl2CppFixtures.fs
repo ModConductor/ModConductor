@@ -12,6 +12,7 @@ open ModConductor.BepInEx
 open ModConductor.GameContexts
 open ModConductor.GameLaunching
 open ModConductor.ModLibrary
+open ModConductor.ModMaintenance
 open ModConductor.ModSelection
 open ModConductor.Persistence
 open ModConductor.Platform
@@ -25,7 +26,7 @@ module UnityIl2CppFixtures =
         if not condition then
             invalidOp ("Unity IL2CPP fixture failed: " + name)
 
-    let private install (store: OperationStore) workspace archive =
+    let private draft (store: OperationStore) workspace archive =
         let artifact =
             store.Artifacts.Add(
                 { Id = Guid.NewGuid()
@@ -47,12 +48,9 @@ module UnityIl2CppFixtures =
             store.Installations.Change(workspace, draft.Id, draft.Revision, LayoutChange.Root [])
             |> StorageWorker.result
 
-        let job = Guid.NewGuid()
+        draft
 
-        store.Installations.Start(workspace, draft.Id, draft.Revision, job)
-        |> StorageWorker.result
-        |> ignore
-
+    let private completed (store: OperationStore) workspace job =
         let deadline = DateTime.UtcNow.AddSeconds 20.
         let mutable state = store.Installations.Read(workspace, job) |> get
 
@@ -63,7 +61,43 @@ module UnityIl2CppFixtures =
         if state.State <> InstallationState.Complete then
             invalidOp (defaultArg state.Problem "Archive installation did not complete.")
 
-        state.ModId.Value
+        state
+
+    let private install (store: OperationStore) workspace archive =
+        let draft = draft store workspace archive
+        let job = Guid.NewGuid()
+
+        store.Installations.Start(workspace, draft.Id, draft.Revision, job)
+        |> StorageWorker.result
+        |> ignore
+
+        (completed store workspace job).ModId.Value
+
+    let private update (store: OperationStore) workspace modId archive =
+        let draft = draft store workspace archive
+
+        let current =
+            ((store.ModLibrary :> IModLibrary).Scan(workspace, 32) |> get).Entries
+            |> List.find (fun entry -> entry.Id = modId)
+
+        let preview =
+            store.Installations.PrepareUpdate(
+                workspace,
+                draft.Id,
+                draft.Revision,
+                modId,
+                current.Revision,
+                UpdateMode.Replace,
+                Set.empty,
+                "2"
+            )
+            |> get
+
+        let started =
+            store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid())
+            |> StorageWorker.result
+
+        completed store workspace started.Id |> ignore
 
     let private enable (store: OperationStore) workspace profile value =
         let state = store.BepInEx.Read(workspace, profile) |> get
@@ -282,6 +316,11 @@ module UnityIl2CppFixtures =
                 "first profile output"
             )
 
+        Directory.CreateDirectory(Path.Combine(root, "BepInEx", "patchers")) |> ignore
+        Directory.CreateDirectory(Path.Combine(root, "BepInEx", "plugins")) |> ignore
+        let errorLog = Path.Combine(root, "BepInEx", "ErrorLog.log")
+        File.WriteAllText(errorLog, "first profile runtime error log")
+        let errorWorking = File.ResolveLinkTarget(errorLog, true).FullName
         File.WriteAllText(Path.Combine(root, "BepInEx", "LogOutput.log"), "first profile log")
         File.WriteAllText(Path.Combine(root, "BepInEx", "LogOutput.1.log"), "fallback log")
         UnityMonoEnvironment.deploy store first |> ignore
@@ -293,6 +332,41 @@ module UnityIl2CppFixtures =
             (File.ReadAllText(Path.Combine(root, "BepInEx", "interop", "Game.dll")) = "first profile output"
              && not (File.Exists(Path.Combine(other, "BepInEx", "interop", "Game.dll")))
              && (store.BepInEx.ReadLog(workspace, second) |> get).Length = 0)
+
+        let updatedArchive = Path.Combine(area, "plugin-update.zip")
+
+        File.WriteAllBytes(
+            updatedArchive,
+            UnityMonoSamples.package
+                [ "plugins/MenuProbe.dll", "updated compatible plugin fixture" ]
+        )
+
+        update store workspace plugin updatedArchive
+        UnityMonoEnvironment.deploy store first |> ignore
+        let current = store.BepInEx.Read(workspace, first) |> get
+
+        selection.Change(first, current.SelectionRevision, [ plugin ], SelectionEdit.Enable false)
+        |> get
+        |> ignore
+
+        UnityMonoEnvironment.deploy store first |> ignore
+
+        let disabledPlugin =
+            not (File.Exists(Path.Combine(root, "BepInEx", "plugins", "MenuProbe.dll")))
+
+        let current = store.BepInEx.Read(workspace, first) |> get
+
+        selection.Change(first, current.SelectionRevision, [ plugin ], SelectionEdit.Enable true)
+        |> get
+        |> ignore
+
+        UnityMonoEnvironment.deploy store first |> ignore
+
+        check
+            "normal plugin directories retain immutable update and disable behavior"
+            (disabledPlugin
+             && File.ReadAllText(Path.Combine(root, "BepInEx", "plugins", "MenuProbe.dll")) = "updated compatible plugin fixture"
+             && File.ReadAllText(errorLog) = "first profile runtime error log")
 
         enable store workspace first false |> ignore
         UnityMonoEnvironment.deploy store first |> ignore
@@ -343,13 +417,31 @@ module UnityIl2CppFixtures =
 
         for profile in [ first; second ] do
             enable store workspace profile false |> ignore
+            let current = store.BepInEx.Read(workspace, profile) |> get
+
+            selection.Change(
+                profile,
+                current.SelectionRevision,
+                [ plugin ],
+                SelectionEdit.Enable false
+            )
+            |> get
+            |> ignore
+
             UnityMonoEnvironment.deploy store profile |> ignore
 
-        let entry =
-            (library.Scan(workspace, 32) |> get).Entries
-            |> List.find (fun e -> e.Id = loader)
+        for entry in (library.Scan(workspace, 32) |> get).Entries do
+            if entry.Kind = ModKind.Regular then
+                store.Deletions.Delete(workspace, entry.Id, entry.Revision) |> get |> ignore
 
-        store.Deletions.Delete(workspace, loader, entry.Revision) |> get |> ignore
+        UnityMonoEnvironment.deploy store first |> ignore
+        UnityMonoEnvironment.deploy store second |> ignore
+
+        check
+            "post-remove deployment removes only owned normal directories and retains private error output"
+            (not (Directory.Exists(Path.Combine(root, "BepInEx")))
+             && not (Directory.Exists(Path.Combine(other, "BepInEx")))
+             && File.ReadAllText(errorWorking) = "first profile runtime error log")
 
         check
             "library removal clears loader selection but retains profile output"

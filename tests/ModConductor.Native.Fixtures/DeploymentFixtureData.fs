@@ -265,6 +265,7 @@ module internal DeploymentFixtureData =
           Roots = area.Bindings
           Generation = generation
           DirectoryBoundaries = [ target "folder" ]
+          NormalDirectories = []
           PreserveOriginals = []
           ExpectedSources = None }
 

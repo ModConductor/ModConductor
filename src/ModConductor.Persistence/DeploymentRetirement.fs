@@ -47,6 +47,7 @@ module internal DeploymentRetirement =
                       Roots = context.Roots
                       Generation = empty
                       DirectoryBoundaries = []
+                      NormalDirectories = []
                       PreserveOriginals = []
                       ExpectedSources = None }
 

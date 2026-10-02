@@ -171,6 +171,7 @@ type internal SwitchRequest =
       Roots: RootBinding list
       Generation: Generation
       DirectoryBoundaries: TargetFile list
+      NormalDirectories: TargetFile list
       PreserveOriginals: TargetFile list
       ExpectedSources: ModConductor.FilePlanning.SourceStamp option }
 

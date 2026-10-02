@@ -418,6 +418,9 @@ module internal DeploymentPreparation =
                                                                             roots
                                                                             observation
                                                                             built
+                                                                            (enabledComponents
+                                                                             |> List.collect
+                                                                                 ModConductor.BepInEx.PackageRoutes.normalDirectories)
                                                                             token
 
                                                                     match projected with
