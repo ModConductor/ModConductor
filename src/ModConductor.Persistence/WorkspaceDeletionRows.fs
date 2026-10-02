@@ -123,7 +123,7 @@ module internal WorkspaceDeletionRows =
                   "SELECT count(*) FROM output_actions WHERE workspace_id=$workspace AND complete=0"
                   "SELECT count(*) FROM fnis_runs WHERE workspace_id=$workspace AND busy=1"
                   "SELECT count(*) FROM executable_runs WHERE workspace_id=$workspace AND phase IN (0,1,2)"
-                  "SELECT count(*) FROM skyrim_setup_intents WHERE workspace_id=$workspace AND completed=0" ]
+                  "SELECT count(*) FROM skyrim_setup_intents WHERE workspace_id=$workspace AND completed=0 AND cancelled=0" ]
                 |> List.exists (fun sql -> count sql <> 0L)
 
             if

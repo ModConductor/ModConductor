@@ -8,6 +8,7 @@ open System.Text.Json
 open Microsoft.Data.Sqlite
 open ModConductor.ArtifactLibrary
 open ModConductor.Deployment
+open ModConductor.Engine
 open ModConductor.GameContexts
 open ModConductor.GeneratedOutputs
 open ModConductor.ModLibrary
@@ -441,11 +442,101 @@ module WorkspaceDeletionFixtures =
 
         writer.WriteEndObject()
 
+    let private cancelledSetup (writer: Utf8JsonWriter) parent =
+        let area = mkdir (Path.Combine(parent, "cancelled-setup"))
+        let state = mkdir (Path.Combine(area, "state"))
+        use store = new OperationStore(state)
+
+        let workspace, profile, game, _, context =
+            SkyrimFixtureWorkspace.create store state area "Cancelled setup" "workspace" "game" true
+
+        context |> result |> ignore
+        let root = Path.Combine(area, "workspace")
+        let foreign = write root "foreign.txt" "foreign root data"
+        let scope = store.GeneratedOutputs.Read(workspace, profile, None) |> wait |> result
+
+        let output =
+            store.GeneratedOutputs.Add(Guid.NewGuid(), scope, "Output", OutputPurpose.ToolFolder)
+            |> wait
+            |> result
+
+        let owned = write output.PhysicalPath "generated.txt" "generated output"
+        let workflow = SkyrimSetupFixtures.WorkflowState()
+        workflow.HoldSkse()
+        let dependencies = workflow.Dependencies
+
+        let started =
+            TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
+        let tracked =
+            { dependencies with
+                StartSkse =
+                    fun workspace profile ->
+                        task {
+                            let! value = dependencies.StartSkse workspace profile
+                            started.SetResult()
+                            return value
+                        } }
+
+        use coordinator = new SkyrimSetupCoordinator(store, tracked)
+
+        coordinator.Start(
+            workspace,
+            profile,
+            { SetupSelection.none with
+                Skse = SetupAction.Install },
+            token
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        if not (started.Task.Wait(TimeSpan.FromSeconds 10.)) then
+            invalidOp "The setup did not reach the active child operation."
+
+        let ws = store.Workspaces :> IWorkspaceState
+        let before = ws.Read(workspace, None) |> wait |> result
+        coordinator.Cancel(workspace, profile, token) |> wait |> ignore
+        let pending = store.SkyrimSetups.Read(workspace, profile) |> wait |> Option.get
+
+        writer.WriteBoolean(
+            "unfinishedCancellationPreservesWorkspace",
+            pending.CancelRequested
+            && not pending.Cancelled
+            && ws.Delete(workspace, before.Workspace.Revision, false, token) |> wait = Error
+                WorkspaceError.Busy
+            && File.ReadAllText owned = "generated output"
+            && File.ReadAllText foreign = "foreign root data"
+            && ((ws.Recent None |> wait).Workspaces
+                |> List.exists (fun value -> value.Id = workspace))
+        )
+
+        workflow.CompleteSkse()
+        coordinator.Cancel(workspace, profile, token) |> wait |> ignore
+        let terminal = store.SkyrimSetups.Read(workspace, profile) |> wait |> Option.get
+
+        let deleted = ws.Delete(workspace, before.Workspace.Revision, false, token) |> wait
+
+        writer.WriteBoolean(
+            "cancelledSetupAllowsDeletion",
+            terminal.Cancelled
+            && not terminal.Completed
+            && not terminal.CancelRequested
+            && deleted = Ok()
+            && (ws.Recent None |> wait).Workspaces.IsEmpty
+            && (store.SkyrimSetups.Read(workspace, profile) |> wait).IsNone
+            && not (File.Exists owned)
+            && not (File.Exists(Path.Combine(root, ".mod-conductor-root")))
+            && File.ReadAllText foreign = "foreign root data"
+            && File.Exists(Path.Combine(game, "SkyrimSE.exe"))
+        )
+
     let observe (writer: Utf8JsonWriter) parent =
         writer.WriteStartObject "workspaceDeletion"
         scenario writer parent "discardActive" false true false
         scenario writer parent "moveKeepBoth" true false false
         scenario writer parent "createSaveFolder" true false true
+        cancelledSetup writer parent
         let area = mkdir (Path.Combine(parent, "empty"))
         let root = mkdir (Path.Combine(area, "workspace"))
         use store = new OperationStore(Path.Combine(area, "state"))

@@ -42,3 +42,13 @@ type WorkspaceDeletionTests() =
         flag "createSaveFolder" "ownedRemoved" |> should equal true
         flag "createSaveFolder" "registrationRemoved" |> should equal true
         report.Value.GetProperty("emptyRootRemoved").GetBoolean() |> should equal true
+
+    [<Test>]
+    member _.``cancelling setup should preserve the workspace until cancellation completes then allow deletion``
+        ()
+        =
+        report.Value.GetProperty("unfinishedCancellationPreservesWorkspace").GetBoolean()
+        |> should equal true
+
+        report.Value.GetProperty("cancelledSetupAllowsDeletion").GetBoolean()
+        |> should equal true

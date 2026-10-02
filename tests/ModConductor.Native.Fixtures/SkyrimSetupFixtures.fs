@@ -70,7 +70,7 @@ module SkyrimSetupFixtures =
     let private createWorkspace store area name includeProton =
         createWorkspaceAt (Path.Combine(area, "skyrim-setup-state")) store area name includeProton
 
-    type private WorkflowState() =
+    type internal WorkflowState() =
         let generation = Guid.NewGuid()
 
         let mutable skse =
