@@ -5,7 +5,8 @@ open ModConductor.Platform
 open ModConductor.ProfileGameData
 
 [<Sealed>]
-type internal ProfileDataRepository(database: StateDatabase, access: LibraryAccess) =
+type internal ProfileDataRepository
+    (database: StateDatabase, access: LibraryAccess, ?restoring: ProfileDataContext) =
     let connection = database.Connection
 
     let ensureContext transaction id =
@@ -63,35 +64,47 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                     match game with
                     | Error error -> return Error error
                     | Ok game ->
-                        match
-                            GameLocalData.project
-                                { Path = root.Path
-                                  Identity = root.Identity }
-                                profile
-                                game
-                        with
+                        let projected =
+                            match restoring with
+                            | Some _ -> Ok game
+                            | None ->
+                                GameLocalData.project
+                                    { Path = root.Path
+                                      Identity = root.Identity }
+                                    profile
+                                    game
+
+                        match projected with
                         | Error error -> return Error error
                         | Ok game ->
                             let documents, availability =
-                                try
-                                    match DataLocations.documents game with
-                                    | Ok selected -> Some selected, None
-                                    | Error error -> None, Some(DataErrors.problemMessage error)
-                                with :? System.IO.IOException as error ->
-                                    None, Some error.Message
+                                match restoring with
+                                | Some context -> Some context.Documents, None
+                                | None ->
+                                    try
+                                        match DataLocations.documents game with
+                                        | Ok selected -> Some selected, None
+                                        | Error error -> None, Some(DataErrors.problemMessage error)
+                                    with :? System.IO.IOException as error ->
+                                        None, Some error.Message
 
                             return!
                                 database.Enqueue(fun () ->
                                     use transaction = connection.BeginTransaction(deferred = true)
 
                                     let context =
-                                        match documents with
-                                        | Some root ->
+                                        match restoring, documents with
+                                        | Some recorded, _ ->
+                                            ProfileDataRows.context
+                                                connection
+                                                transaction
+                                                recorded.Id
+                                        | None, Some root ->
                                             ProfileDataRows.context
                                                 connection
                                                 transaction
                                                 (DataLocations.id workspace root)
-                                        | None ->
+                                        | None, None ->
                                             let selectedPath =
                                                 game.Binding
                                                 |> Option.bind (fun binding ->

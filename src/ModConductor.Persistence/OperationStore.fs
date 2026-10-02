@@ -130,8 +130,13 @@ type OperationStore
     let workspaceDeletion =
         WorkspaceDeletionStore(
             database,
-            deploymentBackend,
-            profileGameData,
+            WorkspaceDeploymentRemoval.deactivate database deploymentBackend.TryAcquireWorkspace,
+            WorkspaceDataRestoration.restore
+                database
+                modLibrary.Access
+                deploymentBackend.TryAcquireWorkspace
+                plugins
+                archivePolicies,
             deploymentBackend.TryAcquireWorkspace,
             directory
         )

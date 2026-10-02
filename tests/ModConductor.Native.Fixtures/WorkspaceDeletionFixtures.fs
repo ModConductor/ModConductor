@@ -8,6 +8,7 @@ open System.Text.Json
 open Microsoft.Data.Sqlite
 open ModConductor.ArtifactLibrary
 open ModConductor.Deployment
+open ModConductor.DeploymentRecovery
 open ModConductor.Engine
 open ModConductor.GameContexts
 open ModConductor.GeneratedOutputs
@@ -169,6 +170,121 @@ module WorkspaceDeletionFixtures =
         use violations = foreign.ExecuteReader()
         total = 0L && not (violations.Read())
 
+    let private deploymentSequence state =
+        use connection =
+            new SqliteConnection("Data Source=" + Path.Combine(state, "state.db"))
+
+        connection.Open()
+        use query = connection.CreateCommand()
+
+        query.CommandText <-
+            "SELECT coalesce(max(seq),0) FROM sqlite_sequence WHERE name='deployment_receipts'"
+
+        query.ExecuteScalar() :?> int64
+
+    let private displacedOriginal
+        (store: OperationStore)
+        root
+        game
+        workspace
+        (profile: Guid)
+        binding
+        =
+        let area =
+            DeploymentFixtureData.create (
+                Path.Combine(root, ".mc-game-views", profile.ToString("N"), "recorded-deployment")
+            )
+
+        let generation = area.First
+        let canonical = Path.Combine(root, ".mc-generation-" + generation.Id.ToString("N"))
+        Directory.Move(ModConductor.Platform.HostPath.value generation.Directory.Path, canonical)
+
+        let gameData = Path.Combine(game, "Data")
+        let original = write gameData "shared.txt" "displaced game original"
+        let fingerprint = DeploymentContextId.fingerprint binding
+
+        let request =
+            { DeploymentFixtureData.request area (Guid.NewGuid()) 0L generation with
+                ContextId = DeploymentContextId.create workspace profile fingerprint
+                ContextFingerprint = fingerprint
+                Generation =
+                    { generation with
+                        Directory = DeploymentFixtureData.location canonical }
+                Roots =
+                    [ { area.Bindings.Head with
+                          Directory = DeploymentFixtureData.location gameData } ]
+                DirectoryBoundaries = []
+                PreserveOriginals = [ DeploymentFixtureData.target "shared.txt" ] }
+
+        let receipt = store.Deployment.Start request |> wait |> DeploymentFixtureData.ok
+        DeploymentFixtureData.apply store receipt |> ignore
+
+        if File.ReadAllText original <> "shared" then
+            invalidOp "The fixture original was not displaced by a recorded deployment."
+
+        let foreign = write gameData "folder/foreign.txt" "foreign game folder data"
+        original, foreign
+
+    let private reapplyBeforeCleanup
+        (store: OperationStore)
+        statePath
+        workspace
+        profile
+        revision
+        owned
+        =
+        use database = new StateDatabase(statePath)
+        let backend = store.Deployments
+        let enter = (backend :?> DeploymentBackend).TryAcquireWorkspace
+        let data = store.ProfileGameData
+        let session = data :?> ProfileGameDataSession
+
+        let restore (_context: ProfileDataContext) cancellation =
+            task {
+                let! current = data.Read(workspace, profile)
+                let current = result current
+                let! restored = data.Restore(Guid.NewGuid(), current.Reference, cancellation)
+                restored |> result |> ignore
+                let! read = backend.Read profile
+
+                let! prepared =
+                    backend.Prepare(Guid.NewGuid(), (result read).Sources, ignore, cancellation)
+
+                let prepared = result prepared
+
+                let! activated =
+                    backend.Activate(prepared.Id, prepared.Sources, ignore, cancellation)
+
+                activated |> result |> ignore
+                let! current = data.Read(workspace, profile)
+
+                let! applied =
+                    session.ApplyForLaunch(
+                        Guid.NewGuid(),
+                        workspace,
+                        profile,
+                        (result current).Revision,
+                        cancellation,
+                        (fun _ -> Task.FromResult())
+                    )
+
+                applied |> result |> ignore
+                return restored
+            }
+
+        let deletion =
+            WorkspaceDeletionStore(
+                database,
+                WorkspaceDeploymentRemoval.deactivate database enter,
+                restore,
+                enter,
+                statePath
+            )
+
+        deletion.Delete(workspace, revision, false, token) |> wait = Error WorkspaceError.Busy
+        && File.Exists owned
+        && (data.Read(workspace, profile) |> wait |> result).InUse = Some profile
+
     let private scenario (writer: Utf8JsonWriter) parent name moveSaves active missingFolder =
         let area = mkdir (Path.Combine(parent, name))
         let statePath = mkdir (Path.Combine(area, "state"))
@@ -187,7 +303,12 @@ module WorkspaceDeletionFixtures =
             write (Path.Combine(game, "Data")) "original.txt" "game installation bytes"
 
         let workspace, first, second = Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
-        use store = new OperationStore(statePath)
+        let mutable store = new OperationStore(statePath)
+
+        use close =
+            { new IDisposable with
+                member _.Dispose() = (store :> IDisposable).Dispose() }
+
         let ws = store.Workspaces :> IWorkspaceState
 
         let created =
@@ -321,6 +442,20 @@ module WorkspaceDeletionFixtures =
             if File.ReadAllText pluginList = beforePlugins then
                 invalidOp "Private plugin order was not applied."
 
+        let restarted = name = "activeAfterRestart"
+
+        let displaced =
+            if restarted then
+                Some(displacedOriginal store root game workspace second binding.Evidence)
+            else
+                None
+
+        if restarted then
+            (store :> IDisposable).Dispose()
+            store <- new OperationStore(statePath)
+
+        let ws = store.Workspaces :> IWorkspaceState
+
         if missingFolder then
             Directory.Delete saves
 
@@ -367,10 +502,43 @@ module WorkspaceDeletionFixtures =
 
         writer.WriteBoolean("failedDeletionRetainsRegistration", retryableFailure)
 
+        writer.WriteBoolean(
+            "newRoutingRefusesCleanup",
+            name <> "discardActive"
+            || reapplyBeforeCleanup
+                store
+                statePath
+                workspace
+                first
+                before.Workspace.Revision
+                copyPath
+        )
+
+        let sequence = deploymentSequence statePath
+
+        writer.WriteBoolean(
+            "contextNeedsRefresh",
+            not restarted
+            || ((store.GameContexts :> IGameContexts).Read(workspace, first) |> wait |> result)
+                .Binding.Value.NeedsCheck
+        )
+
         ws.Delete(workspace, before.Workspace.Revision, moveSaves, token)
         |> wait
         |> result
         |> ignore
+
+        writer.WriteBoolean("noNewDeployment", deploymentSequence statePath = sequence)
+
+        writer.WriteBoolean(
+            "displacedOriginalRestored",
+            displaced
+            |> Option.forall (fun (original, foreign) ->
+                File.ReadAllText original = "displaced game original"
+                && File.ReadAllText foreign = "foreign game folder data"
+                && not (File.Exists(Path.Combine(game, "Data", "removed.txt")))
+                && not (File.Exists(Path.Combine(game, "Data", "folder", "file.txt"))))
+        )
 
         writer.WriteBoolean(
             "ownedRemoved",
@@ -534,6 +702,7 @@ module WorkspaceDeletionFixtures =
     let observe (writer: Utf8JsonWriter) parent =
         writer.WriteStartObject "workspaceDeletion"
         scenario writer parent "discardActive" false true false
+        scenario writer parent "activeAfterRestart" false true false
         scenario writer parent "moveKeepBoth" true false false
         scenario writer parent "createSaveFolder" true false true
         cancelledSetup writer parent

@@ -147,6 +147,8 @@
     <Compile Include="FnisComponentInstaller.fs" />
     <Compile Include="FnisWorkflow.fs" />
     <Compile Include="WorkspaceDeletionRows.fs" />
+    <Compile Include="WorkspaceDeploymentRemoval.fs" />
+    <Compile Include="WorkspaceDataRestoration.fs" />
     <Compile Include="WorkspaceDeletionFiles.fs" />
     <Compile Include="WorkspaceDeletionPreparation.fs" />
     <Compile Include="WorkspaceDeletionStore.fs" />

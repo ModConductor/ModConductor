@@ -22,6 +22,21 @@ type WorkspaceDeletionTests() =
         flag "discardActive" "saveDisposition" |> should equal true
         flag "discardActive" "globalPreserved" |> should equal true
         flag "discardActive" "busyRefusesWithoutDeletion" |> should equal true
+        flag "discardActive" "newRoutingRefusesCleanup" |> should equal true
+
+    [<Test>]
+    member _.``deleting after restart should remove recorded deployment links and restore profile data without deploying again``
+        ()
+        =
+        flag "activeAfterRestart" "contextNeedsRefresh" |> should equal true
+        flag "activeAfterRestart" "noNewDeployment" |> should equal true
+        flag "activeAfterRestart" "displacedOriginalRestored" |> should equal true
+        flag "activeAfterRestart" "routingRestored" |> should equal true
+        flag "activeAfterRestart" "ownedRemoved" |> should equal true
+        flag "activeAfterRestart" "registrationRemoved" |> should equal true
+        flag "activeAfterRestart" "foreignPreserved" |> should equal true
+        flag "activeAfterRestart" "globalPreserved" |> should equal true
+        flag "activeAfterRestart" "busyRefusesWithoutDeletion" |> should equal true
 
     [<Test>]
     member _.``moving private saves should keep existing saves and rename matching pairs across profiles``

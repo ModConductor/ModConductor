@@ -4,7 +4,7 @@ open System
 open System.IO
 open System.Threading
 open System.Threading.Tasks
-open ModConductor.Deployment
+open ModConductor.DeploymentRecovery
 open ModConductor.GameContexts
 open ModConductor.ProfileGameData
 open ModConductor.Workspaces
@@ -12,8 +12,12 @@ open ModConductor.Workspaces
 type internal WorkspaceDeletionStore
     (
         database: StateDatabase,
-        deployments: IDeploymentBackend,
-        data: IProfileGameData,
+        deactivate:
+            WorkspaceDeletionState -> CancellationToken -> Task<Result<unit, WorkspaceError>>,
+        restore:
+            ProfileDataContext
+                -> CancellationToken
+                -> Task<Result<ProfileDataResult, ProfileDataError>>,
         enter: Guid -> IDisposable option,
         directory: string
     ) =
@@ -57,6 +61,9 @@ type internal WorkspaceDeletionStore
             try
                 return! action ()
             with
+            | RecoveryException(RecoveryError.Mismatch detail)
+            | RecoveryException(RecoveryError.Unavailable detail) ->
+                return Error(WorkspaceError.ProfileData detail)
             | :? IOException as error ->
                 return
                     Error(
@@ -94,6 +101,15 @@ type internal WorkspaceDeletionStore
 
                 match latest with
                 | Error error -> return Error error
+                | Ok state when
+                    (state.DeploymentContexts
+                     |> List.exists (fun context ->
+                         context.Active.IsSome
+                         || not context.Links.IsEmpty
+                         || not context.Originals.IsEmpty))
+                    || (state.Data |> List.exists (fun (context, _) -> context.Applied.IsSome))
+                    ->
+                    return Error WorkspaceError.Busy
                 | Ok state ->
                     let! idle = WorkspaceDeletionRows.idle database state
 
@@ -151,13 +167,12 @@ type internal WorkspaceDeletionStore
             if unknown then
                 return Error unknownSaveFolder
             else
-                let! deactivated =
-                    WorkspaceDeletionPreparation.deactivateAffected deployments state token
+                let! deactivated = deactivate state token
 
                 match deactivated with
                 | Error error -> return Error error
                 | Ok() ->
-                    let! unapplied = WorkspaceDeletionPreparation.unapply data state token
+                    let! unapplied = WorkspaceDeletionPreparation.unapply restore state token
 
                     match unapplied with
                     | Error error -> return Error error
