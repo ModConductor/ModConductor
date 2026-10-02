@@ -1,5 +1,7 @@
 # Bethesda games
 
+Declared Unity loaders are documented in [UNITY.md](UNITY.md).
+
 ## Installation and profiles
 
 Select a title in the profile setup form or the Game tab. Choose a discovered

@@ -162,8 +162,8 @@ module InstallationValidation =
                                     let modified = File.GetLastWriteTimeUtc file.SafeFileHandle
 
                                     let version, product =
-                                        match GameClient.mono definition with
-                                        | Some client ->
+                                        match definition.Client with
+                                        | GameClient.UnityMono client ->
                                             match
                                                 UnityMonoValidation.inspect
                                                     definition
@@ -176,7 +176,21 @@ module InstallationValidation =
                                             | Error detail ->
                                                 problem name detail
                                                 "", ""
-                                        | None when (GameClient.unreal definition).IsSome ->
+                                        | GameClient.UnityIl2Cpp client ->
+                                            match
+                                                UnityIl2CppValidation.inspect
+                                                    definition
+                                                    client
+                                                    resolved
+                                                    file
+                                                    (OperatingSystem.IsLinux()
+                                                     && GameClient.nativeLinux definition)
+                                            with
+                                            | Ok unity -> unity, unity
+                                            | Error detail ->
+                                                problem name detail
+                                                "", ""
+                                        | GameClient.Unreal _ ->
                                             use pe = new PEReader(file, PEStreamOptions.LeaveOpen)
 
                                             if
@@ -187,7 +201,7 @@ module InstallationValidation =
                                                     "Select the Windows x64 Unreal client."
 
                                             "", ""
-                                        | None -> PeVersion.read file
+                                        | GameClient.Bethesda -> PeVersion.read file
 
                                     file.Position <- 0L
                                     let hash = SHA256.HashData file |> Convert.ToHexStringLower
@@ -268,7 +282,7 @@ module InstallationValidation =
               Platform =
                 if OperatingSystem.IsWindows() then
                     ContextPlatform.Windows
-                elif (GameClient.mono definition).IsSome then
+                elif GameClient.nativeLinux definition then
                     ContextPlatform.NativeLinux
                 elif definition.SteamAppId <> 0u then
                     ContextPlatform.Proton

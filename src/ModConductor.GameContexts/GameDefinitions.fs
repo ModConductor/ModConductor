@@ -3,27 +3,49 @@ namespace ModConductor.GameContexts
 open System
 open ModConductor.Platform
 
-type MonoLoaderPackage =
+type UnityLoaderPackage =
     { Community: string
       Namespace: string
       Name: string
       Version: string
-      ArchiveRoot: string
-      LinuxWrapper: string }
+      ArchiveRoot: string }
 
 type UnityMonoClient =
     { IndependentExecutable: bool
       LinuxExecutable: string
       WindowsRuntime: string
       LinuxRuntime: string
+      LinuxWrapper: string
       ManagedAssembly: string
       UnityMetadata: string
-      Loader: MonoLoaderPackage }
+      Loader: UnityLoaderPackage }
+
+[<RequireQualifiedAccess>]
+type UnityBackend =
+    | Mono
+    | Il2Cpp
+
+type UnityIl2CppClient =
+    { IndependentExecutable: bool
+      LinuxExecutable: string option
+      WindowsRuntime: string
+      LinuxRuntime: string
+      Metadata: string
+      UnityMetadata: string
+      Loader: UnityLoaderPackage option
+      NativeLinuxLoader: UnityLoaderPackage option
+      LinuxWrapper: string }
+
+type UnityLoader =
+    { Backend: UnityBackend
+      Package: UnityLoaderPackage option
+      LinuxWrapper: string }
 
 [<RequireQualifiedAccess>]
 type GameClient =
     | Bethesda
     | UnityMono of UnityMonoClient
+    | UnityIl2Cpp of UnityIl2CppClient
     | Unreal of UnrealClient
 
 type GameDefinition =
@@ -98,6 +120,7 @@ module Valheim =
                   LinuxExecutable = "valheim.x86_64"
                   WindowsRuntime = "MonoBleedingEdge/EmbedRuntime/mono-2.0-bdwgc.dll"
                   LinuxRuntime = "MonoBleedingEdge/x86_64/libmonobdwgc-2.0.so"
+                  LinuxWrapper = "start_game_bepinex.sh"
                   ManagedAssembly = "Managed/Assembly-CSharp.dll"
                   UnityMetadata = "globalgamemanagers"
                   Loader =
@@ -105,8 +128,7 @@ module Valheim =
                       Namespace = "denikson"
                       Name = "BepInExPack_Valheim"
                       Version = "5.4.2333"
-                      ArchiveRoot = "BepInExPack_Valheim"
-                      LinuxWrapper = "start_game_bepinex.sh" } }
+                      ArchiveRoot = "BepInExPack_Valheim" } }
           Executable = "valheim.exe"
           Launcher = ""
           Data = "valheim_Data"
@@ -121,18 +143,59 @@ module GameClient =
         match definition.Client with
         | GameClient.UnityMono client -> Some client
         | GameClient.Bethesda
+        | GameClient.UnityIl2Cpp _
         | GameClient.Unreal _ -> None
 
     let unreal (definition: GameDefinition) =
         match definition.Client with
         | GameClient.Unreal client -> Some client
         | GameClient.Bethesda
-        | GameClient.UnityMono _ -> None
+        | GameClient.UnityMono _
+        | GameClient.UnityIl2Cpp _ -> None
+
+    let il2cpp (definition: GameDefinition) =
+        match definition.Client with
+        | GameClient.UnityIl2Cpp client -> Some client
+        | GameClient.Bethesda
+        | GameClient.UnityMono _
+        | GameClient.Unreal _ -> None
+
+    let nativeLinux (definition: GameDefinition) =
+        match definition.Client with
+        | GameClient.UnityMono _ -> true
+        | GameClient.UnityIl2Cpp client -> client.LinuxExecutable.IsSome
+        | GameClient.Bethesda
+        | GameClient.Unreal _ -> false
+
+    let unity nativeLinux (definition: GameDefinition) =
+        match definition.Client with
+        | GameClient.UnityMono client ->
+            Some
+                { Backend = UnityBackend.Mono
+                  Package = Some client.Loader
+                  LinuxWrapper = client.LinuxWrapper }
+        | GameClient.UnityIl2Cpp client ->
+            Some
+                { Backend = UnityBackend.Il2Cpp
+                  Package =
+                    if nativeLinux then
+                        client.NativeLinuxLoader
+                    else
+                        client.Loader
+                  LinuxWrapper = client.LinuxWrapper }
+        | GameClient.Bethesda
+        | GameClient.Unreal _ -> None
 
     let executable linux (definition: GameDefinition) =
         match definition.Client with
         | GameClient.UnityMono client when linux -> client.LinuxExecutable
+        | GameClient.UnityIl2Cpp client when linux ->
+            defaultArg client.LinuxExecutable definition.Executable
         | _ -> definition.Executable
 
     let independentExecutable definition =
-        mono definition |> Option.exists _.IndependentExecutable
+        match definition.Client with
+        | GameClient.UnityMono client -> client.IndependentExecutable
+        | GameClient.UnityIl2Cpp client -> client.IndependentExecutable
+        | GameClient.Bethesda
+        | GameClient.Unreal _ -> false

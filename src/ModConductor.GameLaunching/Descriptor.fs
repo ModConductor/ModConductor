@@ -134,15 +134,27 @@ module internal Descriptor =
                            (Environment.GetEnvironmentVariable "WINEDLLOVERRIDES"))
                    |> Option.defaultValue [])
 
-            if (GameClient.mono definition).IsSome then
+            let environment =
+                environment
+                @ ModConductor.BepInEx.Bootstrap.environment
+                    ((GameClient.il2cpp definition).IsSome)
+                    (configuration |> Option.exists _.LoaderEnabled)
+                    evidence.Platform
+                    (Environment.GetEnvironmentVariable "WINEDLLOVERRIDES")
+
+            if
+                (GameClient.mono definition).IsSome
+                || (GameClient.il2cpp definition).IsSome && GameClient.nativeLinux definition
+            then
                 match configuration with
                 | Some selected when selected.GameSha256 <> evidence.Executable.Value.Sha256 ->
                     Error
                         "The game changed after its loader selection was read. Refresh the installation before Play."
                 | _ ->
-                    MonoDescriptor.create
+                    UnityDescriptor.create
                         hostWindows
                         hostLinux
+                        definition
                         binding
                         runnableRoot
                         (configuration |> Option.exists _.LoaderEnabled)

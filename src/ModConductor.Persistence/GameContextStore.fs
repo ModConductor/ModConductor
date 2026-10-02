@@ -167,13 +167,13 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                             selection.Proton,
                                             wine
                                         with
-                                        | _, None, None when (GameClient.mono definition).IsSome ->
+                                        | _, None, None when GameClient.nativeLinux definition ->
                                             installation
-                                        | _, _, _ when (GameClient.mono definition).IsSome ->
+                                        | _, _, _ when GameClient.nativeLinux definition ->
                                             let problem =
                                                 { Path = path
                                                   Detail =
-                                                    "Select the native Unity Mono client without Proton or Wine." }
+                                                    "Select the declared native Unity client without Proton or Wine." }
 
                                             { installation with
                                                 Problems = installation.Problems @ [ problem ] }

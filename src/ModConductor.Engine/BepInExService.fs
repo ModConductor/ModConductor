@@ -14,11 +14,13 @@ module internal BepInExWire =
                 ProfileId = value.Profile.ToString("N"),
                 ContextRevision = uint64 value.ContextRevision,
                 SelectionRevision = uint64 value.SelectionRevision,
-                Package = ThunderstoreWire.reference value.Package,
                 Enabled = value.Enabled,
                 SettingsAvailable = value.SettingsAvailable,
                 LogAvailable = value.LogAvailable
             )
+
+        value.Package
+        |> Option.iter (fun package -> reply.Package <- ThunderstoreWire.reference package)
 
         value.Mod |> Option.iter (fun id -> reply.ModId <- id.ToString("N"))
         reply

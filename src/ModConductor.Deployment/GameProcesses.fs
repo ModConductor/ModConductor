@@ -67,9 +67,10 @@ module internal GameProcesses =
             @ (GameCatalog.tryRules evidence.DefinitionId
                |> Option.bind _.ExtenderLoader
                |> Option.toList)
-            @ (GameClient.mono definition
-               |> Option.map (fun client -> [ client.LinuxExecutable ])
-               |> Option.defaultValue [])
+            @ (if GameClient.nativeLinux definition then
+                   [ GameClient.executable true definition ]
+               else
+                   [])
             |> List.filter (String.IsNullOrWhiteSpace >> not)
 
         let targets =

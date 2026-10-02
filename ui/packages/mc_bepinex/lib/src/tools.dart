@@ -20,10 +20,13 @@ class LoaderTools extends StatelessWidget {
         McFactGroup(
           title: 'Package',
           rows: [
-            McFact(
-              'Package',
-              '${state.package.package.namespace}-${state.package.package.name}-${state.package.version}',
-            ),
+            if (state.package case final package?)
+              McFact(
+                'Package',
+                '${package.package.namespace}-${package.package.name}-${package.version}',
+              )
+            else
+              const McFact('Source', 'Mod library archive'),
           ],
         ),
       ],

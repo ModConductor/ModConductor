@@ -203,7 +203,7 @@ type OperationStore
             profileGameData,
             skseLoaders,
             configuration = enbSetups,
-            monoLoaders = bepInEx,
+            unityLoaders = bepInEx,
             unrealLoaders = unreal
         )
 

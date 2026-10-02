@@ -3,10 +3,19 @@ namespace ModConductor.GameLaunching
 open ModConductor.BepInEx
 open ModConductor.GameContexts
 
-module internal MonoDescriptor =
-    let create hostWindows hostLinux (binding: GameBinding) root enabled environment =
-        let definition = GameCatalog.forGame binding.GameId
-        let client = GameClient.mono definition |> Option.get
+module internal UnityDescriptor =
+    let create
+        hostWindows
+        hostLinux
+        (definition: GameDefinition)
+        (binding: GameBinding)
+        root
+        enabled
+        environment
+        =
+        let client =
+            GameClient.unity (binding.Evidence.Platform = ContextPlatform.NativeLinux) definition
+            |> Option.get
 
         let executable =
             System.IO.Path.Combine(
@@ -24,7 +33,7 @@ module internal MonoDescriptor =
                 executable
                 (GameCatalog.arguments binding.GameId)
                 environment
-                (if enabled then Some client.Loader.LinuxWrapper else None)
+                (if enabled then Some client.LinuxWrapper else None)
             |> Result.map (fun (runtime, launch) -> binding.Id, runtime, launch)
         | ContextPlatform.Windows when hostWindows ->
             Ok(
@@ -35,4 +44,4 @@ module internal MonoDescriptor =
                   WorkingDirectory = root
                   Environment = environment }
             )
-        | _ -> Error "This Unity Mono workflow requires its native client on Linux or Windows."
+        | _ -> Error "Select the declared native Unity client for this operating system."

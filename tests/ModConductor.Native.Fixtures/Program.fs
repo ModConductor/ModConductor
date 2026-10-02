@@ -162,6 +162,8 @@ let private run (args: string array) =
         Console.Out.Flush()
         Console.ReadLine() |> ignore
         0
+    | [| "--unity-il2cpp"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> UnityIl2CppFixtures.observe writer path)
     | [| "--unity-mono"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> UnityMonoFixtures.observe writer path)
     | [| "--downloads"; path |] when Path.IsPathFullyQualified path ->

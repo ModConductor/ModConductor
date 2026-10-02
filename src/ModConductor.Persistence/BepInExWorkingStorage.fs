@@ -14,9 +14,5 @@ module internal BepInExWorkingStorage =
             LoaderWorkingStorage.save directory "BepInEx.cfg" original content)
 
     let readLog root profile =
-        LoaderWorkingStorage.within
-            root
-            profile
-            (fst WorkingPaths.logs.Head)
-            false
-            (fun directory name -> LoaderWorkingStorage.read directory name.Value |> Result.map fst)
+        LoaderWorkingStorage.within root profile WorkingPaths.log false (fun directory name ->
+            LoaderWorkingStorage.read directory name.Value |> Result.map fst)

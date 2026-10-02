@@ -11,22 +11,43 @@ module WorkingPaths =
     let cache = Guid "4f286d77-b34a-444e-8939-564d18d18cae"
     let assemblies = Guid "343d977d-e643-4862-b0ac-dae8357d6ff7"
 
-    let logs =
-        [ Guid "18921d2b-c276-41d5-a0bc-38eceecf09d0", "LogOutput.log"
+    let interop = Guid "382a5899-1491-4420-9c0c-083dcc40bec3"
+    let unityLibraries = Guid "4b8a9d04-6c60-4bd0-9f7c-36a4157c9cbd"
+    let dummy = Guid "47c33c31-8f86-46f5-a7cc-933716e548b5"
+
+    let log = Guid "18921d2b-c276-41d5-a0bc-38eceecf09d0"
+
+    let logs backend =
+        [ log, "LogOutput.log"
           Guid "b382b085-cffe-4615-ab34-b12b21db045f", "LogOutput.log.1"
           Guid "d060cc9e-fda2-4c7d-adb7-399c3362b849", "LogOutput.log.2"
           Guid "b0878edb-8526-40d5-bc9e-4c63b7948697", "LogOutput.log.3"
           Guid "b4e824b3-e988-4bf8-b0d5-3154d323b804", "LogOutput.log.4" ]
+        |> List.mapi (fun index (id, name) ->
+            id,
+            if backend = ModConductor.GameContexts.UnityBackend.Il2Cpp && index > 0 then
+                "LogOutput."
+                + index.ToString(Globalization.CultureInfo.InvariantCulture)
+                + ".log"
+            else
+                name)
 
     let private path names =
         LogicalPath.create names |> Result.defaultWith (string >> invalidOp)
 
-    let declarations gameRoot =
-        [ for id, name in [ config, "config"; cache, "cache"; assemblies, "DumpedAssemblies" ] do
+    let declarations backend gameRoot =
+        let directories =
+            [ config, "config"; cache, "cache"; assemblies, "DumpedAssemblies" ]
+            @ (match backend with
+               | ModConductor.GameContexts.UnityBackend.Mono -> []
+               | ModConductor.GameContexts.UnityBackend.Il2Cpp ->
+                   [ interop, "interop"; unityLibraries, "unity-libs"; dummy, "dummy" ])
+
+        [ for id, name in directories do
               yield
                   { Id = id
                     Target = WritableTarget.Subtree(gameRoot, PlanPath.At(path [ "BepInEx"; name ])) }
-          for id, name in logs do
+          for id, name in logs backend do
               yield
                   { Id = id
                     Target = WritableTarget.File(gameRoot, path [ "BepInEx"; name ]) } ]
@@ -47,7 +68,7 @@ module PackageRoutes =
             "BepInEx" :: parts
         | PackageRole.Plugin, _ -> "BepInEx" :: "plugins" :: parts
 
-    let review dataRoot gameRoot policy role (selected: SelectedMod) =
+    let review dataRoot gameRoot policy backend role (selected: SelectedMod) =
         match selected.Version with
         | None -> Error "The selected package version is unavailable."
         | Some version ->
@@ -85,5 +106,5 @@ module PackageRoutes =
                     match role with
                     | PackageRole.Loader _ ->
                         { reviewed with
-                            Writable = WorkingPaths.declarations gameRoot }
+                            Writable = WorkingPaths.declarations backend gameRoot }
                     | PackageRole.Plugin -> reviewed))

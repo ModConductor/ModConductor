@@ -12,6 +12,7 @@ final class GameCapabilityId {
   static const bethesdaGame = GameCapabilityId._('bethesda-game');
   static const unreal = GameCapabilityId._('unreal');
   static const unityMono = GameCapabilityId._('unity-mono');
+  static const unityIl2Cpp = GameCapabilityId._('unity-il2cpp');
   static const archiveInspection = GameCapabilityId._('archive-inspection');
   static const individualSaveEditing = GameCapabilityId._(
     'individual-save-editing',
@@ -24,6 +25,7 @@ final class GameCapabilityId {
     'archive-inspection' => archiveInspection,
     'bethesda-game' => bethesdaGame,
     'unity-mono' => unityMono,
+    'unity-il2cpp' => unityIl2Cpp,
     'unreal' => unreal,
     'individual-save-editing' => individualSaveEditing,
     'legacy-extension-abi' => legacyExtensionAbi,

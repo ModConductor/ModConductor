@@ -7,6 +7,13 @@ open ModConductor.SteamDiscovery
 
 /// Doorstop is loaded by the selected wrapper inside the runtime child, never by a host helper.
 module Bootstrap =
+    let environment il2cpp enabled platform existing =
+        match il2cpp, enabled, platform with
+        | true, true, ModConductor.GameContexts.ContextPlatform.Proton
+        | true, true, ModConductor.GameContexts.ContextPlatform.Wine ->
+            [ "WINEDLLOVERRIDES", Some(WineDllOverrides.withNative existing "winhttp.dll") ]
+        | _ -> []
+
     let private steamRuntime () =
         DefaultRoots.read ()
         |> List.map (fun root -> Path.Combine(root.Path, "ubuntu12_32", "steam-runtime", "run.sh"))

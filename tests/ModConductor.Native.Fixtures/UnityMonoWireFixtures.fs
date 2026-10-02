@@ -17,6 +17,12 @@ module UnityMonoWireFixtures =
         let state = service.ReadLoader(request, Unchecked.defaultof<_>) |> wait
         let transmitted = LoaderReply.Parser.ParseFrom(state.ToByteArray())
 
+        let declared = store.BepInEx.Read(workspace, profile) |> UnityMonoEnvironment.get
+
+        check
+            "v1 preserves optional loader package provenance"
+            ((not (isNull transmitted.Loader.Package)) = declared.Package.IsSome)
+
         let stale =
             ChangeLoaderRequest(
                 WorkspaceId = transmitted.Loader.WorkspaceId,

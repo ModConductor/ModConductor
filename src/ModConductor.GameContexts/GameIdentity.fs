@@ -28,6 +28,7 @@ type GameId =
     | ValheimSteam
     | SatisfactorySteam
     | Subnautica2Steam
+    | SonsOfTheForestSteam
 
 module GameId =
     let value =
@@ -58,6 +59,7 @@ module GameId =
         | GameId.ValheimSteam -> "valheim-steam"
         | GameId.SatisfactorySteam -> "satisfactory-steam"
         | GameId.Subnautica2Steam -> "subnautica2-steam"
+        | GameId.SonsOfTheForestSteam -> "sons-of-the-forest-steam"
 
     let tryParse =
         function
@@ -86,4 +88,5 @@ module GameId =
         | "valheim-steam" -> Some GameId.ValheimSteam
         | "satisfactory-steam" -> Some GameId.SatisfactorySteam
         | "subnautica2-steam" -> Some GameId.Subnautica2Steam
+        | "sons-of-the-forest-steam" -> Some GameId.SonsOfTheForestSteam
         | _ -> None

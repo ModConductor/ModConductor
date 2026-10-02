@@ -11,7 +11,7 @@ import sys
 import time
 
 SCOPES = (
-    'all', 'bethesda-families', 'new-vegas-view', 'platform', 'storage', 'workspaces', 'library', 'selection',
+    'all', 'unity-mono', 'unity-il2cpp', 'unreal', 'bethesda-families', 'new-vegas-view', 'platform', 'storage', 'workspaces', 'library', 'selection',
     'organization', 'planner', 'game-contexts', 'non-steam-contexts',
     'steam-discovery', 'proton-contexts', 'file-plans', 'deployment-recovery',
     'generations', 'deployment-backend', 'components', 'skse', 'skyrim-setup',

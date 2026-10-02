@@ -16,7 +16,7 @@ type GameLaunchSession
         profiles: ProfileGameDataSession,
         loaders: IComponentLoaderSelection,
         ?configuration: IComponentLaunchConfigurationSelection,
-        ?monoLoaders: ModConductor.BepInEx.ILoaderSelection,
+        ?unityLoaders: ModConductor.BepInEx.ILoaderSelection,
         ?unrealLoaders: ModConductor.Unreal.ILoaderSelection
     ) =
     let runs = executables :> IExecutables
@@ -24,24 +24,27 @@ type GameLaunchSession
 
     let launchConfiguration workspace profile generation (state: GameContextState) =
         task {
-            let mono =
+            let unity =
                 state.Binding
                 |> Option.exists (fun binding ->
-                    (GameClient.mono (GameCatalog.forGame binding.GameId)).IsSome)
+                    (GameClient.unity
+                        (binding.Evidence.Platform = ContextPlatform.NativeLinux)
+                        (GameCatalog.forGame binding.GameId))
+                        .IsSome)
 
-            match mono, monoLoaders with
+            match unity, unityLoaders with
             | true, Some owner ->
                 let! result = owner.Read(workspace, profile)
 
                 return
                     result
-                    |> Result.map (fun mono ->
+                    |> Result.map (fun unity ->
                         Some
-                            { LoaderEnabled = mono.Enabled
+                            { LoaderEnabled = unity.Enabled
                               GenerationId = defaultArg generation Guid.Empty
-                              GameSha256 = mono.GameSha256
+                              GameSha256 = unity.GameSha256
                               Environment = [] })
-            | true, None -> return Error "The native loader selection is unavailable."
+            | true, None -> return Error "The Unity loader selection is unavailable."
             | false, _ ->
                 let unreal =
                     state.Binding

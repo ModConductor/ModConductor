@@ -11,6 +11,7 @@
     <Compile Include="ClassicRules.fs" />
     <Compile Include="CreationRules.fs" />
     <Compile Include="UnrealDefinitions.fs" />
+    <Compile Include="UnityIl2CppDefinitions.fs" />
     <Compile Include="GameCatalog.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="GameLocations.fs" />
@@ -18,7 +19,9 @@
     <Compile Include="PeVersion.fs" />
     <Compile Include="ContextIdentity.fs" />
     <Compile Include="ComponentRoots.fs" />
+    <Compile Include="UnityValidation.fs" />
     <Compile Include="UnityMonoValidation.fs" />
+    <Compile Include="UnityIl2CppValidation.fs" />
     <Compile Include="InstallationPaths.fs" />
     <Compile Include="InstallationValidation.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />

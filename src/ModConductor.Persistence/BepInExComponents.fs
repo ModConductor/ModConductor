@@ -12,21 +12,26 @@ module internal BepInExComponents =
         gameRoot
         (sources: PlanSources)
         selected
-        (client: UnityMonoClient)
+        (client: UnityLoader)
         =
-        let role modId =
-            LibraryRows.find database.Connection null modId
+        let role row =
+            LibraryRows.find database.Connection null row.ModId
             |> Option.map (fun row -> row.Entry.Metadata.Source)
             |> Option.defaultValue ""
-            |> LoaderPackage.role client
+            |> fun source ->
+                LoaderPackage.role
+                    client
+                    source
+                    (row.Version |> Option.map _.Entries |> Option.defaultValue [] |> Seq.map _.Path)
 
         let add (rows: ReviewedComponent list, working) row =
-            let role = role row.ModId
+            let role = role row
 
             PackageRoutes.review
                 sources.Stamp.WorkspaceId
                 gameRoot
                 (GameCatalog.forGame sources.Context.Binding.Value.GameId).TargetPolicy
+                client.Backend
                 role
                 row
             |> Result.mapError RecoveryError.Unavailable

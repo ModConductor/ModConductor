@@ -6,6 +6,7 @@ type CapabilityId =
     | SkyrimSpecialEdition
     | BethesdaGame
     | UnityMono
+    | UnityIl2Cpp
     | Unreal
     | ArchiveInspection
     | IndividualSaveEditing
@@ -18,6 +19,7 @@ module CapabilityId =
         | CapabilityId.SkyrimSpecialEdition -> "skyrim-special-edition"
         | CapabilityId.BethesdaGame -> "bethesda-game"
         | CapabilityId.UnityMono -> "unity-mono"
+        | CapabilityId.UnityIl2Cpp -> "unity-il2cpp"
         | CapabilityId.Unreal -> "unreal"
         | CapabilityId.ArchiveInspection -> "archive-inspection"
         | CapabilityId.IndividualSaveEditing -> "individual-save-editing"
@@ -60,7 +62,7 @@ module CapabilityPolicy =
               yield
                   { DefinitionId = definition.Id
                     Platforms =
-                      if (GameClient.mono definition).IsSome then
+                      if GameClient.nativeLinux definition then
                           [ ContextPlatform.Windows; ContextPlatform.NativeLinux ]
                       elif GameCatalog.steam definition.Id then
                           [ ContextPlatform.Windows; ContextPlatform.Proton ]
@@ -95,6 +97,16 @@ module CapabilityPolicy =
               bothPlatforms
               |> List.filter (fun row ->
                   (GameClient.mono (GameCatalog.forGame row.DefinitionId)).IsSome)
+            Disposition = CapabilityDisposition.Available }
+          { Id = CapabilityId.UnityIl2Cpp
+            Revision = 1
+            Name = "Declared x64 Unity IL2CPP client support"
+            Kind = CapabilityKind.GameAdapter
+            Audience = CapabilityAudience.User
+            Contexts =
+              bothPlatforms
+              |> List.filter (fun row ->
+                  (GameClient.il2cpp (GameCatalog.forGame row.DefinitionId)).IsSome)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.Unreal
             Revision = 1

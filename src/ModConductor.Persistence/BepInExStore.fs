@@ -17,33 +17,51 @@ type BepInExStore
             |> Result.bind (fun state ->
                 match state.Binding with
                 | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
-                    GameClient.mono (GameCatalog.forGame binding.GameId)
+                    GameClient.unity
+                        (binding.Evidence.Platform = ContextPlatform.NativeLinux)
+                        (GameCatalog.forGame binding.GameId)
                     |> Option.map (fun client -> Ok(state, client))
-                    |> Option.defaultValue (
-                        Error "This game does not declare a native Unity Mono loader."
-                    )
-                | _ -> Error "Select and refresh the native game installation first."))
+                    |> Option.defaultValue (Error "This game does not declare a Unity loader.")
+                | _ -> Error "Select and refresh the game installation first."))
+
+    let role client source version =
+        use query =
+            Sqlite.command
+                database.Connection
+                null
+                "SELECT path FROM mod_manifest WHERE version_id=$version"
+                [ "$version", box (string version) ]
+
+        use reader = query.ExecuteReader()
+
+        let paths =
+            seq {
+                while reader.Read() do
+                    yield LibraryEncoding.readPath (reader.GetString 0)
+            }
+
+        LoaderPackage.role client source paths
+
+    let packages profile client =
+        SelectionRows.all database.Connection null profile
+        |> List.choose (fun item ->
+            LibraryRows.find database.Connection null item.Id
+            |> Option.bind (fun row ->
+                row.Entry.CurrentVersion
+                |> Option.bind (fun id ->
+                    match role client row.Entry.Metadata.Source id with
+                    | PackageRole.Loader _ ->
+                        Some(item, VersionReference.tryDecode row.Entry.Metadata.Source)
+                    | PackageRole.Plugin -> None)))
 
     let inventory workspace profile client =
         database.Enqueue(fun () ->
             match SelectionRows.profile database.Connection null profile with
             | Some(owner, revision) when owner = workspace ->
                 let reference = LoaderPackage.reference client
-                let selected = SelectionRows.all database.Connection null profile
-
-                let packages =
-                    selected
-                    |> List.choose (fun selected ->
-                        LibraryRows.find database.Connection null selected.Id
-                        |> Option.bind (fun row ->
-                            VersionReference.tryDecode row.Entry.Metadata.Source
-                            |> Option.filter (fun item ->
-                                item.Package = reference.Package
-                                && row.Entry.CurrentVersion.IsSome)
-                            |> Option.map (fun package -> selected, package)))
 
                 let current =
-                    packages
+                    packages profile client
                     |> List.sortByDescending (fun (item, package) ->
                         item.Enabled = Some true, item.Priority, package = reference)
                     |> List.tryHead
@@ -66,7 +84,7 @@ type BepInExStore
                 |> Result.bind id
         }
 
-    member _.Read(workspace, profile) =
+    let read workspace profile =
         task {
             let! checkedScope = scope workspace profile
 
@@ -80,7 +98,7 @@ type BepInExStore
                 | Ok(revision, reference, current) ->
                     return!
                         files workspace (fun root ->
-                            Ok
+                            let state =
                                 { Workspace = workspace
                                   Profile = profile
                                   ContextRevision = context.Revision
@@ -88,7 +106,9 @@ type BepInExStore
                                   GameSha256 =
                                     context.Binding.Value.Evidence.Executable.Value.Sha256
                                   Package =
-                                    current |> Option.map snd |> Option.defaultValue reference
+                                    match current with
+                                    | Some(_, package) -> package
+                                    | None -> reference
                                   Mod = current |> Option.map (fst >> _.Id)
                                   Enabled =
                                     current
@@ -103,37 +123,40 @@ type BepInExStore
                                     BepInExWorkingStorage.available
                                         root
                                         profile
-                                        (fst WorkingPaths.logs.Head)
-                                        false })
+                                        WorkingPaths.log
+                                        false }
+
+                            Ok(state, client))
+        }
+
+    member _.Read(workspace, profile) =
+        task {
+            let! result = read workspace profile
+            return result |> Result.map fst
         }
 
     member this.Change(workspace, profile, contextRevision, selectionRevision, enabled) =
         task {
-            let! current = this.Read(workspace, profile)
+            let! current = read workspace profile
 
             match current with
             | Error detail -> return Error detail
-            | Ok current when
+            | Ok(current, _) when
                 current.ContextRevision <> contextRevision
                 || current.SelectionRevision <> selectionRevision
                 ->
                 return Error "The profile or installation changed. Read its loader selection again."
-            | Ok current when current.Mod.IsNone ->
-                return Error "Acquire the declared loader package first."
-            | Ok current ->
+            | Ok(current, _) when current.Mod.IsNone ->
+                return
+                    Error
+                        "Install a compatible loader archive or acquire the declared package first."
+            | Ok(current, client) ->
                 let! mods =
                     database.Enqueue(fun () ->
                         if enabled then
                             [ current.Mod.Value ]
                         else
-                            SelectionRows.all database.Connection null profile
-                            |> List.filter (fun item ->
-                                LibraryRows.find database.Connection null item.Id
-                                |> Option.bind (fun row ->
-                                    VersionReference.tryDecode row.Entry.Metadata.Source)
-                                |> Option.exists (fun package ->
-                                    package.Package = current.Package.Package))
-                            |> List.map _.Id)
+                            packages profile client |> List.map (fst >> _.Id))
 
                 let! changed =
                     (selection :> IModSelection)

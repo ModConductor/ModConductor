@@ -13,6 +13,7 @@ const package = ThunderstoreVersionRef(
 );
 
 class LoaderFixture implements BepInExClient {
+  ThunderstoreVersionRef? reference = package;
   String? mod;
   bool enabled = false;
   int changes = 0;
@@ -22,7 +23,7 @@ class LoaderFixture implements BepInExClient {
     profile: 'profile',
     contextRevision: 1,
     selectionRevision: changes,
-    package: package,
+    package: reference,
     enabled: enabled,
     mod: mod,
     settingsAvailable: mod != null,
@@ -155,6 +156,32 @@ Future<void> show(
 }
 
 void main() {
+  testWidgets('installed archive toggles without marketplace acquisition', (
+    tester,
+  ) async {
+    final loader = LoaderFixture()
+      ..reference = null
+      ..mod = 'archive';
+    final packages = PackageFixture(loader);
+    final updates = ChangeNotifier();
+    await show(tester, loader, packages, updates);
+    expect(
+      tester
+          .widget<McComponentChoiceRow>(find.byType(McComponentChoiceRow))
+          .onOpenPage,
+      isNull,
+    );
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(loader.enabled, isTrue);
+    expect(packages.acquisitions, 0);
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(loader.enabled, isFalse);
+    expect(loader.mod, 'archive');
+    await tester.pumpWidget(const SizedBox.shrink());
+    updates.dispose();
+  });
   testWidgets(
     'direct toggle acquires then enables, and disables without reacquisition',
     (tester) async {

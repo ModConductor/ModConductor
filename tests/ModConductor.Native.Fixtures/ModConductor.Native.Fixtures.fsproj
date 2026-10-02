@@ -63,6 +63,7 @@
     <Compile Include="UnityMonoEnvironment.fs"/>
     <Compile Include="UnityMonoWireFixtures.fs"/>
     <Compile Include="UnityMonoFixtures.fs"/>
+    <Compile Include="UnityIl2CppFixtures.fs"/>
     <Compile Include="UnityMonoRuntimeFixtures.fs"/>
     <Compile Include="UnrealOrderFixtures.fs" />
     <Compile Include="UnrealFixtures.fs" />

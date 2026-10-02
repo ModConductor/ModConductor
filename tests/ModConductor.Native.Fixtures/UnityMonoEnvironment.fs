@@ -16,12 +16,15 @@ module UnityMonoEnvironment =
 
     let token = CancellationToken.None
 
-    let create (store: OperationStore) area game =
+    let createFor (store: OperationStore) area (definition: GameDefinition) game proton =
         let workspace = Guid.NewGuid()
         let first, second = Guid.NewGuid(), Guid.NewGuid()
         let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
         let ws = store.Workspaces :> IWorkspaceState
-        let initial = ws.Create(workspace, "Unity Mono", StorageWorker.select root) |> get
+
+        let initial =
+            ws.Create(workspace, definition.Name, StorageWorker.select root) |> get
+
         let mutable revision = initial.Workspace.Revision
 
         for profile in [ first; second ] do
@@ -40,15 +43,18 @@ module UnityMonoEnvironment =
                     workspace,
                     profile,
                     0L,
-                    { GameId = Valheim.definition.Id
+                    { GameId = definition.Id
                       Path = game
-                      Proton = None
+                      Proton = proton
                       Wine = None }
                 )
             |> get
             |> ignore
 
         workspace, first, second, root
+
+    let create store area game =
+        createFor store area Valheim.definition game None
 
     let acquire (store: OperationStore) workspace =
         use loader = new DownloadServer(UnityMonoSamples.loader ())

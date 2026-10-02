@@ -203,7 +203,7 @@ mixin _ShellContent
                       ),
                     ),
                   )
-                : _supportsUnityMono &&
+                : _supportsUnity &&
                       widget.bepInEx != null &&
                       widget.thunderstore != null &&
                       workspace.selectedProfile != null

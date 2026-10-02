@@ -20,7 +20,7 @@ class BepInExState {
   });
   final String workspace, profile;
   final int contextRevision, selectionRevision;
-  final ThunderstoreVersionRef package;
+  final ThunderstoreVersionRef? package;
   final String? mod;
   final bool enabled, settingsAvailable, logAvailable;
 }
@@ -86,14 +86,16 @@ class GrpcBepInExClient implements BepInExClient {
         profile: state.profileId,
         contextRevision: state.contextRevision.toInt(),
         selectionRevision: state.selectionRevision.toInt(),
-        package: ThunderstoreVersionRef(
-          ThunderstorePackageRef(
-            package.package.community,
-            package.package.namespace,
-            package.package.name,
-          ),
-          package.version,
-        ),
+        package: state.hasPackage()
+            ? ThunderstoreVersionRef(
+                ThunderstorePackageRef(
+                  package.package.community,
+                  package.package.namespace,
+                  package.package.name,
+                ),
+                package.version,
+              )
+            : null,
         mod: state.hasModId() ? state.modId : null,
         enabled: state.enabled,
         settingsAvailable: state.settingsAvailable,

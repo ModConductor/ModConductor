@@ -196,7 +196,9 @@ module internal ComponentRoutes =
 
                 let previous =
                     match
-                        GameClient.mono (GameCatalog.forGame sources.Context.Binding.Value.GameId)
+                        GameClient.unity
+                            (sources.Context.Binding.Value.Evidence.Platform = ContextPlatform.NativeLinux)
+                            (GameCatalog.forGame sources.Context.Binding.Value.GameId)
                     with
                     | Some client ->
                         BepInExComponents.read database gameRoot routeSources selected client

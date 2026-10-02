@@ -26,7 +26,8 @@ module GameCatalog =
           CreationDefinitions.oblivionRemastered
           Valheim.definition
           UnrealDefinitions.satisfactory
-          UnrealDefinitions.subnautica2 ]
+          UnrealDefinitions.subnautica2
+          UnityIl2CppDefinitions.sonsOfTheForest ]
 
     let forGame =
         function
@@ -56,6 +57,7 @@ module GameCatalog =
         | GameId.ValheimSteam -> Valheim.definition
         | GameId.SatisfactorySteam -> UnrealDefinitions.satisfactory
         | GameId.Subnautica2Steam -> UnrealDefinitions.subnautica2
+        | GameId.SonsOfTheForestSteam -> UnityIl2CppDefinitions.sonsOfTheForest
 
     let forRuntime game version =
         if game = GameId.SkyrimSpecialEditionDirect && Skyrim.isGogRuntime version then
@@ -69,6 +71,7 @@ module GameCatalog =
         match (forGame game).Client with
         | GameClient.Bethesda -> true
         | GameClient.UnityMono _
+        | GameClient.UnityIl2Cpp _
         | GameClient.Unreal _ -> false
 
     let rules =
@@ -101,7 +104,8 @@ module GameCatalog =
         | GameId.OblivionRemasteredSteam -> CreationRules.oblivionRemastered
         | GameId.ValheimSteam
         | GameId.SatisfactorySteam
-        | GameId.Subnautica2Steam -> invalidOp "This game does not declare Bethesda rules."
+        | GameId.Subnautica2Steam
+        | GameId.SonsOfTheForestSteam -> invalidOp "This game does not declare Bethesda rules."
 
     let tryRules game =
         if isBethesda game then Some(rules game) else None

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup>
+    <Compile Include="WineDllOverrides.fs" />
     <Compile Include="Paths.fs" />
     <Compile Include="Facts.fs" />
     <Compile Include="Native.fs" />

@@ -57,10 +57,12 @@ class LoaderController extends ChangeNotifier {
   }
 
   Future<bool> _acquire(BepInExState target) async {
-    final acquisition = _acquisition = packages.acquire(
-      workspace,
-      target.package,
-    );
+    final package = target.package;
+    if (package == null) {
+      problem = 'Install a compatible BepInEx loader archive through the mod library first.';
+      return false;
+    }
+    final acquisition = _acquisition = packages.acquire(workspace, package);
     bool complete = false;
     try {
       await for (final value in acquisition.progress) {

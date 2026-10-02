@@ -69,6 +69,7 @@ class _BepInExSectionState extends State<BepInExSection> {
     listenable: controller,
     builder: (context, _) {
       final state = controller.state;
+      final package = state?.package;
       return Padding(
         padding: const EdgeInsets.only(top: McSpacing.large),
         child: McSection(
@@ -82,20 +83,23 @@ class _BepInExSectionState extends State<BepInExSection> {
                 children: [
                   Expanded(
                     child: McComponentChoiceRow(
-                      name: state.package.package.name,
+                      name: package?.package.name ?? 'BepInEx',
                       kind: 'Mod loader',
                       current: state.mod == null
                           ? 'Not installed'
-                          : 'Pack ${state.package.version} · ${state.enabled ? 'Enabled' : 'Disabled'}',
+                          : '${package == null ? 'Archive' : 'Pack ${package.version}'} · ${state.enabled ? 'Enabled' : 'Disabled'}',
                       installed: state.mod != null,
                       selected: state.enabled,
-                      iconUrl:
-                          'https://ccdn.thunderstore.io/live/repository/icons/${state.package.package.namespace}-${state.package.package.name}-${state.package.version}.png',
+                      iconUrl: package == null
+                          ? null
+                          : 'https://ccdn.thunderstore.io/live/repository/icons/${package.package.namespace}-${package.package.name}-${package.version}.png',
                       enabled: !controller.busy,
                       onToggle: () => unawaited(controller.toggle()),
-                      onOpenPage: () => unawaited(
-                        widget.packages.openPage(state.package.package),
-                      ),
+                      onOpenPage: package == null
+                          ? null
+                          : () => unawaited(
+                              widget.packages.openPage(package.package),
+                            ),
                     ),
                   ),
                   const SizedBox(width: McSpacing.medium),

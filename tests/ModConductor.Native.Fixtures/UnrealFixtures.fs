@@ -242,7 +242,7 @@ module UnrealFixtures =
         check
             writer
             "Proton override merge preserves unrelated names and replaces only the selected proxy"
-            (Launch.wineOverrides "other,dwmapi=b;dxgi=n" "dwmapi.dll" = "other=b;dxgi=n;dwmapi=n,b")
+            (WineDllOverrides.withNative "other,dwmapi=b;dxgi=n" "dwmapi.dll" = "other=b;dxgi=n;dwmapi=n,b")
 
         let cooked = UnrealDefinitions.satisfactory
 

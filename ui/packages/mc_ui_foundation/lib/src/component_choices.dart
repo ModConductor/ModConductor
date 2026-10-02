@@ -68,7 +68,8 @@ class McComponentChoiceRow extends StatelessWidget {
   final Map<String, String>? iconHeaders;
   final BoxFit iconFit;
   final bool installed, selected, updating, archiveRequired, enabled;
-  final VoidCallback onToggle, onOpenPage;
+  final VoidCallback onToggle;
+  final VoidCallback? onOpenPage;
   final VoidCallback? onUpdate, onChooseArchive, onClearArchive;
 
   @override
