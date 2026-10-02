@@ -10,6 +10,7 @@ class _DesktopShell extends StatelessWidget {
     required this.onQuit,
     required this.workspacesFocus,
     required this.preferencesFocus,
+    required this.gamesFocus,
     required this.quitFocus,
     required this.onToggleTheme,
     required this.labels,
@@ -24,6 +25,7 @@ class _DesktopShell extends StatelessWidget {
   final VoidCallback onQuit;
   final FocusNode workspacesFocus;
   final FocusNode preferencesFocus;
+  final FocusNode gamesFocus;
   final FocusNode quitFocus;
   final VoidCallback? onToggleTheme;
   final AppLocalizations labels;
@@ -80,15 +82,13 @@ class _DesktopShell extends StatelessWidget {
                       Semantics(
                         selected: destination == item,
                         child: TextButton(
-                          key: ValueKey(
-                            item == _Destination.workspaces
-                                ? 'nav-workspaces'
-                                : 'nav-preferences',
-                          ),
+                          key: ValueKey('nav-${item.name}'),
                           autofocus: item == _Destination.workspaces,
-                          focusNode: item == _Destination.workspaces
-                              ? workspacesFocus
-                              : preferencesFocus,
+                          focusNode: switch (item) {
+                            _Destination.workspaces => workspacesFocus,
+                            _Destination.games => gamesFocus,
+                            _Destination.preferences => preferencesFocus,
+                          },
                           style: TextButton.styleFrom(
                             backgroundColor: destination == item
                                 ? Theme.of(context).colorScheme.primary
@@ -100,15 +100,19 @@ class _DesktopShell extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               McIconLabel(
-                                icon: Icon(
-                                  item == _Destination.workspaces
-                                      ? Icons.home_outlined
-                                      : Icons.tune,
-                                  size: 18,
-                                ),
-                                label: item == _Destination.workspaces
-                                    ? labels.workspaces
-                                    : labels.preferences,
+                                icon: Icon(switch (item) {
+                                  _Destination.workspaces =>
+                                    Icons.home_outlined,
+                                  _Destination.games =>
+                                    Icons.sports_esports_outlined,
+                                  _Destination.preferences => Icons.tune,
+                                }, size: 18),
+                                label: switch (item) {
+                                  _Destination.workspaces => labels.workspaces,
+                                  _Destination.games => 'Games',
+                                  _Destination.preferences =>
+                                    labels.preferences,
+                                },
                               ),
                               if (item == _Destination.preferences &&
                                   updateAvailable) ...[

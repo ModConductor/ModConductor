@@ -25,6 +25,12 @@ module internal GameContextRows =
             use row = query.ExecuteReader()
 
             if row.Read() then
+                let evidence = GameContextEncoding.decode (row.GetString 4)
+
+                let definitionChanged =
+                    (GameCatalog.forGame evidence.DefinitionId).Revision
+                    <> evidence.DefinitionRevision
+
                 Ok
                     { WorkspaceId = workspace
                       ProfileId = profile
@@ -47,8 +53,11 @@ module internal GameContextRows =
                                     None
                                 else
                                     Some(WineEncoding.decodeSelection (row.GetString 8))
-                              Evidence = GameContextEncoding.decode (row.GetString 4)
-                              NeedsCheck = row.GetString 5 <> owner || not (row.IsDBNull 6)
+                              Evidence = evidence
+                              NeedsCheck =
+                                definitionChanged
+                                || row.GetString 5 <> owner
+                                || not (row.IsDBNull 6)
                               Failure = if row.IsDBNull 6 then None else Some(row.GetString 6) } }
             else
                 Ok

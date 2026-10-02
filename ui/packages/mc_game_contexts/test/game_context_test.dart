@@ -8,7 +8,7 @@ import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 const definition = GameDefinitionInfo(
-  id: 'skyrim',
+  id: 'skyrim-se-steam',
   revision: 1,
   name: 'Skyrim Special Edition',
   storefront: 'Steam',

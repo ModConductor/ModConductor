@@ -29,6 +29,7 @@ type GameId =
     | SatisfactorySteam
     | Subnautica2Steam
     | SonsOfTheForestSteam
+    | Custom of identity: System.Guid
 
 module GameId =
     let value =
@@ -60,6 +61,7 @@ module GameId =
         | GameId.SatisfactorySteam -> "satisfactory-steam"
         | GameId.Subnautica2Steam -> "subnautica2-steam"
         | GameId.SonsOfTheForestSteam -> "sons-of-the-forest-steam"
+        | GameId.Custom identity -> "custom-" + identity.ToString("N")
 
     let tryParse =
         function
@@ -89,4 +91,8 @@ module GameId =
         | "satisfactory-steam" -> Some GameId.SatisfactorySteam
         | "subnautica2-steam" -> Some GameId.Subnautica2Steam
         | "sons-of-the-forest-steam" -> Some GameId.SonsOfTheForestSteam
+        | value when value.StartsWith("custom-", System.StringComparison.Ordinal) ->
+            match System.Guid.TryParseExact(value.Substring(7), "N") with
+            | true, identity when identity <> System.Guid.Empty -> Some(GameId.Custom identity)
+            | _ -> None
         | _ -> None

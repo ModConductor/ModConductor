@@ -5,6 +5,7 @@
     <Compile Include="Json.fs" />
     <Compile Include="Transport.fs" />
     <Compile Include="Reader.fs" />
+    <Compile Include="Ecosystem.fs" />
     <Compile Include="Dependencies.fs" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>

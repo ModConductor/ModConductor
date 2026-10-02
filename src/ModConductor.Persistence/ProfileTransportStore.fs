@@ -25,6 +25,7 @@ type ProfileSourceRequirement =
 type ProfileTransportPreview =
     { Name: string
       Game: string
+      GameDefinition: ModConductor.GameCatalogue.Serialization.GameDocument option
       Mods: int
       ModFiles: int
       SaveFiles: int
@@ -42,10 +43,19 @@ type ProfileTransportStore
         inspection: ModConductor.ArchiveInspection.Inspection,
         images: IProfileImages,
         profileData: IProfileGameData,
+        catalogue: ModConductor.GameCatalogue.Catalogue,
         directory: string
     ) =
     let writer =
-        ProfileTransportWriter(database, access, artifacts, inspection, images, directory)
+        ProfileTransportWriter(
+            database,
+            access,
+            artifacts,
+            inspection,
+            images,
+            catalogue,
+            directory
+        )
 
     let importMod =
         ProfileTransportImportMod(database, access, library, installations, artifacts, directory)
@@ -103,6 +113,11 @@ type ProfileTransportStore
     let preview (profile: PortableProfile) =
         { Name = profile.Name
           Game = profile.Game
+          GameDefinition =
+            profile.GameDefinition
+            |> Option.map (fun text ->
+                ModConductor.GameCatalogue.PortableDefinition.read profile.Game text
+                |> Result.defaultWith (fun problem -> raise (InvalidDataException problem)))
           Mods = profile.Mods |> List.filter (fun value -> value.Kind = "regular") |> List.length
           ModFiles =
             profile.Mods
@@ -120,10 +135,26 @@ type ProfileTransportStore
                       ArchiveName = baseSource.ArchiveName
                       Sha256 = baseSource.ArchiveSha256
                       Length = baseSource.ArchiveLength
-                      ProviderGame = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.Game | PortableSource.Thunderstore _ -> None)
-                      ProviderMod = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.ModId | PortableSource.Thunderstore _ -> None)
-                      ProviderFile = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.FileId | PortableSource.Thunderstore _ -> None)
-                      ProviderVersion = value.Source |> Option.bind (function PortableSource.Nexus value -> Some value.FileVersion | PortableSource.Thunderstore value -> Some value.Version) }))
+                      ProviderGame =
+                        value.Source
+                        |> Option.bind (function
+                            | PortableSource.Nexus value -> Some value.Game
+                            | PortableSource.Thunderstore _ -> None)
+                      ProviderMod =
+                        value.Source
+                        |> Option.bind (function
+                            | PortableSource.Nexus value -> Some value.ModId
+                            | PortableSource.Thunderstore _ -> None)
+                      ProviderFile =
+                        value.Source
+                        |> Option.bind (function
+                            | PortableSource.Nexus value -> Some value.FileId
+                            | PortableSource.Thunderstore _ -> None)
+                      ProviderVersion =
+                        value.Source
+                        |> Option.bind (function
+                            | PortableSource.Nexus value -> Some value.FileVersion
+                            | PortableSource.Thunderstore value -> Some value.Version) }))
             |> List.choose id }
 
     let validate (profile: PortableProfile) =
@@ -569,6 +600,7 @@ type ProfileTransportStore
                     Ok
                         { Name = observed.Name
                           Game = observed.Game
+                          GameDefinition = catalogue.Read observed.Game
                           Mods = mods.Length
                           ModFiles =
                             mods
@@ -635,54 +667,64 @@ type ProfileTransportStore
                                 )
                             )
 
-                let! created = createProfile workspace targetProfile name value.Game
+                let registration =
+                    match value.GameDefinition with
+                    | Some definition -> catalogue.Import(value.Game, definition)
+                    | None when (GameCatalog.tryParse value.Game).IsNone ->
+                        Error "This profile needs its custom game definition."
+                    | None -> Ok()
 
-                let profile =
-                    match created with
-                    | Ok profile -> profile
-                    | Error problem -> raise (InvalidDataException problem)
+                match registration with
+                | Error problem -> return Error problem
+                | Ok() ->
+                    let! created = createProfile workspace targetProfile name value.Game
 
-                let imported = ResizeArray<PortableMod * Guid>()
+                    let profile =
+                        match created with
+                        | Ok profile -> profile
+                        | Error problem -> raise (InvalidDataException problem)
 
-                for index, modItem in value.Mods |> List.indexed do
-                    token.ThrowIfCancellationRequested()
-                    let artifact = artifactsByMod |> Map.tryFind index
+                    let imported = ResizeArray<PortableMod * Guid>()
 
-                    let! modId, _ =
-                        importMod.Import(workspace, profile, modItem, artifact, bundle, token)
+                    for index, modItem in value.Mods |> List.indexed do
+                        token.ThrowIfCancellationRequested()
+                        let artifact = artifactsByMod |> Map.tryFind index
 
-                    imported.Add(modItem, modId)
+                        let! modId, _ =
+                            importMod.Import(workspace, profile, modItem, artifact, bundle, token)
 
-                do! selectMods workspace profile (imported |> Seq.toList)
-                do! restorePrivate workspace profile value bundle token
+                        imported.Add(modItem, modId)
 
-                match value.Artwork with
-                | Some file ->
-                    let stage =
-                        Path.Combine(
-                            directory,
-                            "profile-transport",
-                            Guid.NewGuid().ToString("N") + ".image"
-                        )
+                    do! selectMods workspace profile (imported |> Seq.toList)
+                    do! restorePrivate workspace profile value bundle token
 
-                    Directory.CreateDirectory(Path.GetDirectoryName stage) |> ignore
+                    match value.Artwork with
+                    | Some file ->
+                        let stage =
+                            Path.Combine(
+                                directory,
+                                "profile-transport",
+                                Guid.NewGuid().ToString("N") + ".image"
+                            )
 
-                    try
-                        match file.Content with
-                        | PortableContent.Payload(memberName, sha, _) ->
-                            bundle.Copy(memberName, stage, Some sha)
-                        | _ -> raise (InvalidDataException "The custom image is invalid.")
+                        Directory.CreateDirectory(Path.GetDirectoryName stage) |> ignore
 
-                        let! saved = images.Set(workspace, profile, Some stage)
+                        try
+                            match file.Content with
+                            | PortableContent.Payload(memberName, sha, _) ->
+                                bundle.Copy(memberName, stage, Some sha)
+                            | _ -> raise (InvalidDataException "The custom image is invalid.")
 
-                        if Result.isError saved then
-                            raise (InvalidDataException "The custom image could not be saved.")
-                    finally
-                        if File.Exists stage then
-                            File.Delete stage
-                | None -> ()
+                            let! saved = images.Set(workspace, profile, Some stage)
 
-                return Ok profile
+                            if Result.isError saved then
+                                raise (InvalidDataException "The custom image could not be saved.")
+                        finally
+                            if File.Exists stage then
+                                File.Delete stage
+                    | None -> ()
+
+                    return Ok profile
             with
             | :? InvalidDataException as error -> return Error error.Message
             | :? OperationCanceledException ->

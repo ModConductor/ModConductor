@@ -326,6 +326,7 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
     $core.bool? supportsLightPlugins,
     $core.bool? supportsMediumPlugins,
     $core.bool? archiveInvalidation,
+    $core.String? thunderstoreCommunity,
   }) {
     final result = create();
     if (definitionId != null) result.definitionId = definitionId;
@@ -349,6 +350,8 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
       result.supportsMediumPlugins = supportsMediumPlugins;
     if (archiveInvalidation != null)
       result.archiveInvalidation = archiveInvalidation;
+    if (thunderstoreCommunity != null)
+      result.thunderstoreCommunity = thunderstoreCommunity;
     return result;
   }
 
@@ -386,6 +389,7 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
     ..aOB(14, _omitFieldNames ? '' : 'supportsLightPlugins')
     ..aOB(15, _omitFieldNames ? '' : 'supportsMediumPlugins')
     ..aOB(16, _omitFieldNames ? '' : 'archiveInvalidation')
+    ..aOS(17, _omitFieldNames ? '' : 'thunderstoreCommunity')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -539,6 +543,15 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
   $core.bool hasArchiveInvalidation() => $_has(15);
   @$pb.TagNumber(16)
   void clearArchiveInvalidation() => $_clearField(16);
+
+  @$pb.TagNumber(17)
+  $core.String get thunderstoreCommunity => $_getSZ(16);
+  @$pb.TagNumber(17)
+  set thunderstoreCommunity($core.String value) => $_setString(16, value);
+  @$pb.TagNumber(17)
+  $core.bool hasThunderstoreCommunity() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearThunderstoreCommunity() => $_clearField(17);
 }
 
 class UnavailableGameCapability extends $pb.GeneratedMessage {

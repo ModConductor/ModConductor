@@ -27,34 +27,38 @@ class ProfileSetupGame {
   final int steamAppId;
   final List<GameDefinitionInfo> variants;
   final String artworkUrl;
-  bool get nativeClient => variants.any(
-    (game) => game.capability(GameCapabilityId.unityMono) != null,
-  );
+  bool get nativeClient => variants.any((game) => game.nativeLinux);
   List<GameInstallationSource> get sources => variants.isEmpty
       ? [GameInstallationSource.fromGameId(id)]
       : variants
-            .map((game) => GameInstallationSource.fromGameId(game.id))
+            .map((game) => GameInstallationSource.fromDefinition(game))
             .toList();
   String forSource(GameInstallationSource source) => variants.isEmpty
       ? id
       : variants
             .firstWhere(
-              (game) => GameInstallationSource.fromGameId(game.id) == source,
+              (game) => GameInstallationSource.fromDefinition(game) == source,
             )
             .id;
 
   static List<ProfileSetupGame> fromCatalogue(
-    List<GameDefinitionInfo> catalogue,
-  ) {
+    List<GameDefinitionInfo> catalogue, {
+    GameDefinitionInfo? pending,
+  }) {
     final groups = <String, List<GameDefinitionInfo>>{};
-    for (final definition in catalogue) {
-      groups.putIfAbsent(definition.name, () => []).add(definition);
+    final choices = [
+      ...catalogue,
+      if (pending != null && !catalogue.any((row) => row.id == pending.id))
+        pending,
+    ];
+    for (final definition in choices) {
+      groups.putIfAbsent(definition.variantGroupId, () => []).add(definition);
     }
     return groups.values
         .map(
           (variants) => ProfileSetupGame(
             id: variants.first.id,
-            name: variants.first.name,
+            name: variants.first.selectionLabel(choices),
             storefront: variants.first.storefront,
             steamAppId: variants.first.declaredSteamAppId,
             artworkUrl: variants.first.artworkUrl,
@@ -109,6 +113,7 @@ class ProfileSetupSurface extends StatefulWidget {
     this.chooseExecutable,
     this.initialProblem,
     this.protonContexts,
+    this.onAddGame,
   });
 
   final String initialName;
@@ -128,6 +133,7 @@ class ProfileSetupSurface extends StatefulWidget {
   final GameDirectoryChooser? chooseExecutable;
   final String? initialProblem;
   final ProtonContextsClient? protonContexts;
+  final Future<RegisteredGame?> Function()? onAddGame;
 
   @override
   State<ProfileSetupSurface> createState() => _ProfileSetupSurfaceState();
@@ -254,6 +260,13 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       searching = false;
       problem = null;
     });
+  }
+
+  Future<void> addGame() async {
+    final added = await widget.onAddGame?.call();
+    if (!mounted || added == null) return;
+    selectGame(ProfileSetupGame.fromCatalogue([added.game]).first);
+    folder.text = added.path;
   }
 
   Future<void> chooseFolder() async {

@@ -196,6 +196,7 @@
           "ModConductor.Diagnostics": "[1.0.0, )",
           "ModConductor.Enb": "[1.0.0, )",
           "ModConductor.Fnis": "[1.0.0, )",
+          "ModConductor.GameDiscovery": "[1.0.0, )",
           "ModConductor.Loot": "[1.0.0, )",
           "ModConductor.Migration": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
@@ -243,11 +244,34 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.gamecatalogue": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.GameCatalogue.Serialization": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
+        }
+      },
+      "modconductor.gamecatalogue.serialization": {
+        "type": "Project",
+        "dependencies": {
+          "Tomlyn": "[2.10.1, )"
+        }
+      },
       "modconductor.gamecontexts": {
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "modconductor.gamediscovery": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.GameCatalogue": "[1.0.0, )",
+          "ModConductor.Thunderstore": "[1.0.0, )"
         }
       },
       "modconductor.gamelaunching": {
@@ -357,6 +381,7 @@
           "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.Fnis": "[1.0.0, )",
           "ModConductor.Fomod": "[1.0.0, )",
+          "ModConductor.GameCatalogue": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.GameLaunching": "[1.0.0, )",
           "ModConductor.GeneratedOutputs": "[1.0.0, )",

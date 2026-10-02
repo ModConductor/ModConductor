@@ -19,6 +19,7 @@ type ProfileTransportWriter
         artifacts: IArtifactLibrary,
         inspection: Inspection,
         images: ModConductor.Workspaces.IProfileImages,
+        catalogue: ModConductor.GameCatalogue.Catalogue,
         directory: string
     ) =
     let copiedPayload root workspace (payload: Payload) destination =
@@ -445,6 +446,7 @@ type ProfileTransportWriter
                         let portable =
                             { Name = observed.Name
                               Game = observed.Game
+                              GameDefinition = catalogue.Portable observed.Game
                               Mods = portableMods |> Seq.toList
                               PluginOrder = observed.PluginOrder
                               SettingsEnabled = observed.SettingsEnabled

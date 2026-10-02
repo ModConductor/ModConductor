@@ -79,6 +79,10 @@ module internal ProfileTransportJson =
         writer.WriteString("patchEncoding", Encoding)
         writer.WriteString("name", profile.Name)
         writer.WriteString("game", profile.Game)
+
+        profile.GameDefinition
+        |> Option.iter (fun definition -> writer.WriteString("gameDefinition", definition))
+
         writer.WritePropertyName "mods"
         writer.WriteStartArray()
 
@@ -219,12 +223,25 @@ module internal ProfileTransportJson =
             None
         else
             match text value "provider" with
-            | "nexus" -> Some(PortableSource.Nexus { Game = text value "game"; ModId = number value "mod"; FileId = number value "file"; FileVersion = text value "fileVersion" })
+            | "nexus" ->
+                Some(
+                    PortableSource.Nexus
+                        { Game = text value "game"
+                          ModId = number value "mod"
+                          FileId = number value "file"
+                          FileVersion = text value "fileVersion" }
+                )
             | "thunderstore" ->
                 let source: ModConductor.Thunderstore.VersionReference =
-                    { Package = { Community = text value "community"; Namespace = text value "namespace"; Name = text value "name" }; Version = text value "version" }
+                    { Package =
+                        { Community = text value "community"
+                          Namespace = text value "namespace"
+                          Name = text value "name" }
+                      Version = text value "version" }
+
                 if not (ModConductor.Thunderstore.VersionReference.valid source) then
                     raise (InvalidDataException "The profile has an invalid Thunderstore source.")
+
                 Some(PortableSource.Thunderstore source)
             | _ -> raise (InvalidDataException "The profile has an unsupported source provider.")
 
@@ -289,6 +306,10 @@ module internal ProfileTransportJson =
 
             { Name = text value "name"
               Game = text value "game"
+              GameDefinition =
+                match value.TryGetProperty "gameDefinition" with
+                | true, field when field.ValueKind = JsonValueKind.String -> Some(field.GetString())
+                | _ -> None
               Mods = items value "mods" |> List.map readMod
               PluginOrder =
                 items value "pluginOrder"

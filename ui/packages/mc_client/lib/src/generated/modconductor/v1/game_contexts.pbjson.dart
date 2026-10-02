@@ -231,6 +231,13 @@ const GameDefinitionInfo$json = {
       '5': 8,
       '10': 'archiveInvalidation'
     },
+    {
+      '1': 'thunderstore_community',
+      '3': 17,
+      '4': 1,
+      '5': 9,
+      '10': 'thunderstoreCommunity'
+    },
   ],
 };
 
@@ -249,7 +256,8 @@ final $typed_data.Uint8List gameDefinitionInfoDescriptor = $convert.base64Decode
     'dGVuZGVyX2xvYWRlchgNIAEoCVIOZXh0ZW5kZXJMb2FkZXISNAoWc3VwcG9ydHNfbGlnaHRfcG'
     'x1Z2lucxgOIAEoCFIUc3VwcG9ydHNMaWdodFBsdWdpbnMSNgoXc3VwcG9ydHNfbWVkaXVtX3Bs'
     'dWdpbnMYDyABKAhSFXN1cHBvcnRzTWVkaXVtUGx1Z2lucxIxChRhcmNoaXZlX2ludmFsaWRhdG'
-    'lvbhgQIAEoCFITYXJjaGl2ZUludmFsaWRhdGlvbg==');
+    'lvbhgQIAEoCFITYXJjaGl2ZUludmFsaWRhdGlvbhI1ChZ0aHVuZGVyc3RvcmVfY29tbXVuaXR5'
+    'GBEgASgJUhV0aHVuZGVyc3RvcmVDb21tdW5pdHk=');
 
 @$core.Deprecated('Use unavailableGameCapabilityDescriptor instead')
 const UnavailableGameCapability$json = {

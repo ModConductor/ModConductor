@@ -10,7 +10,18 @@ class _ProfileCreationAttempt {
   bool selectionAttempted = false;
 }
 
-mixin _ProfileCreation on _AppStateBase {
+mixin _ProfileCreation on _AppStateBase, _ProfileCommit {
+  Future<RegisteredGame?> _addGame() async {
+    final client = widget.gameCatalogue;
+    if (client is! GameRegistrationClient) return null;
+    return showGameEditor(
+      context,
+      client as GameRegistrationClient,
+      _gameCatalogue,
+      widget.chooseGameDirectory,
+    );
+  }
+
   List<ProfileSetupGame> get _profileSetupGames =>
       ProfileSetupGame.fromCatalogue(_gameCatalogue.games);
 
@@ -126,12 +137,15 @@ mixin _ProfileCreation on _AppStateBase {
       initialGameId: state.definition?.id,
       nameEditable: false,
       games: _profileSetupGames,
+      onAddGame: _addGame,
       discovery: widget.steamDiscovery,
       chooseDirectory: widget.chooseGameDirectory,
       protonContexts: widget.protonContexts,
       initialInstallation: binding?.path,
       initialProton: binding?.proton,
-      initialSource: GameInstallationSource.fromGameId(state.definition?.id),
+      initialSource: state.definition == null
+          ? GameInstallationSource.steam
+          : GameInstallationSource.fromDefinition(state.definition!),
       initialWine: binding?.wine,
       chooseExecutable: widget.chooseExecutable,
       initialProblem: _game.problem ?? binding?.failure,
@@ -142,29 +156,46 @@ mixin _ProfileCreation on _AppStateBase {
 
   Future<void> _createProfile(
     BuildContext context,
-    WorkspaceInfo workspace,
-  ) async {
+    WorkspaceInfo workspace, {
+    ProfileTransportPreview? portable,
+  }) async {
     final attempt = _ProfileCreationAttempt();
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => ListenableBuilder(
         listenable: _gameCatalogue,
-        builder: (_, _) => _profileSetupGames.isEmpty
-            ? _gameListWaiting()
-            : ProfileSetupSurface(
-                initialName: '',
-                games: _profileSetupGames,
-                discovery: widget.steamDiscovery,
-                chooseDirectory: widget.chooseGameDirectory,
-                chooseExecutable: widget.chooseExecutable,
-                protonContexts: widget.protonContexts,
-                actionLabel: 'Create profile',
-                canCancel: true,
-                onCancel: () => Navigator.pop(dialogContext),
-                onComplete: () => Navigator.pop(dialogContext),
-                onSubmit: (selection) =>
-                    _submitProfileCreation(workspace, attempt, selection),
-              ),
+        builder: (_, _) {
+          final declaration = portable?.registrationGame;
+          final games = ProfileSetupGame.fromCatalogue(
+            _gameCatalogue.games,
+            pending: declaration,
+          );
+          return games.isEmpty
+              ? _gameListWaiting()
+              : ProfileSetupSurface(
+                  initialName: '',
+                  initialGameId: portable?.game,
+                  initialSource: declaration == null
+                      ? GameInstallationSource.steam
+                      : GameInstallationSource.fromDefinition(declaration),
+                  games: games,
+                  onAddGame: _addGame,
+                  discovery: widget.steamDiscovery,
+                  chooseDirectory: widget.chooseGameDirectory,
+                  chooseExecutable: widget.chooseExecutable,
+                  protonContexts: widget.protonContexts,
+                  actionLabel: 'Create profile',
+                  canCancel: true,
+                  onCancel: () => Navigator.pop(dialogContext),
+                  onComplete: () => Navigator.pop(dialogContext),
+                  onSubmit: (selection) => _submitProfileCreation(
+                    workspace,
+                    attempt,
+                    selection,
+                    portable?.gameDefinition,
+                  ),
+                );
+        },
       ),
     );
   }
@@ -172,14 +203,22 @@ mixin _ProfileCreation on _AppStateBase {
   Future<String?> _submitProfileCreation(
     WorkspaceInfo workspace,
     _ProfileCreationAttempt attempt,
-    ProfileSetupSelection selection,
-  ) async {
+    ProfileSetupSelection selection, [
+    CustomGameDraft? portable,
+  ]) async {
     if (_workspaces.workspace?.id != workspace.id) {
       return 'The workspace changed. Start profile setup again.';
     }
     final client = widget.gameContexts;
     if (client == null) {
       return 'The profile setup is not available.';
+    }
+    if (portable != null && selection.gameId == portable.id) {
+      final failure = await _gameCatalogue.registerPortable(
+        widget.gameCatalogue,
+        portable,
+      );
+      if (failure != null) return failure;
     }
     attempt.created ??= await _workspaces.createProfile(
       selection.name,
@@ -206,117 +245,5 @@ mixin _ProfileCreation on _AppStateBase {
     } on Exception catch (failure) {
       return _profileSetupFailure(failure);
     }
-  }
-
-  Future<GameContextState> _saveCreatedProfileContext(
-    WorkspaceInfo workspace,
-    ProfileInfo profile,
-    GameContextsClient client,
-    ProfileSetupSelection selection,
-    _ProfileCreationAttempt attempt,
-  ) async {
-    var saved = attempt.committedContext;
-    if (saved != null &&
-        identical(attempt.committedClient, client) &&
-        _sameProfileSetup(attempt.committedSelection, selection)) {
-      return saved;
-    }
-    final loaded = await client.read(workspace.id, profile.id);
-    if (_sameProfileSetup(attempt.attemptedSelection, selection) &&
-        _profileSetupIsReady(loaded, selection)) {
-      saved = loaded;
-    } else {
-      attempt.attemptedSelection = selection;
-      attempt.committedContext = null;
-      attempt.committedClient = null;
-      attempt.committedSelection = null;
-      saved = await client.save(
-        workspace.id,
-        profile.id,
-        selection.gameId,
-        loaded.revision,
-        selection.installation,
-        proton: selection.proton,
-        wine: selection.wine,
-      );
-    }
-    attempt.committedContext = saved;
-    attempt.committedClient = client;
-    attempt.committedSelection = selection;
-    return saved;
-  }
-
-  Future<String?> _selectCreatedProfile(
-    WorkspaceInfo workspace,
-    ProfileInfo profile,
-    _ProfileCreationAttempt attempt,
-  ) async {
-    if (attempt.selectionAttempted) {
-      await _workspaces.refresh();
-      if (_workspaces.currentProblem != null) {
-        return _workspaces.currentProblem;
-      }
-    }
-    if (_workspaces.workspace?.id != workspace.id) {
-      return 'The workspace changed. Start profile setup again.';
-    }
-    if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
-      attempt.selectionAttempted = true;
-      await _workspaces.select(profile);
-    }
-    if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
-      return _workspaces.currentProblem ??
-          'The profile was created but did not open.';
-    }
-    attempt.selectionAttempted = false;
-    return null;
-  }
-
-  bool _sameProfileSetup(
-    ProfileSetupSelection? previous,
-    ProfileSetupSelection current,
-  ) =>
-      previous?.gameId == current.gameId &&
-      previous?.wine == current.wine &&
-      previous?.installation == current.installation &&
-      _sameProton(previous?.proton, current.proton);
-
-  bool _sameProton(ProtonSelection? left, ProtonSelection? right) {
-    if (left == null || right == null) return left == null && right == null;
-    final association = switch ((left.association, right.association)) {
-      (ManualProtonAssociation(), ManualProtonAssociation()) => true,
-      (
-        SteamProtonAssociation(
-          steamRoot: final leftRoot,
-          library: final leftLibrary,
-        ),
-        SteamProtonAssociation(
-          steamRoot: final rightRoot,
-          library: final rightLibrary,
-        ),
-      ) =>
-        leftRoot == rightRoot && leftLibrary == rightLibrary,
-      _ => false,
-    };
-    return association &&
-        left.appId == right.appId &&
-        left.compatData == right.compatData &&
-        left.runtimeDirectory == right.runtimeDirectory &&
-        left.toolId == right.toolId;
-  }
-
-  bool _profileSetupIsReady(
-    GameContextState state,
-    ProfileSetupSelection selection,
-  ) {
-    final binding = state.binding;
-    return state.definition?.id == selection.gameId &&
-        binding != null &&
-        binding.path == selection.installation &&
-        binding.wine == selection.wine &&
-        _sameProton(binding.proton, selection.proton) &&
-        !binding.needsCheck &&
-        binding.failure == null &&
-        binding.evidence.problems.isEmpty;
   }
 }

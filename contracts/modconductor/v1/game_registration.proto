@@ -1,0 +1,54 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/game_contexts.proto";
+import "modconductor/v1/steam_discovery.proto";
+service GameRegistration {
+  rpc ListInstalledGames(ListInstalledGamesRequest) returns (SteamSearchResult);
+  rpc SearchThunderstoreGames(SearchThunderstoreGamesRequest) returns (ThunderstoreGamesReply);
+  rpc DetectGame(DetectGameRequest) returns (DetectGameReply);
+  rpc ReadCustomGame(ReadCustomGameRequest) returns (CustomGameReply);
+  rpc SaveCustomGame(SaveCustomGameRequest) returns (CustomGameReply);
+}
+message ListInstalledGamesRequest { repeated string additional_roots = 1; }
+message SearchThunderstoreGamesRequest { string query = 1; }
+message ThunderstoreGameInfo { string id = 1; string name = 2; string community = 3; bool supplies_setup = 4; }
+message ThunderstoreGamesReply { repeated ThunderstoreGameInfo games = 1; string problem = 2; }
+message DetectGameRequest { string path = 1; string name = 2; uint32 steam_app_id = 3; string thunderstore_id = 4; }
+message DetectGameReply { CustomGameDraft draft = 1; repeated string executable_choices = 2; string problem = 3; string detected_engine = 4; }
+message ReadCustomGameRequest { string id = 1; }
+message SaveCustomGameRequest { CustomGameDraft draft = 1; }
+message CustomGameReply { CustomGameDraft draft = 1; GameDefinitionInfo game = 2; string problem = 3; }
+message CustomGameDraft {
+  string id = 1;
+  int32 revision = 2;
+  string name = 3;
+  uint32 steam_app_id = 4;
+  string mechanism = 5;
+  string executable = 6;
+  string linux_executable = 7;
+  string content = 8;
+  string windows_runtime = 9;
+  string linux_runtime = 10;
+  string metadata = 11;
+  string unity_metadata = 12;
+  string linux_wrapper = 13;
+  string community = 14;
+  string loader_namespace = 15;
+  string loader_package = 16;
+  string loader_version = 17;
+  string archive_root = 18;
+  string loader_page = 19;
+  string loader_download = 20;
+  string loader_license = 21;
+  string proxy = 22;
+  string core = 23;
+  string mods = 24;
+  string settings_file = 25;
+  string log = 26;
+  string game_features = 27;
+  string configs = 28;
+  string game_feature_field = 29;
+  repeated string arguments = 30;
+  repeated string excluded = 31;
+}

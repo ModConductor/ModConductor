@@ -23,6 +23,7 @@ module NewVegas =
               "FalloutCustom.ini"
               "GECKCustom.ini"
               "GECKPrefs.ini" ]
+          Community = ""
           TargetPolicy = TargetPolicy.windows }
 
     let private standalone id storefront =

@@ -18,9 +18,11 @@ class ThunderstoreBrowser extends StatefulWidget {
     required this.workspaceId,
     required this.visible,
     this.onInstalled,
+    this.community = 'valheim',
   });
   final ThunderstoreClient client;
   final String workspaceId;
+  final String community;
   final bool visible;
   final VoidCallback? onInstalled;
   @override
@@ -37,8 +39,11 @@ class _ThunderstoreBrowserState extends State<ThunderstoreBrowser> {
   }
 
   void _attach() {
-    controller = ThunderstoreController(widget.client, widget.workspaceId)
-      ..addListener(_changed);
+    controller = ThunderstoreController(
+      widget.client,
+      widget.workspaceId,
+      community: widget.community,
+    )..addListener(_changed);
     _loaded = false;
     _wasRunning = false;
     _load();
@@ -60,7 +65,9 @@ class _ThunderstoreBrowserState extends State<ThunderstoreBrowser> {
   @override
   void didUpdateWidget(ThunderstoreBrowser old) {
     super.didUpdateWidget(old);
-    if (old.client != widget.client || old.workspaceId != widget.workspaceId) {
+    if (old.client != widget.client ||
+        old.workspaceId != widget.workspaceId ||
+        old.community != widget.community) {
       controller.removeListener(_changed);
       controller.dispose();
       _attach();
@@ -98,8 +105,8 @@ class _ThunderstoreBrowserState extends State<ThunderstoreBrowser> {
             width: width < 600 ? 190 : 220,
             child: McChoice(
               label: 'Community',
-              value: 'Valheim',
-              choices: const ['Valheim'],
+              value: widget.community,
+              choices: [widget.community],
               describe: (value) => value,
               onChanged: (_) {},
             ),

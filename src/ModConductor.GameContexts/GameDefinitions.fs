@@ -52,6 +52,7 @@ type GameDefinition =
     { Id: GameId
       Revision: int
       Name: string
+      Community: string
       Storefront: string
       SteamAppId: uint32
       SteamAppIds: uint32 list
@@ -81,6 +82,7 @@ module Skyrim =
           Saves = [ "My Games"; "Skyrim Special Edition"; "Saves" ]
           LocalAppData = [ "Skyrim Special Edition" ]
           IniFiles = [ "Skyrim.ini"; "SkyrimPrefs.ini"; "SkyrimCustom.ini" ]
+          Community = ""
           TargetPolicy = TargetPolicy.windows }
 
     let gog =
@@ -136,9 +138,21 @@ module Valheim =
           Saves = []
           LocalAppData = []
           IniFiles = []
+          Community = ""
           TargetPolicy = TargetPolicy.windows }
 
 module GameClient =
+    let community (definition: GameDefinition) =
+        if definition.Community <> "" then
+            definition.Community
+        else
+            match definition.Client with
+            | GameClient.UnityMono c -> c.Loader.Community
+            | GameClient.UnityIl2Cpp c ->
+                c.Loader |> Option.map _.Community |> Option.defaultValue ""
+            | GameClient.Bethesda
+            | GameClient.Unreal _ -> ""
+
     let mono (definition: GameDefinition) =
         match definition.Client with
         | GameClient.UnityMono client -> Some client
@@ -162,7 +176,7 @@ module GameClient =
 
     let nativeLinux (definition: GameDefinition) =
         match definition.Client with
-        | GameClient.UnityMono _ -> true
+        | GameClient.UnityMono client -> client.LinuxExecutable <> ""
         | GameClient.UnityIl2Cpp client -> client.LinuxExecutable.IsSome
         | GameClient.Bethesda
         | GameClient.Unreal _ -> false
@@ -172,7 +186,7 @@ module GameClient =
         | GameClient.UnityMono client ->
             Some
                 { Backend = UnityBackend.Mono
-                  Package = Some client.Loader
+                  Package = if client.Loader.Name = "" then None else Some client.Loader
                   LinuxWrapper = client.LinuxWrapper }
         | GameClient.UnityIl2Cpp client ->
             Some
@@ -188,7 +202,8 @@ module GameClient =
 
     let executable linux (definition: GameDefinition) =
         match definition.Client with
-        | GameClient.UnityMono client when linux -> client.LinuxExecutable
+        | GameClient.UnityMono client when linux && client.LinuxExecutable <> "" ->
+            client.LinuxExecutable
         | GameClient.UnityIl2Cpp client when linux ->
             defaultArg client.LinuxExecutable definition.Executable
         | _ -> definition.Executable

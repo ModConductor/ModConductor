@@ -57,36 +57,37 @@ type CompiledCapability =
       Disposition: CapabilityDisposition }
 
 module CapabilityPolicy =
-    let private bothPlatforms =
-        [ for definition in GameCatalog.definitions do
+    let private bothPlatforms (definitions: GameDefinition list) =
+        [ for definition in definitions do
               yield
                   { DefinitionId = definition.Id
                     Platforms =
                       if GameClient.nativeLinux definition then
                           [ ContextPlatform.Windows; ContextPlatform.NativeLinux ]
-                      elif GameCatalog.steam definition.Id then
+                      elif definition.SteamAppId <> 0u then
                           [ ContextPlatform.Windows; ContextPlatform.Proton ]
                       else
                           [ ContextPlatform.Windows; ContextPlatform.Wine ] } ]
 
-    let private bethesda =
-        bothPlatforms
-        |> List.filter (fun row -> GameCatalog.isBethesda row.DefinitionId)
+    let private bethesda (definitions: GameDefinition list) =
+        bothPlatforms definitions
+        |> List.filter (fun row ->
+            (definitions |> List.find (fun d -> d.Id = row.DefinitionId)).Client = GameClient.Bethesda)
 
-    let private catalog =
+    let private catalog (definitions: GameDefinition list) =
         [ { Id = CapabilityId.GameInstallationValidation
             Revision = 1
             Name = "Game installation checks"
             Kind = CapabilityKind.CoreOutcome
             Audience = CapabilityAudience.User
-            Contexts = bothPlatforms
+            Contexts = bothPlatforms definitions
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.BethesdaGame
             Revision = 1
             Name = "Bethesda game support"
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
-            Contexts = bethesda
+            Contexts = bethesda definitions
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.UnityMono
             Revision = 1
@@ -94,9 +95,10 @@ module CapabilityPolicy =
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
             Contexts =
-              bothPlatforms
+              bothPlatforms definitions
               |> List.filter (fun row ->
-                  (GameClient.mono (GameCatalog.forGame row.DefinitionId)).IsSome)
+                  (GameClient.mono (definitions |> List.find (fun d -> d.Id = row.DefinitionId)))
+                      .IsSome)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.UnityIl2Cpp
             Revision = 1
@@ -104,9 +106,10 @@ module CapabilityPolicy =
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
             Contexts =
-              bothPlatforms
+              bothPlatforms definitions
               |> List.filter (fun row ->
-                  (GameClient.il2cpp (GameCatalog.forGame row.DefinitionId)).IsSome)
+                  (GameClient.il2cpp (definitions |> List.find (fun d -> d.Id = row.DefinitionId)))
+                      .IsSome)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.Unreal
             Revision = 1
@@ -114,9 +117,10 @@ module CapabilityPolicy =
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
             Contexts =
-              bothPlatforms
+              bothPlatforms definitions
               |> List.filter (fun row ->
-                  (GameClient.unreal (GameCatalog.forGame row.DefinitionId)).IsSome)
+                  (GameClient.unreal (definitions |> List.find (fun d -> d.Id = row.DefinitionId)))
+                      .IsSome)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.SkyrimSpecialEdition
             Revision = 1
@@ -124,22 +128,25 @@ module CapabilityPolicy =
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
             Contexts =
-              bothPlatforms
-              |> List.filter (fun context -> GameCatalog.isSkyrimSE context.DefinitionId)
+              bothPlatforms definitions
+              |> List.filter (fun context ->
+                  context.DefinitionId = GameId.SkyrimSpecialEditionSteam
+                  || context.DefinitionId = GameId.SkyrimSpecialEditionGog
+                  || context.DefinitionId = GameId.SkyrimSpecialEditionDirect)
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.ArchiveInspection
             Revision = 1
             Name = "Game archive inspection"
             Kind = CapabilityKind.GameAdapter
             Audience = CapabilityAudience.User
-            Contexts = bethesda
+            Contexts = bethesda definitions
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.IndividualSaveEditing
             Revision = 1
             Name = "Individual save editing"
             Kind = CapabilityKind.OptionalLegacy
             Audience = CapabilityAudience.User
-            Contexts = bothPlatforms
+            Contexts = bothPlatforms definitions
             Disposition =
               CapabilityDisposition.Unavailable "Individual save editing is not available." }
           { Id = CapabilityId.LegacyExtensionAbi
@@ -147,14 +154,14 @@ module CapabilityPolicy =
             Name = "Old extension loading"
             Kind = CapabilityKind.ObsoleteMechanism
             Audience = CapabilityAudience.PolicyOnly
-            Contexts = bothPlatforms
+            Contexts = bothPlatforms definitions
             Disposition =
               CapabilityDisposition.Unsupported(
                   "Mod Conductor cannot load extensions that require Qt widgets, Windows handles, or a Python ABI."
               ) } ]
 
     let forDefinition definitionId =
-        catalog
+        catalog (GameCatalog.all ())
         |> List.filter (fun capability ->
             capability.Contexts
             |> List.exists (fun context -> context.DefinitionId = definitionId))
@@ -171,3 +178,13 @@ module CapabilityPolicy =
         capability.Contexts
         |> List.exists (fun context ->
             context.DefinitionId = definitionId && List.contains platform context.Platforms)
+
+    let forDeclaration (definition: GameDefinition) =
+        catalog (
+            definition
+            :: (GameCatalog.all () |> List.filter (fun row -> row.Id <> definition.Id))
+        )
+        |> List.filter (fun capability ->
+            capability.Audience = CapabilityAudience.User
+            && capability.Contexts
+               |> List.exists (fun context -> context.DefinitionId = definition.Id))

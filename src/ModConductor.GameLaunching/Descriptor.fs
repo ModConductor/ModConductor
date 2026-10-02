@@ -137,15 +137,12 @@ module internal Descriptor =
             let environment =
                 environment
                 @ ModConductor.BepInEx.Bootstrap.environment
-                    ((GameClient.il2cpp definition).IsSome)
+                    ((GameClient.unity false definition).IsSome)
                     (configuration |> Option.exists _.LoaderEnabled)
                     evidence.Platform
                     (Environment.GetEnvironmentVariable "WINEDLLOVERRIDES")
 
-            if
-                (GameClient.mono definition).IsSome
-                || (GameClient.il2cpp definition).IsSome && GameClient.nativeLinux definition
-            then
+            if GameClient.nativeLinux definition then
                 match configuration with
                 | Some selected when selected.GameSha256 <> evidence.Executable.Value.Sha256 ->
                     Error

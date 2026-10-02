@@ -99,7 +99,7 @@ type SteamDiscoveryService() =
     override _.SearchInstallations(request, context) =
         task {
             let definition =
-                GameId.tryParse request.DefinitionId |> Option.map GameCatalog.forGame
+                GameCatalog.tryParse request.DefinitionId |> Option.map GameCatalog.forGame
 
             if
                 (definition |> Option.forall (fun game -> game.SteamAppId = 0u))

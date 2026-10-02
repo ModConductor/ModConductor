@@ -102,12 +102,26 @@ module internal GameContextWire =
         result
 
     let definition (d: GameDefinition) =
-        let rules = GameCatalog.tryRules d.Id
+        let rules =
+            if d.Client = GameClient.Bethesda then
+                Some(GameCatalog.rules d.Id)
+            else
+                None
 
         let artworkApp =
-            (GameCatalog.definitions
-             |> List.find (fun row -> row.Name = d.Name && row.SteamAppId <> 0u))
-                .SteamAppId
+            if d.SteamAppId <> 0u then
+                d.SteamAppId
+            elif
+                (match d.Id with
+                 | GameId.Custom _ -> true
+                 | _ -> false)
+            then
+                0u
+            else
+                GameCatalog.definitions
+                |> List.tryFind (fun row -> row.Name = d.Name && row.SteamAppId <> 0u)
+                |> Option.map _.SteamAppId
+                |> Option.defaultValue 0u
 
         let result =
             GameDefinitionInfo(
@@ -115,10 +129,12 @@ module internal GameContextWire =
                 Revision = uint32 d.Revision,
                 Name = d.Name,
                 Storefront = d.Storefront,
+                ThunderstoreCommunity = GameClient.community d,
                 DeclaredSteamAppId = d.SteamAppId,
                 ArtworkUrl =
                     (if
-                         List.contains
+                         artworkApp = 0u
+                         || List.contains
                              d.Id
                              [ GameId.TaleOfTwoWastelandsSteam
                                GameId.NehrimSteam
@@ -143,7 +159,7 @@ module internal GameContextWire =
                          row.Invalidation.IsSome || row.LooseFilesInvalidation))
             )
 
-        let capabilities = CapabilityPolicy.forUsers d.Id
+        let capabilities = CapabilityPolicy.forDeclaration d
         result.Capabilities.AddRange(capabilities |> Seq.map capability)
 
         result.UnavailableCapabilities.AddRange(
@@ -238,7 +254,7 @@ type GameContextService(contexts: IGameContexts) =
 
             let! result =
                 let game =
-                    GameId.tryParse request.GameId
+                    GameCatalog.tryParse request.GameId
                     |> Option.defaultWith (fun () -> ModLibraryWire.reject "Select a known game.")
 
                 contexts.Save(

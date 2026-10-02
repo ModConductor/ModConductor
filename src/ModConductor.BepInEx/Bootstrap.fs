@@ -7,8 +7,8 @@ open ModConductor.SteamDiscovery
 
 /// Doorstop is loaded by the selected wrapper inside the runtime child, never by a host helper.
 module Bootstrap =
-    let environment il2cpp enabled platform existing =
-        match il2cpp, enabled, platform with
+    let environment unity enabled platform existing =
+        match unity, enabled, platform with
         | true, true, ModConductor.GameContexts.ContextPlatform.Proton
         | true, true, ModConductor.GameContexts.ContextPlatform.Wine ->
             [ "WINEDLLOVERRIDES", Some(WineDllOverrides.withNative existing "winhttp.dll") ]

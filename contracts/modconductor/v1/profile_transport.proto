@@ -1,6 +1,8 @@
 syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/game_registration.proto";
+import "modconductor/v1/game_contexts.proto";
 
 service ProfileTransportOperations {
   rpc InspectProfileTransport(InspectProfileTransportRequest) returns (ProfileTransportPreview);
@@ -33,6 +35,8 @@ message ProfileTransportPreview {
   uint64 save_bytes = 5;
   repeated ProfileSourceRequirement sources = 6;
   uint32 mod_file_count = 7;
+  optional CustomGameDraft game_definition = 8;
+  optional GameDefinitionInfo registration_game = 9;
 }
 message ExportProfileTransportRequest {
   string workspace_id = 1;

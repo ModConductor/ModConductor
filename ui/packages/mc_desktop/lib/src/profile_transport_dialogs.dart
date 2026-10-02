@@ -13,6 +13,7 @@ typedef CreatedProfileWorkspace = ({
 });
 typedef CreateProfileWorkspace = Future<CreatedProfileWorkspace?> Function(
   BuildContext context,
+  ProfileTransportPreview preview,
 );
 
 Future<String?> chooseProfileFile() async => (await openFile(
@@ -178,7 +179,9 @@ class _ProfileImportDialogState extends State<ProfileImportDialog> {
   }
 
   Future<void> createWorkspace() async {
-    final created = await widget.createWorkspace(context);
+    final value = preview;
+    if (value == null) return;
+    final created = await widget.createWorkspace(context, value);
     if (!mounted || created == null) return;
     await widget.workspaces.loadRecent();
     await chooseWorkspace(created.workspace);

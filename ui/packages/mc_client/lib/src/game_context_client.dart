@@ -4,6 +4,8 @@ import 'package:grpc/grpc.dart';
 import 'generated/modconductor/v1/game_contexts.pbgrpc.dart' as wire;
 import 'generated/modconductor/v1/game_catalogue.pbgrpc.dart' as catalogue;
 import 'game_context_models.dart';
+import 'game_registration_client.dart';
+import 'steam_discovery_models.dart';
 import 'proton_context_models.dart';
 import 'proton_context_wire.dart';
 export 'game_context_models.dart';
@@ -13,9 +15,31 @@ abstract interface class GameCatalogueClient {
   Future<String?> openScriptExtenderPage(String gameId);
 }
 
-class GrpcGameCatalogueClient implements GameCatalogueClient {
+class GrpcGameCatalogueClient
+    implements GameCatalogueClient, GameRegistrationClient {
   GrpcGameCatalogueClient(ClientChannel channel, CallOptions options)
-    : _client = catalogue.GameCatalogueClient(channel, options: options);
+    : _client = catalogue.GameCatalogueClient(channel, options: options),
+      _registration = GrpcGameRegistrationClient(channel, options);
+  final GameRegistrationClient _registration;
+  @override
+  Future<SteamSearchResult> installedGames(List<String> roots) =>
+      _registration.installedGames(roots);
+  @override
+  Future<ThunderstoreGamesResult> searchGames(String query) =>
+      _registration.searchGames(query);
+  @override
+  Future<GameDetection> detectGame(
+    String path,
+    String name,
+    int appId,
+    String metadataId,
+  ) => _registration.detectGame(path, name, appId, metadataId);
+  @override
+  Future<CustomGameDraft?> readCustomGame(String id) =>
+      _registration.readCustomGame(id);
+  @override
+  Future<GameRegistrationResult> saveCustomGame(CustomGameDraft draft) =>
+      _registration.saveCustomGame(draft);
   final catalogue.GameCatalogueClient _client;
   @override
   Future<String?> openScriptExtenderPage(String gameId) async {
@@ -231,6 +255,7 @@ GameDefinitionInfo decodeGameDefinition(wire.GameDefinitionInfo d) =>
       revision: d.revision,
       name: d.name,
       storefront: d.storefront,
+      thunderstoreCommunity: d.thunderstoreCommunity,
       declaredSteamAppId: d.declaredSteamAppId,
       capabilities: List.unmodifiable(d.capabilities.map(_capability)),
       artworkUrl: d.artworkUrl,

@@ -79,6 +79,7 @@ module ThunderstoreReaderFixtures =
               Source = Some source; Base = None; Priority = 0; Enabled = Some false; Files = []; Deleted = []; Hidden = [] }
         let profile : PortableProfile =
             { Name = "Portable"; Game = "skyrim-se-steam"
+              GameDefinition = None
               Mods = [modItem (PortableSource.Thunderstore ThunderstoreSamples.jotunn)
                       modItem (PortableSource.Nexus {Game = "skyrimspecialedition"; ModId = 1L; FileId = 2L; FileVersion = "1"})]
               PluginOrder = []; SettingsEnabled = false; SavesEnabled = false; Settings = []; Saves = []; Artwork = None }

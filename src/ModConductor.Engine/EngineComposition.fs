@@ -169,6 +169,16 @@ let internal registerWorkspaceServices
     |> ignore
 
     services.AddSingleton<ModConductor.Engine.GameContextService>() |> ignore
+
+    services.AddSingleton<ModConductor.GameCatalogue.Catalogue>(store.GameCatalogue)
+    |> ignore
+
+    services.AddSingleton<ModConductor.Thunderstore.EcosystemReader>(fun _ ->
+        new ModConductor.Thunderstore.EcosystemReader())
+    |> ignore
+
+    services.AddSingleton<ModConductor.GameDiscovery.Discovery>() |> ignore
+    services.AddSingleton<ModConductor.Engine.GameRegistrationService>() |> ignore
     services.AddSingleton<ModConductor.Engine.GameCatalogueService>() |> ignore
 
     services.AddSingleton<ModConductor.Engine.SteamDiscoveryService>() |> ignore

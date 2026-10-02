@@ -29,6 +29,17 @@ module GameCatalog =
           UnrealDefinitions.subnautica2
           UnityIl2CppDefinitions.sonsOfTheForest ]
 
+    let private gate = obj ()
+    let mutable private custom = Map.empty<GameId, GameDefinition>
+
+    let customDefinitions () =
+        lock gate (fun () -> custom |> Map.values |> Seq.toList)
+
+    let all () = definitions @ customDefinitions ()
+
+    let replaceCustom rows =
+        lock gate (fun () -> custom <- rows |> List.map (fun row -> row.Id, row) |> Map.ofList)
+
     let forGame =
         function
         | GameId.SkyrimSpecialEditionSteam -> Skyrim.definition
@@ -58,6 +69,13 @@ module GameCatalog =
         | GameId.SatisfactorySteam -> UnrealDefinitions.satisfactory
         | GameId.Subnautica2Steam -> UnrealDefinitions.subnautica2
         | GameId.SonsOfTheForestSteam -> UnityIl2CppDefinitions.sonsOfTheForest
+        | GameId.Custom _ as id -> lock gate (fun () -> custom[id])
+
+    let tryFind id =
+        all () |> List.tryFind (fun row -> row.Id = id)
+
+    let tryParse value =
+        GameId.tryParse value |> Option.filter (fun id -> (tryFind id).IsSome)
 
     let forRuntime game version =
         if game = GameId.SkyrimSpecialEditionDirect && Skyrim.isGogRuntime version then
@@ -105,7 +123,8 @@ module GameCatalog =
         | GameId.ValheimSteam
         | GameId.SatisfactorySteam
         | GameId.Subnautica2Steam
-        | GameId.SonsOfTheForestSteam -> invalidOp "This game does not declare Bethesda rules."
+        | GameId.SonsOfTheForestSteam
+        | GameId.Custom _ -> invalidOp "This game does not declare Bethesda rules."
 
     let tryRules game =
         if isBethesda game then Some(rules game) else None

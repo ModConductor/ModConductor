@@ -126,6 +126,30 @@ const ProfileTransportPreview$json = {
       '10': 'sources'
     },
     {'1': 'mod_file_count', '3': 7, '4': 1, '5': 13, '10': 'modFileCount'},
+    {
+      '1': 'game_definition',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.CustomGameDraft',
+      '9': 0,
+      '10': 'gameDefinition',
+      '17': true
+    },
+    {
+      '1': 'registration_game',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.GameDefinitionInfo',
+      '9': 1,
+      '10': 'registrationGame',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_game_definition'},
+    {'1': '_registration_game'},
   ],
 };
 
@@ -135,7 +159,11 @@ final $typed_data.Uint8List profileTransportPreviewDescriptor = $convert.base64D
     'ABKAlSBGdhbWUSGwoJbW9kX2NvdW50GAMgASgNUghtb2RDb3VudBImCg9zYXZlX2ZpbGVfY291'
     'bnQYBCABKA1SDXNhdmVGaWxlQ291bnQSHQoKc2F2ZV9ieXRlcxgFIAEoBFIJc2F2ZUJ5dGVzEk'
     'MKB3NvdXJjZXMYBiADKAsyKS5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZVNvdXJjZVJlcXVpcmVt'
-    'ZW50Ugdzb3VyY2VzEiQKDm1vZF9maWxlX2NvdW50GAcgASgNUgxtb2RGaWxlQ291bnQ=');
+    'ZW50Ugdzb3VyY2VzEiQKDm1vZF9maWxlX2NvdW50GAcgASgNUgxtb2RGaWxlQ291bnQSTgoPZ2'
+    'FtZV9kZWZpbml0aW9uGAggASgLMiAubW9kY29uZHVjdG9yLnYxLkN1c3RvbUdhbWVEcmFmdEgA'
+    'Ug5nYW1lRGVmaW5pdGlvbogBARJVChFyZWdpc3RyYXRpb25fZ2FtZRgJIAEoCzIjLm1vZGNvbm'
+    'R1Y3Rvci52MS5HYW1lRGVmaW5pdGlvbkluZm9IAVIQcmVnaXN0cmF0aW9uR2FtZYgBAUISChBf'
+    'Z2FtZV9kZWZpbml0aW9uQhQKEl9yZWdpc3RyYXRpb25fZ2FtZQ==');
 
 @$core.Deprecated('Use exportProfileTransportRequestDescriptor instead')
 const ExportProfileTransportRequest$json = {

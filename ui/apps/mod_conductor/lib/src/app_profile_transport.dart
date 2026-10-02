@@ -3,6 +3,7 @@ part of 'app.dart';
 mixin _ProfileTransportFlow on _AppStateBase, _ProfileCreation {
   Future<CreatedProfileWorkspace?> _createImportWorkspace(
     BuildContext context,
+    ProfileTransportPreview preview,
   ) async {
     final chosen = await showDialog<({String name, String? path})>(
       context: context,
@@ -19,7 +20,7 @@ mixin _ProfileTransportFlow on _AppStateBase, _ProfileCreation {
         _workspaces.currentProblem != null) {
       return null;
     }
-    await _createProfile(context, workspace);
+    await _createProfile(context, workspace, portable: preview);
     if (!context.mounted || _workspaces.workspace?.id != workspace.id) {
       return null;
     }

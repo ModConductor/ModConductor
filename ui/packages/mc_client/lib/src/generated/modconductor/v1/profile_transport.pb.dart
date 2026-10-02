@@ -15,6 +15,9 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'game_contexts.pb.dart' as $2;
+import 'game_registration.pb.dart' as $1;
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class InspectProfileTransportRequest extends $pb.GeneratedMessage {
@@ -309,6 +312,8 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
     $fixnum.Int64? saveBytes,
     $core.Iterable<ProfileSourceRequirement>? sources,
     $core.int? modFileCount,
+    $1.CustomGameDraft? gameDefinition,
+    $2.GameDefinitionInfo? registrationGame,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -318,6 +323,8 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
     if (saveBytes != null) result.saveBytes = saveBytes;
     if (sources != null) result.sources.addAll(sources);
     if (modFileCount != null) result.modFileCount = modFileCount;
+    if (gameDefinition != null) result.gameDefinition = gameDefinition;
+    if (registrationGame != null) result.registrationGame = registrationGame;
     return result;
   }
 
@@ -347,6 +354,10 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
         subBuilder: ProfileSourceRequirement.create)
     ..aI(7, _omitFieldNames ? '' : 'modFileCount',
         fieldType: $pb.PbFieldType.OU3)
+    ..aOM<$1.CustomGameDraft>(8, _omitFieldNames ? '' : 'gameDefinition',
+        subBuilder: $1.CustomGameDraft.create)
+    ..aOM<$2.GameDefinitionInfo>(9, _omitFieldNames ? '' : 'registrationGame',
+        subBuilder: $2.GameDefinitionInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -425,6 +436,28 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
   $core.bool hasModFileCount() => $_has(6);
   @$pb.TagNumber(7)
   void clearModFileCount() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $1.CustomGameDraft get gameDefinition => $_getN(7);
+  @$pb.TagNumber(8)
+  set gameDefinition($1.CustomGameDraft value) => $_setField(8, value);
+  @$pb.TagNumber(8)
+  $core.bool hasGameDefinition() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearGameDefinition() => $_clearField(8);
+  @$pb.TagNumber(8)
+  $1.CustomGameDraft ensureGameDefinition() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $2.GameDefinitionInfo get registrationGame => $_getN(8);
+  @$pb.TagNumber(9)
+  set registrationGame($2.GameDefinitionInfo value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasRegistrationGame() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearRegistrationGame() => $_clearField(9);
+  @$pb.TagNumber(9)
+  $2.GameDefinitionInfo ensureRegistrationGame() => $_ensure(8);
 }
 
 class ExportProfileTransportRequest extends $pb.GeneratedMessage {

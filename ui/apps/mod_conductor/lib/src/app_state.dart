@@ -15,6 +15,7 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   String? _settingsWorkspaceId;
   String? _settingsProfileId;
   final _workspacesFocus = FocusNode(debugLabel: 'Workspaces navigation');
+  final _gamesFocus = FocusNode(debugLabel: 'Games navigation');
   final _preferencesFocus = FocusNode(debugLabel: 'Preferences navigation');
   final _detailsFocus = FocusNode(debugLabel: 'Active preferences');
   final _quitFocus = FocusNode(debugLabel: 'Quit');
@@ -52,6 +53,13 @@ abstract class _AppStateBase extends State<ModConductorApp> {
       <String, StreamSubscription<InstallationStatus>>{};
   final _installationRetries = <String, Timer>{};
   void _gameListChanged() {
+    final current = _game.state?.definition;
+    if (current != null &&
+        _gameCatalogue.games.any(
+          (row) => row.id == current.id && row.revision != current.revision,
+        )) {
+      unawaited(_game.load());
+    }
     if (mounted) setState(() {});
   }
 
@@ -70,8 +78,11 @@ abstract class _AppStateBase extends State<ModConductorApp> {
       unawaited(_nexusDetails.readAccount());
     }
     if (focus) {
-      (value == _Destination.workspaces ? _workspacesFocus : _preferencesFocus)
-          .requestFocus();
+      (switch (value) {
+        _Destination.workspaces => _workspacesFocus,
+        _Destination.games => _gamesFocus,
+        _Destination.preferences => _preferencesFocus,
+      }).requestFocus();
     }
   }
 }

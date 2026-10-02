@@ -21,7 +21,7 @@ class GrpcSteamDiscoveryClient implements SteamDiscoveryClient {
       ),
       options: CallOptions(timeout: const Duration(seconds: 30)),
     );
-    return SteamSearch(call.then(_result), call.cancel);
+    return SteamSearch(call.then(decodeSteamSearchResult), call.cancel);
   }
 }
 
@@ -79,23 +79,28 @@ SteamDiscoveryProblem _problem(
     SteamDiscoveryProblem.limitReached,
   _ => throw const FormatException('Unknown Steam search problem.'),
 };
-SteamSearchResult _result(wire.SteamSearchResult r) => SteamSearchResult(
-  appId: r.appId,
-  roots: List.unmodifiable(r.roots.map(_root)),
-  candidates: List.unmodifiable(
-    r.candidates.map(
-      (c) => SteamInstallationCandidate(
-        c.candidateId,
-        _directory(c.directory),
-        List.unmodifiable(c.origins.map(decodeSteamOrigin)),
+SteamSearchResult decodeSteamSearchResult(wire.SteamSearchResult r) =>
+    SteamSearchResult(
+      appId: r.appId,
+      roots: List.unmodifiable(r.roots.map(_root)),
+      candidates: List.unmodifiable(
+        r.candidates.map(
+          (c) => SteamInstallationCandidate(
+            c.candidateId,
+            _directory(c.directory),
+            List.unmodifiable(c.origins.map(decodeSteamOrigin)),
+          ),
+        ),
       ),
-    ),
-  ),
-  diagnostics: List.unmodifiable(
-    r.diagnostics.map(
-      (d) =>
-          SteamSearchDiagnostic(d.rootPath, d.path, _problem(d.kind), d.detail),
-    ),
-  ),
-  limited: r.limited,
-);
+      diagnostics: List.unmodifiable(
+        r.diagnostics.map(
+          (d) => SteamSearchDiagnostic(
+            d.rootPath,
+            d.path,
+            _problem(d.kind),
+            d.detail,
+          ),
+        ),
+      ),
+      limited: r.limited,
+    );

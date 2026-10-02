@@ -82,7 +82,7 @@ void main() {
             workspaces: controller,
             workspaceClient: _UnusedWorkspaceClient(),
             gameContexts: _UnusedGameContexts(),
-            createWorkspace: (_) async => null,
+            createWorkspace: (_, _) async => null,
           ),
         ),
       ),

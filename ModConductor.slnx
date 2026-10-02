@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ModConductor.GameCatalogue.Serialization/ModConductor.GameCatalogue.Serialization.csproj" />
+    <Project Path="src/ModConductor.GameCatalogue/ModConductor.GameCatalogue.fsproj" />
+    <Project Path="src/ModConductor.GameDiscovery/ModConductor.GameDiscovery.fsproj" />
     <Project Path="src/ModConductor.Desktop/ModConductor.Desktop.fsproj" />
     <Project Path="src/ModConductor.Thunderstore/ModConductor.Thunderstore.fsproj" />
     <Project Path="src/ModConductor.Nexus/ModConductor.Nexus.fsproj" />

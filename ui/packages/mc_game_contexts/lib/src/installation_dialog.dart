@@ -44,15 +44,30 @@ class _InstallationDialogState extends State<InstallationDialog> {
   late GameContextState current = widget.initial;
   late GameDefinitionInfo selectedGame =
       widget.initial.definition ?? widget.catalogue.first;
-  List<GameDefinitionInfo> get variants =>
-      widget.catalogue.where((game) => game.name == selectedGame.name).toList();
+  List<GameDefinitionInfo> get variants => widget.catalogue
+      .where((game) => game.variantGroupId == selectedGame.variantGroupId)
+      .toList();
+  List<GameDefinitionInfo> get gameChoices {
+    final groups = <String, GameDefinitionInfo>{};
+    for (final game in widget.catalogue) {
+      groups.putIfAbsent(game.variantGroupId, () => game);
+    }
+    return groups.values.toList();
+  }
+
+  String get gameChoice =>
+      gameChoices
+          .where((game) => game.variantGroupId == selectedGame.variantGroupId)
+          .firstOrNull
+          ?.id ??
+      selectedGame.id;
   List<GameInstallationSource> get sources => variants.isEmpty
-      ? [GameInstallationSource.fromGameId(selectedGame.id)]
+      ? [GameInstallationSource.fromDefinition(selectedGame)]
       : variants
-            .map((game) => GameInstallationSource.fromGameId(game.id))
+            .map((game) => GameInstallationSource.fromDefinition(game))
             .toList();
-  late GameInstallationSource source = GameInstallationSource.fromGameId(
-    widget.initial.definition?.id,
+  late GameInstallationSource source = GameInstallationSource.fromDefinition(
+    selectedGame,
   );
   late final wineExecutable = TextEditingController(
     text: widget.initial.binding?.wine?.executable ?? '',
@@ -156,8 +171,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
         current.revision,
         folder.text,
         proton:
-            source == GameInstallationSource.steam &&
-                selectedGame.capability(GameCapabilityId.unityMono) == null
+            source == GameInstallationSource.steam && !selectedGame.nativeLinux
             ? proton
             : null,
         wine: Platform.isLinux && source != GameInstallationSource.steam
@@ -248,7 +262,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
     setState(() {
       source = value;
       selectedGame = variants.firstWhere(
-        (game) => GameInstallationSource.fromGameId(game.id) == value,
+        (game) => GameInstallationSource.fromDefinition(game) == value,
       );
       proton = null;
       wineExecutable.clear();
@@ -259,11 +273,11 @@ class _InstallationDialogState extends State<InstallationDialog> {
     });
   }
 
-  void selectGame(String name) {
-    if (busy || name == selectedGame.name) return;
+  void selectGame(String id) {
+    if (busy || id == selectedGame.id) return;
     setState(() {
-      selectedGame = widget.catalogue.firstWhere((game) => game.name == name);
-      source = GameInstallationSource.fromGameId(selectedGame.id);
+      selectedGame = widget.catalogue.firstWhere((game) => game.id == id);
+      source = GameInstallationSource.fromDefinition(selectedGame);
       folder.clear();
       proton = null;
       wineExecutable.clear();
@@ -296,10 +310,14 @@ class _InstallationDialogState extends State<InstallationDialog> {
       ],
       children: [
         InstallationSetupFields(
-          gameName: selectedGame.name,
+          gameName: gameChoice,
+          gameLabels: {
+            for (final game in gameChoices)
+              game.id: game.selectionLabel(gameChoices),
+          },
           gameChoices: widget.catalogue.isEmpty
-              ? [selectedGame.name]
-              : widget.catalogue.map((game) => game.name).toSet().toList(),
+              ? [selectedGame.id]
+              : gameChoices.map((game) => game.id).toList(),
           onGameChanged: selectGame,
           sourceChoices: sources,
           source: source,
@@ -312,8 +330,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
           onBrowse: browse,
           onProblem: (value) => setState(() => error = value),
           onFindSteam: widget.steamDiscovery == null ? null : findInSteam,
-          nativeClient:
-              selectedGame.capability(GameCapabilityId.unityMono) != null,
+          nativeClient: selectedGame.nativeLinux,
           onSelectProton: widget.protonContexts == null ? null : chooseProton,
           proton: proton,
           busy: busy,

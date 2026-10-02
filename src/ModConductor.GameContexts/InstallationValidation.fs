@@ -170,7 +170,8 @@ module InstallationValidation =
                                                     client
                                                     resolved
                                                     file
-                                                    (OperatingSystem.IsLinux())
+                                                    (OperatingSystem.IsLinux()
+                                                     && GameClient.nativeLinux definition)
                                             with
                                             | Ok unity -> unity, unity
                                             | Error detail ->

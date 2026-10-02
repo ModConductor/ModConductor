@@ -28,6 +28,7 @@ message GameDefinitionInfo {
   bool supports_light_plugins = 14;
   bool supports_medium_plugins = 15;
   bool archive_invalidation = 16;
+  string thunderstore_community = 17;
 }
 message UnavailableGameCapability { string name = 1; string reason = 2; }
 enum GameContextPlatform { GAME_CONTEXT_PLATFORM_UNSPECIFIED = 0; GAME_CONTEXT_PLATFORM_WINDOWS = 1; GAME_CONTEXT_PLATFORM_PROTON = 2; GAME_CONTEXT_PLATFORM_WINE = 3; GAME_CONTEXT_PLATFORM_NATIVE_LINUX = 4; }

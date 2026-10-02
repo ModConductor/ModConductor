@@ -16,7 +16,7 @@ type ProtonContextService() =
     override _.SearchProtonContexts(request, context) =
         task {
             let definition =
-                GameId.tryParse request.DefinitionId |> Option.map GameCatalog.forGame
+                GameCatalog.tryParse request.DefinitionId |> Option.map GameCatalog.forGame
 
             let invalidPath (p: string) =
                 p.Length > 4096 || not (IO.Path.IsPathFullyQualified p)

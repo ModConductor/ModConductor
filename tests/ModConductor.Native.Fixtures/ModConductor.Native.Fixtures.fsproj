@@ -68,6 +68,8 @@
     <Compile Include="UnrealOrderFixtures.fs" />
     <Compile Include="UnrealFixtures.fs" />
     <Compile Include="UnrealRuntimeFixtures.fs" />
+    <Compile Include="GameDiscoveryFixtures.fs" />
+    <Compile Include="GameRegistrationFixtures.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />
     <ProjectReference Include="../../src/ModConductor.Credentials/ModConductor.Credentials.fsproj" />

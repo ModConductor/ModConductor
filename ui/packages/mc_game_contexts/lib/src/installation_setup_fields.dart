@@ -25,6 +25,7 @@ class InstallationSetupFields extends StatefulWidget {
     this.busy = false,
     this.nativeClient = false,
     this.gameChoices,
+    this.gameLabels,
     this.onGameChanged,
     this.sourceChoices = GameInstallationSource.values,
     this.candidates = const [],
@@ -34,6 +35,7 @@ class InstallationSetupFields extends StatefulWidget {
 
   final String gameName;
   final List<String>? gameChoices;
+  final Map<String, String>? gameLabels;
   final ValueChanged<String>? onGameChanged;
   final GameInstallationSource source;
   final List<GameInstallationSource> sourceChoices;
@@ -131,7 +133,7 @@ class _InstallationSetupFieldsState extends State<InstallationSetupFields> {
         label: 'Game',
         value: widget.gameName,
         choices: widget.gameChoices ?? [widget.gameName],
-        describe: (value) => value,
+        describe: (value) => widget.gameLabels?[value] ?? value,
         onChanged: widget.onGameChanged ?? (_) {},
         enabled: !busy,
       ),
@@ -172,7 +174,7 @@ class _InstallationSetupFieldsState extends State<InstallationSetupFields> {
                 ? widget.folder.text
                 : widget.candidates.first,
             choices: widget.candidates,
-            describe: (value) => value,
+            describe: (value) => widget.gameLabels?[value] ?? value,
             onChanged: widget.onCandidateChanged ?? (_) {},
             enabled: !busy,
           ),

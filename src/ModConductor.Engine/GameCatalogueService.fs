@@ -9,14 +9,14 @@ type GameCatalogueService() =
     override _.ReadGameCatalogue(_, _) =
         task {
             let reply = GameCatalogueReply()
-            reply.Games.AddRange(GameCatalog.definitions |> Seq.map GameContextWire.definition)
+            reply.Games.AddRange(GameCatalog.all () |> Seq.map GameContextWire.definition)
             return reply
         }
 
     override _.OpenScriptExtenderPage(request, context) =
         task {
             let address =
-                GameId.tryParse request.GameId
+                GameCatalog.tryParse request.GameId
                 |> Option.bind (GameCatalog.tryRules >> Option.bind _.ExtenderUrl)
 
             match address with

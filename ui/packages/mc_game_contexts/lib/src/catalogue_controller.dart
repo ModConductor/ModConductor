@@ -40,6 +40,40 @@ class GameCatalogueController extends ChangeNotifier {
     }
   }
 
+  void registered(GameDefinitionInfo game) {
+    games = List.unmodifiable([
+      ...games.where((row) => row.id != game.id),
+      game,
+    ]);
+    notifyListeners();
+  }
+
+  Future<String?> registerPortable(
+    GameCatalogueClient? client,
+    CustomGameDraft draft,
+  ) async {
+    if (client is! GameRegistrationClient) {
+      return 'Game registration is not available.';
+    }
+    final registration = client as GameRegistrationClient;
+    try {
+      final existing = await registration.readCustomGame(draft.id);
+      if (existing != null) {
+        return existing == draft
+            ? null
+            : 'A different game definition already uses this identity.';
+      }
+      final result = await registration.saveCustomGame(draft);
+      if (result.game case final game?) {
+        registered(game);
+        return null;
+      }
+      return result.problem ?? 'The game definition could not be added.';
+    } on Exception {
+      return 'The game definition did not return a result. Reopen Games before another change.';
+    }
+  }
+
   @override
   void dispose() {
     _disposed = true;

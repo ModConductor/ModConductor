@@ -5,7 +5,12 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
 class ThunderstoreController extends ChangeNotifier {
-  ThunderstoreController(this.client, this.workspace);
+  ThunderstoreController(
+    this.client,
+    this.workspace, {
+    this.community = 'valheim',
+  });
+  final String community;
   final ThunderstoreClient client;
   final String workspace;
   final model = McCollectionModel<String, ThunderstorePreview>(
@@ -52,7 +57,7 @@ class ThunderstoreController extends ChangeNotifier {
     notifyListeners();
     final result = await client.search(
       workspace,
-      'valheim',
+      community,
       query,
       ordering,
       more ? next! : 1,

@@ -29,11 +29,13 @@
     <Compile Include="ModOrganizationService.fs" />
     <Compile Include="InventoryExportWire.fs" />
     <Compile Include="InventoryExportService.fs" />
-    <Compile Include="ProfileTransportService.fs" />
     <Compile Include="ProtonWire.fs" />
     <Compile Include="GameContextService.fs" />
+    <Compile Include="GameRegistrationWire.fs" />
+    <Compile Include="ProfileTransportService.fs" />
     <Compile Include="GameCatalogueService.fs" />
     <Compile Include="SteamDiscoveryService.fs" />
+    <Compile Include="GameRegistrationService.fs" />
     <Compile Include="ProtonContextService.fs" />
     <Compile Include="FilePlanWire.fs" />
     <Compile Include="FilePlanService.fs" />
@@ -126,6 +128,7 @@
     <Compile Include="GrpcComposition.fs" />
     <Compile Include="EngineLifetime.fs" />
     <Compile Include="Program.fs" />
+    <ProjectReference Include="../ModConductor.GameDiscovery/ModConductor.GameDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Desktop/ModConductor.Desktop.fsproj" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.Skse/ModConductor.Skse.fsproj" />

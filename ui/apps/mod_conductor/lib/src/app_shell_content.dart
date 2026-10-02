@@ -55,11 +55,14 @@ mixin _ShellContent
                 ? Uri.parse(game!.definition!.artworkUrl)
                 : null,
           ),
-    discoveryBuilder: widget.thunderstore == null
+    discoveryBuilder:
+        widget.thunderstore == null ||
+            _game.state?.definition?.thunderstoreCommunity.isNotEmpty != true
         ? null
         : (context, workspace, visible) => ThunderstoreBrowser(
             key: ValueKey('thunderstore-${workspace.id}'),
             client: widget.thunderstore!,
+            community: _game.state!.definition!.thunderstoreCommunity,
             workspaceId: workspace.id,
             visible: visible,
             onInstalled: () => _installationCommitted(

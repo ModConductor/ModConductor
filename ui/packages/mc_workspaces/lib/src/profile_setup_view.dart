@@ -37,10 +37,13 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
           const SizedBox(height: McSpacing.large),
           InstallationSetupFields(
             nativeClient: game?.nativeClient ?? false,
-            gameName: game?.name ?? 'Select game',
-            gameChoices: widget.games.map((option) => option.name).toList(),
+            gameName: game?.id ?? 'Select game',
+            gameChoices: widget.games.map((option) => option.id).toList(),
+            gameLabels: {
+              for (final option in widget.games) option.id: option.name,
+            },
             onGameChanged: (value) => selectGame(
-              widget.games.firstWhere((option) => option.name == value),
+              widget.games.firstWhere((option) => option.id == value),
             ),
             source: source,
             sourceChoices: game?.sources ?? const [],
@@ -61,6 +64,17 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
                 .toList(),
             onCandidateChanged: (value) => folder.text = value,
           ),
+          if (widget.onAddGame != null) ...[
+            const SizedBox(height: McSpacing.medium),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: McAction(
+                label: 'Add game',
+                icon: Icons.add,
+                onPressed: busy ? null : addGame,
+              ),
+            ),
+          ],
           if (searching) ...[
             const SizedBox(height: McSpacing.medium),
             const McActionFeedback(

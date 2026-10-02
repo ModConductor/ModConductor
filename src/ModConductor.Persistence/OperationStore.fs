@@ -14,6 +14,7 @@ type OperationStore
         ?enbCheckpoint: string -> int -> unit,
         ?fnisCheckpoint: string -> int -> unit
     ) =
+    let catalogue = ModConductor.GameCatalogue.Catalogue(directory)
     let database = new StateDatabase(directory)
     let profileImages = ProfileImageStore(database, directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
@@ -155,6 +156,7 @@ type OperationStore
             archiveInspection,
             profileImages,
             profileGameData :> ModConductor.ProfileGameData.IProfileGameData,
+            catalogue,
             directory
         )
 
@@ -351,6 +353,7 @@ type OperationStore
     member _.ModSelection = selection
     member _.ModOrganization = organization
 
+    member _.GameCatalogue = catalogue
     member _.GameContexts = gameContexts
     member _.FilePlans = filePlans
 

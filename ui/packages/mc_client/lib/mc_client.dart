@@ -9,6 +9,7 @@ export 'src/inventory_export_client.dart';
 export 'src/profile_transport_client.dart';
 
 export 'src/game_context_client.dart';
+export 'src/game_registration_client.dart';
 export 'src/steam_discovery_client.dart';
 
 export 'src/proton_context_client.dart';

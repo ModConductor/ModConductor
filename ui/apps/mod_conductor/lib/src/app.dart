@@ -55,6 +55,7 @@ part 'app_workspace_scope.dart';
 part 'app_capability_consumers.dart';
 part 'app_desktop_requests.dart';
 part 'app_profile_creation.dart';
+part 'app_profile_commit.dart';
 part 'app_profile_transport.dart';
 part 'app_state.dart';
 part 'app_shell_content.dart';
@@ -68,7 +69,7 @@ void startDesktop() {
   runApp(const DesktopHost());
 }
 
-enum _Destination { workspaces, preferences }
+enum _Destination { workspaces, games, preferences }
 
 class _RequestRouteObserver extends NavigatorObserver {
   _RequestRouteObserver(this.onRouteClosed);
@@ -243,6 +244,7 @@ class _ModConductorAppState extends _AppStateBase
         _SettingsScope,
         _WorkspaceScope,
         _CapabilityConsumers,
+        _ProfileCommit,
         _ProfileCreation,
         _ProfileTransportFlow,
         _DesktopRequests,
@@ -347,6 +349,7 @@ class _ModConductorAppState extends _AppStateBase
     for (final node in [
       _workspacesFocus,
       _preferencesFocus,
+      _gamesFocus,
       _detailsFocus,
       _quitFocus,
     ]) {
@@ -430,6 +433,7 @@ class _ModConductorAppState extends _AppStateBase
             onQuit: widget.onQuit ?? _quitDesktop,
             workspacesFocus: _workspacesFocus,
             preferencesFocus: _preferencesFocus,
+            gamesFocus: _gamesFocus,
             quitFocus: _quitFocus,
             labels: AppLocalizations.of(context),
             onToggleTheme: !_applicationSettings.loaded
@@ -457,6 +461,16 @@ class _ModConductorAppState extends _AppStateBase
                     DesktopConnecting() ||
                     DesktopConnected() => _buildWorkspaceBrowser(context),
                   },
+                ),
+                ExcludeFocus(
+                  excluding: _destination != _Destination.games,
+                  child: GamesPage(
+                    catalogue: _gameCatalogue,
+                    client: widget.gameCatalogue is GameRegistrationClient
+                        ? widget.gameCatalogue as GameRegistrationClient
+                        : null,
+                    chooseDirectory: widget.chooseGameDirectory,
+                  ),
                 ),
                 ExcludeFocus(
                   excluding: _destination != _Destination.preferences,

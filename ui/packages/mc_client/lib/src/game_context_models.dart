@@ -97,6 +97,7 @@ class GameDefinitionInfo {
     required this.storefront,
     required this.declaredSteamAppId,
     required this.capabilities,
+    this.thunderstoreCommunity = '',
     this.artworkUrl = '',
     this.settingsIni = '',
     this.pluginOrdering = '',
@@ -111,6 +112,7 @@ class GameDefinitionInfo {
   final int revision;
   final String name;
   final String storefront;
+  final String thunderstoreCommunity;
   final int declaredSteamAppId;
   final List<GameCapability> capabilities;
   final String artworkUrl, settingsIni, pluginOrdering, saveExtension;
@@ -123,6 +125,28 @@ class GameDefinitionInfo {
     }
     return null;
   }
+
+  String get variantGroupId {
+    if (id.startsWith('custom-')) return id;
+    for (final suffix in const ['-steam', '-gog', '-direct', '-epic']) {
+      if (id.endsWith(suffix)) {
+        return id.substring(0, id.length - suffix.length);
+      }
+    }
+    return id;
+  }
+
+  String selectionLabel(Iterable<GameDefinitionInfo> choices) =>
+      choices
+          .where(
+            (row) => row.name == name && row.variantGroupId != variantGroupId,
+          )
+          .isEmpty
+      ? name
+      : '$name · $storefront · ${id.substring(id.length > 8 ? id.length - 8 : 0)}';
+  bool get nativeLinux => capabilities.any(
+    (capability) => capability.supports(id, GameContextPlatform.nativeLinux),
+  );
 
   bool unavailable(GameCapabilityId id) {
     final value = capability(id);
@@ -137,11 +161,20 @@ enum GameInstallationSource {
   steam('Steam'),
   gog('GOG Windows'),
   direct('DRM-free Windows'),
-  epic('Epic Windows');
+  epic('Epic Windows'),
+  folder('Folder');
 
   const GameInstallationSource(this.label);
   final String label;
 
+  static GameInstallationSource fromDefinition(GameDefinitionInfo game) =>
+      switch (game.storefront) {
+        'Folder' => folder,
+        'GOG Windows' => gog,
+        'Epic Windows' => epic,
+        'DRM-free Windows' => direct,
+        _ => steam,
+      };
   static GameInstallationSource fromGameId(String? id) => switch (id) {
     final String value when value.endsWith('-gog') => gog,
     final String value when value.endsWith('-direct') => direct,

@@ -54,6 +54,7 @@ type internal PortablePlugin =
 type internal PortableProfile =
     { Name: string
       Game: string
+      GameDefinition: string option
       Mods: PortableMod list
       PluginOrder: PortablePlugin list
       SettingsEnabled: bool

@@ -95,6 +95,11 @@ let internal configureGrpc (services: IServiceCollection) =
         .AddServiceOptions<ModConductor.Engine.SteamDiscoveryService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.GameRegistrationService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(1024 * 1024)
+            options.MaxSendMessageSize <- Nullable(4 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.GameCatalogueService>(fun options ->
+            options.MaxSendMessageSize <- Nullable(4 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.GameContextService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -141,6 +146,7 @@ let internal mapGrpc (app: WebApplication) =
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProtonContextService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.GameContextService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.GameRegistrationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.GameCatalogueService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Definition.fs" /><Compile Include="Catalogue.fs" />
+    <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <ProjectReference Include="../ModConductor.GameCatalogue.Serialization/ModConductor.GameCatalogue.Serialization.csproj" />
+    <ProjectReference Include="../ModConductor.Thunderstore/ModConductor.Thunderstore.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

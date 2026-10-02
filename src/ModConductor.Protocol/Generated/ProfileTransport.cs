@@ -25,50 +25,56 @@ namespace ModConductor.Protocol.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cidtb2Rjb25kdWN0b3IvdjEvcHJvZmlsZV90cmFuc3BvcnQucHJvdG8SD21v",
-            "ZGNvbmR1Y3Rvci52MSIuCh5JbnNwZWN0UHJvZmlsZVRyYW5zcG9ydFJlcXVl",
-            "c3QSDAoEcGF0aBgBIAEoCSJQCiRQcmV2aWV3RXhwb3J0UHJvZmlsZVRyYW5z",
-            "cG9ydFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2ZpbGVf",
-            "aWQYAiABKAkisQIKGFByb2ZpbGVTb3VyY2VSZXF1aXJlbWVudBIRCgltb2Rf",
-            "aW5kZXgYASABKA0SEAoIbW9kX25hbWUYAiABKAkSFAoMYXJjaGl2ZV9uYW1l",
-            "GAMgASgJEg4KBnNoYTI1NhgEIAEoCRIOCgZsZW5ndGgYBSABKAQSGgoNcHJv",
-            "dmlkZXJfZ2FtZRgGIAEoCUgAiAEBEhkKDHByb3ZpZGVyX21vZBgHIAEoA0gB",
-            "iAEBEhoKDXByb3ZpZGVyX2ZpbGUYCCABKANIAogBARIdChBwcm92aWRlcl92",
-            "ZXJzaW9uGAkgASgJSAOIAQFCEAoOX3Byb3ZpZGVyX2dhbWVCDwoNX3Byb3Zp",
-            "ZGVyX21vZEIQCg5fcHJvdmlkZXJfZmlsZUITChFfcHJvdmlkZXJfdmVyc2lv",
-            "biLJAQoXUHJvZmlsZVRyYW5zcG9ydFByZXZpZXcSDAoEbmFtZRgBIAEoCRIM",
-            "CgRnYW1lGAIgASgJEhEKCW1vZF9jb3VudBgDIAEoDRIXCg9zYXZlX2ZpbGVf",
-            "Y291bnQYBCABKA0SEgoKc2F2ZV9ieXRlcxgFIAEoBBI6Cgdzb3VyY2VzGAYg",
-            "AygLMikubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVTb3VyY2VSZXF1aXJlbWVu",
-            "dBIWCg5tb2RfZmlsZV9jb3VudBgHIAEoDSJ1Ch1FeHBvcnRQcm9maWxlVHJh",
-            "bnNwb3J0UmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvZmls",
-            "ZV9pZBgCIAEoCRITCgtkZXN0aW5hdGlvbhgDIAEoCRIVCg1pbmNsdWRlX3Nh",
-            "dmVzGAQgASgIIjYKE01hbnVhbFByb2ZpbGVTb3VyY2USEQoJbW9kX2luZGV4",
-            "GAEgASgNEgwKBHBhdGgYAiABKAkisAEKHUltcG9ydFByb2ZpbGVUcmFuc3Bv",
-            "cnRSZXF1ZXN0EgwKBHBhdGgYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJ",
-            "EhcKD2dhbWVfcHJvZmlsZV9pZBgDIAEoCRIUCgxwcm9maWxlX25hbWUYBCAB",
-            "KAkSPAoObWFudWFsX3NvdXJjZXMYBSADKAsyJC5tb2Rjb25kdWN0b3IudjEu",
-            "TWFudWFsUHJvZmlsZVNvdXJjZSJiChZQcm9maWxlVHJhbnNwb3J0UmVzdWx0",
-            "EhcKCnByb2ZpbGVfaWQYASABKAlIAIgBARIUCgdwcm9ibGVtGAIgASgJSAGI",
-            "AQFCDQoLX3Byb2ZpbGVfaWRCCgoIX3Byb2JsZW0y+wMKGlByb2ZpbGVUcmFu",
-            "c3BvcnRPcGVyYXRpb25zEnQKF0luc3BlY3RQcm9maWxlVHJhbnNwb3J0Ei8u",
-            "bW9kY29uZHVjdG9yLnYxLkluc3BlY3RQcm9maWxlVHJhbnNwb3J0UmVxdWVz",
-            "dBooLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlVHJhbnNwb3J0UHJldmlldxKA",
-            "AQodUHJldmlld0V4cG9ydFByb2ZpbGVUcmFuc3BvcnQSNS5tb2Rjb25kdWN0",
-            "b3IudjEuUHJldmlld0V4cG9ydFByb2ZpbGVUcmFuc3BvcnRSZXF1ZXN0Gigu",
-            "bW9kY29uZHVjdG9yLnYxLlByb2ZpbGVUcmFuc3BvcnRQcmV2aWV3EnEKFkV4",
-            "cG9ydFByb2ZpbGVUcmFuc3BvcnQSLi5tb2Rjb25kdWN0b3IudjEuRXhwb3J0",
-            "UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QaJy5tb2Rjb25kdWN0b3IudjEuUHJv",
-            "ZmlsZVRyYW5zcG9ydFJlc3VsdBJxChZJbXBvcnRQcm9maWxlVHJhbnNwb3J0",
-            "Ei4ubW9kY29uZHVjdG9yLnYxLkltcG9ydFByb2ZpbGVUcmFuc3BvcnRSZXF1",
-            "ZXN0GicubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVUcmFuc3BvcnRSZXN1bHRC",
-            "G6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "ZGNvbmR1Y3Rvci52MRonbW9kY29uZHVjdG9yL3YxL2dhbWVfcmVnaXN0cmF0",
+            "aW9uLnByb3RvGiNtb2Rjb25kdWN0b3IvdjEvZ2FtZV9jb250ZXh0cy5wcm90",
+            "byIuCh5JbnNwZWN0UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QSDAoEcGF0aBgB",
+            "IAEoCSJQCiRQcmV2aWV3RXhwb3J0UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QS",
+            "FAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkisQIK",
+            "GFByb2ZpbGVTb3VyY2VSZXF1aXJlbWVudBIRCgltb2RfaW5kZXgYASABKA0S",
+            "EAoIbW9kX25hbWUYAiABKAkSFAoMYXJjaGl2ZV9uYW1lGAMgASgJEg4KBnNo",
+            "YTI1NhgEIAEoCRIOCgZsZW5ndGgYBSABKAQSGgoNcHJvdmlkZXJfZ2FtZRgG",
+            "IAEoCUgAiAEBEhkKDHByb3ZpZGVyX21vZBgHIAEoA0gBiAEBEhoKDXByb3Zp",
+            "ZGVyX2ZpbGUYCCABKANIAogBARIdChBwcm92aWRlcl92ZXJzaW9uGAkgASgJ",
+            "SAOIAQFCEAoOX3Byb3ZpZGVyX2dhbWVCDwoNX3Byb3ZpZGVyX21vZEIQCg5f",
+            "cHJvdmlkZXJfZmlsZUITChFfcHJvdmlkZXJfdmVyc2lvbiL4AgoXUHJvZmls",
+            "ZVRyYW5zcG9ydFByZXZpZXcSDAoEbmFtZRgBIAEoCRIMCgRnYW1lGAIgASgJ",
+            "EhEKCW1vZF9jb3VudBgDIAEoDRIXCg9zYXZlX2ZpbGVfY291bnQYBCABKA0S",
+            "EgoKc2F2ZV9ieXRlcxgFIAEoBBI6Cgdzb3VyY2VzGAYgAygLMikubW9kY29u",
+            "ZHVjdG9yLnYxLlByb2ZpbGVTb3VyY2VSZXF1aXJlbWVudBIWCg5tb2RfZmls",
+            "ZV9jb3VudBgHIAEoDRI+Cg9nYW1lX2RlZmluaXRpb24YCCABKAsyIC5tb2Rj",
+            "b25kdWN0b3IudjEuQ3VzdG9tR2FtZURyYWZ0SACIAQESQwoRcmVnaXN0cmF0",
+            "aW9uX2dhbWUYCSABKAsyIy5tb2Rjb25kdWN0b3IudjEuR2FtZURlZmluaXRp",
+            "b25JbmZvSAGIAQFCEgoQX2dhbWVfZGVmaW5pdGlvbkIUChJfcmVnaXN0cmF0",
+            "aW9uX2dhbWUidQodRXhwb3J0UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QSFAoM",
+            "d29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkSEwoLZGVz",
+            "dGluYXRpb24YAyABKAkSFQoNaW5jbHVkZV9zYXZlcxgEIAEoCCI2ChNNYW51",
+            "YWxQcm9maWxlU291cmNlEhEKCW1vZF9pbmRleBgBIAEoDRIMCgRwYXRoGAIg",
+            "ASgJIrABCh1JbXBvcnRQcm9maWxlVHJhbnNwb3J0UmVxdWVzdBIMCgRwYXRo",
+            "GAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRIXCg9nYW1lX3Byb2ZpbGVf",
+            "aWQYAyABKAkSFAoMcHJvZmlsZV9uYW1lGAQgASgJEjwKDm1hbnVhbF9zb3Vy",
+            "Y2VzGAUgAygLMiQubW9kY29uZHVjdG9yLnYxLk1hbnVhbFByb2ZpbGVTb3Vy",
+            "Y2UiYgoWUHJvZmlsZVRyYW5zcG9ydFJlc3VsdBIXCgpwcm9maWxlX2lkGAEg",
+            "ASgJSACIAQESFAoHcHJvYmxlbRgCIAEoCUgBiAEBQg0KC19wcm9maWxlX2lk",
+            "QgoKCF9wcm9ibGVtMvsDChpQcm9maWxlVHJhbnNwb3J0T3BlcmF0aW9ucxJ0",
+            "ChdJbnNwZWN0UHJvZmlsZVRyYW5zcG9ydBIvLm1vZGNvbmR1Y3Rvci52MS5J",
+            "bnNwZWN0UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QaKC5tb2Rjb25kdWN0b3Iu",
+            "djEuUHJvZmlsZVRyYW5zcG9ydFByZXZpZXcSgAEKHVByZXZpZXdFeHBvcnRQ",
+            "cm9maWxlVHJhbnNwb3J0EjUubW9kY29uZHVjdG9yLnYxLlByZXZpZXdFeHBv",
+            "cnRQcm9maWxlVHJhbnNwb3J0UmVxdWVzdBooLm1vZGNvbmR1Y3Rvci52MS5Q",
+            "cm9maWxlVHJhbnNwb3J0UHJldmlldxJxChZFeHBvcnRQcm9maWxlVHJhbnNw",
+            "b3J0Ei4ubW9kY29uZHVjdG9yLnYxLkV4cG9ydFByb2ZpbGVUcmFuc3BvcnRS",
+            "ZXF1ZXN0GicubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVUcmFuc3BvcnRSZXN1",
+            "bHQScQoWSW1wb3J0UHJvZmlsZVRyYW5zcG9ydBIuLm1vZGNvbmR1Y3Rvci52",
+            "MS5JbXBvcnRQcm9maWxlVHJhbnNwb3J0UmVxdWVzdBonLm1vZGNvbmR1Y3Rv",
+            "ci52MS5Qcm9maWxlVHJhbnNwb3J0UmVzdWx0QhuqAhhNb2RDb25kdWN0b3Iu",
+            "UHJvdG9jb2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.GameRegistrationReflection.Descriptor, global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InspectProfileTransportRequest), global::ModConductor.Protocol.V1.InspectProfileTransportRequest.Parser, new[]{ "Path" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest), global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileSourceRequirement), global::ModConductor.Protocol.V1.ProfileSourceRequirement.Parser, new[]{ "ModIndex", "ModName", "ArchiveName", "Sha256", "Length", "ProviderGame", "ProviderMod", "ProviderFile", "ProviderVersion" }, new[]{ "ProviderGame", "ProviderMod", "ProviderFile", "ProviderVersion" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileTransportPreview), global::ModConductor.Protocol.V1.ProfileTransportPreview.Parser, new[]{ "Name", "Game", "ModCount", "SaveFileCount", "SaveBytes", "Sources", "ModFileCount" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileTransportPreview), global::ModConductor.Protocol.V1.ProfileTransportPreview.Parser, new[]{ "Name", "Game", "ModCount", "SaveFileCount", "SaveBytes", "Sources", "ModFileCount", "GameDefinition", "RegistrationGame" }, new[]{ "GameDefinition", "RegistrationGame" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ExportProfileTransportRequest), global::ModConductor.Protocol.V1.ExportProfileTransportRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Destination", "IncludeSaves" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ManualProfileSource), global::ModConductor.Protocol.V1.ManualProfileSource.Parser, new[]{ "ModIndex", "Path" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ImportProfileTransportRequest), global::ModConductor.Protocol.V1.ImportProfileTransportRequest.Parser, new[]{ "Path", "WorkspaceId", "GameProfileId", "ProfileName", "ManualSources" }, null, null, null, null),
@@ -1108,6 +1114,8 @@ namespace ModConductor.Protocol.V1 {
       saveBytes_ = other.saveBytes_;
       sources_ = other.sources_.Clone();
       modFileCount_ = other.modFileCount_;
+      gameDefinition_ = other.gameDefinition_ != null ? other.gameDefinition_.Clone() : null;
+      registrationGame_ = other.registrationGame_ != null ? other.registrationGame_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1200,6 +1208,30 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "game_definition" field.</summary>
+    public const int GameDefinitionFieldNumber = 8;
+    private global::ModConductor.Protocol.V1.CustomGameDraft gameDefinition_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.CustomGameDraft GameDefinition {
+      get { return gameDefinition_; }
+      set {
+        gameDefinition_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "registration_game" field.</summary>
+    public const int RegistrationGameFieldNumber = 9;
+    private global::ModConductor.Protocol.V1.GameDefinitionInfo registrationGame_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.GameDefinitionInfo RegistrationGame {
+      get { return registrationGame_; }
+      set {
+        registrationGame_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1222,6 +1254,8 @@ namespace ModConductor.Protocol.V1 {
       if (SaveBytes != other.SaveBytes) return false;
       if(!sources_.Equals(other.sources_)) return false;
       if (ModFileCount != other.ModFileCount) return false;
+      if (!object.Equals(GameDefinition, other.GameDefinition)) return false;
+      if (!object.Equals(RegistrationGame, other.RegistrationGame)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1236,6 +1270,8 @@ namespace ModConductor.Protocol.V1 {
       if (SaveBytes != 0UL) hash ^= SaveBytes.GetHashCode();
       hash ^= sources_.GetHashCode();
       if (ModFileCount != 0) hash ^= ModFileCount.GetHashCode();
+      if (gameDefinition_ != null) hash ^= GameDefinition.GetHashCode();
+      if (registrationGame_ != null) hash ^= RegistrationGame.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1279,6 +1315,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(56);
         output.WriteUInt32(ModFileCount);
       }
+      if (gameDefinition_ != null) {
+        output.WriteRawTag(66);
+        output.WriteMessage(GameDefinition);
+      }
+      if (registrationGame_ != null) {
+        output.WriteRawTag(74);
+        output.WriteMessage(RegistrationGame);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1314,6 +1358,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(56);
         output.WriteUInt32(ModFileCount);
       }
+      if (gameDefinition_ != null) {
+        output.WriteRawTag(66);
+        output.WriteMessage(GameDefinition);
+      }
+      if (registrationGame_ != null) {
+        output.WriteRawTag(74);
+        output.WriteMessage(RegistrationGame);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1342,6 +1394,12 @@ namespace ModConductor.Protocol.V1 {
       size += sources_.CalculateSize(_repeated_sources_codec);
       if (ModFileCount != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ModFileCount);
+      }
+      if (gameDefinition_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(GameDefinition);
+      }
+      if (registrationGame_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(RegistrationGame);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1373,6 +1431,18 @@ namespace ModConductor.Protocol.V1 {
       sources_.Add(other.sources_);
       if (other.ModFileCount != 0) {
         ModFileCount = other.ModFileCount;
+      }
+      if (other.gameDefinition_ != null) {
+        if (gameDefinition_ == null) {
+          GameDefinition = new global::ModConductor.Protocol.V1.CustomGameDraft();
+        }
+        GameDefinition.MergeFrom(other.GameDefinition);
+      }
+      if (other.registrationGame_ != null) {
+        if (registrationGame_ == null) {
+          RegistrationGame = new global::ModConductor.Protocol.V1.GameDefinitionInfo();
+        }
+        RegistrationGame.MergeFrom(other.RegistrationGame);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1421,6 +1491,20 @@ namespace ModConductor.Protocol.V1 {
             ModFileCount = input.ReadUInt32();
             break;
           }
+          case 66: {
+            if (gameDefinition_ == null) {
+              GameDefinition = new global::ModConductor.Protocol.V1.CustomGameDraft();
+            }
+            input.ReadMessage(GameDefinition);
+            break;
+          }
+          case 74: {
+            if (registrationGame_ == null) {
+              RegistrationGame = new global::ModConductor.Protocol.V1.GameDefinitionInfo();
+            }
+            input.ReadMessage(RegistrationGame);
+            break;
+          }
         }
       }
     #endif
@@ -1466,6 +1550,20 @@ namespace ModConductor.Protocol.V1 {
           }
           case 56: {
             ModFileCount = input.ReadUInt32();
+            break;
+          }
+          case 66: {
+            if (gameDefinition_ == null) {
+              GameDefinition = new global::ModConductor.Protocol.V1.CustomGameDraft();
+            }
+            input.ReadMessage(GameDefinition);
+            break;
+          }
+          case 74: {
+            if (registrationGame_ == null) {
+              RegistrationGame = new global::ModConductor.Protocol.V1.GameDefinitionInfo();
+            }
+            input.ReadMessage(RegistrationGame);
             break;
           }
         }

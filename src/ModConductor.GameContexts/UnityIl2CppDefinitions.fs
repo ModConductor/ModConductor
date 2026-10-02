@@ -34,4 +34,5 @@ module UnityIl2CppDefinitions =
           Saves = []
           LocalAppData = []
           IniFiles = []
+          Community = ""
           TargetPolicy = TargetPolicy.windows }

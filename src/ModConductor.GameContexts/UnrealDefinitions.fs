@@ -17,6 +17,7 @@ module UnrealDefinitions =
           Saves = []
           LocalAppData = []
           IniFiles = []
+          Community = ""
           TargetPolicy = TargetPolicy.windows
           Client =
             GameClient.Unreal

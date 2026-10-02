@@ -1,6 +1,9 @@
 import 'package:grpc/grpc.dart';
 
 import 'generated/modconductor/v1/profile_transport.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/game_registration.pb.dart';
+import 'game_context_client.dart' show decodeGameDefinition;
+import 'game_context_models.dart';
 
 class ProfileSourceRequirement {
   const ProfileSourceRequirement(
@@ -25,14 +28,19 @@ class ProfileTransportPreview {
     this.modFileCount,
     this.saveFileCount,
     this.saveBytes,
-    this.sources,
-  );
+    this.sources, {
+    this.gameDefinition,
+    this.registrationGame,
+  });
   final String name, game;
   final int modCount, modFileCount, saveFileCount, saveBytes;
   final List<ProfileSourceRequirement> sources;
+  final CustomGameDraft? gameDefinition;
+  final GameDefinitionInfo? registrationGame;
 
   String get gameName =>
-      game == 'skyrim-se-steam' ? 'Skyrim Special Edition' : game;
+      gameDefinition?.name ??
+      (game == 'skyrim-se-steam' ? 'Skyrim Special Edition' : game);
 }
 
 class ProfileTransportException implements Exception {
@@ -89,6 +97,10 @@ class GrpcProfileTransportClient implements ProfileTransportClient {
               source.hasProviderGame() ? source.providerGame : null,
             ),
         ],
+        gameDefinition: value.hasGameDefinition() ? value.gameDefinition : null,
+        registrationGame: value.hasRegistrationGame()
+            ? decodeGameDefinition(value.registrationGame)
+            : null,
       );
 
   @override

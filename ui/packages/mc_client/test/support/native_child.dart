@@ -96,6 +96,16 @@ class NativeChild {
     return channel;
   }
 
+  GrpcGameCatalogueClient gameCatalogue() => GrpcGameCatalogueClient(
+    _localChannel(),
+    CallOptions(metadata: {'mc-session': capability}),
+  );
+
+  ProfileTransportClient profileTransport() => GrpcProfileTransportClient(
+    _localChannel(),
+    CallOptions(metadata: {'mc-session': capability}),
+  );
+
   UnrealClient unreal({bool authenticate = true}) => GrpcUnrealClient(
     _localChannel(),
     CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),

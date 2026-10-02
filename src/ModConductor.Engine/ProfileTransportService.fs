@@ -224,6 +224,13 @@ type ProfileTransportService
                 SaveBytes = uint64 value.SaveBytes
             )
 
+        value.GameDefinition
+        |> Option.iter (fun d ->
+            result.GameDefinition <- GameRegistrationWire.draft d
+
+            result.RegistrationGame <-
+                ModConductor.GameCatalogue.Definition.toGame d |> GameContextWire.definition)
+
         for source in value.Sources do
             let item =
                 ModConductor.Protocol.V1.ProfileSourceRequirement(
