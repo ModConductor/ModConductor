@@ -21,6 +21,7 @@ class ArchiveInstallationView extends StatefulWidget {
     super.key,
     required this.artifact,
     required this.client,
+    this.installImmediately = false,
     this.initialDraft,
     this.suggestedTarget,
     this.suggestedVersion,
@@ -44,6 +45,7 @@ class ArchiveInstallationView extends StatefulWidget {
   final String backLabel;
   final Artifact artifact;
   final InstallationsClient client;
+  final bool installImmediately;
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
   final BainClient? bain;
@@ -70,21 +72,34 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
     initialStatus: widget.initialStatus,
   );
   bool manual = false, excluded = false, inspected = false;
+  bool directInstall = false;
   InstallationDraft? rendered;
   @override
   void initState() {
     super.initState();
     controller.addListener(changed);
-    unawaited(controller.open());
+    unawaited(open());
+  }
+
+  Future<void> open() async {
+    await controller.open();
+    if (!mounted) return;
+    if (directInstall) await controller.install();
   }
 
   void changed() {
     if (!mounted) return;
     final draft = controller.draft;
     if (draft != null && !identical(draft, rendered)) {
-      if (rendered == null && !draft.canInstall) manual = true;
+      if (rendered == null) {
+        directInstall =
+            widget.installImmediately &&
+            draft.installer == InstallationMode.manual &&
+            draft.canInstall;
+        if (!draft.canInstall) manual = true;
+      }
       rendered = draft;
-      tree.apply(draft, manual: manual, excluded: excluded);
+      if (!directInstall) tree.apply(draft, manual: manual, excluded: excluded);
     }
     if (controller.status?.phase == InstallationPhase.discarded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -240,7 +255,7 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
             InstallationHeader(
               artifactName: widget.artifact.originalName,
               backLabel: widget.backLabel,
-              draft: draft,
+              draft: directInstall ? null : draft,
               status: status,
               controller: controller,
               manual: manual,
@@ -270,12 +285,14 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
                         label: 'Check progress',
                         onPressed: controller.observe,
                       ),
-                    if (draft == null && status == null)
+                    if (status == null && (draft == null || directInstall))
                       McAction(
                         label: 'Retry',
                         onPressed: controller.busy
                             ? null
-                            : () => unawaited(controller.open()),
+                            : () => unawaited(
+                                directInstall ? controller.install() : open(),
+                              ),
                       ),
                   ],
                 ),
@@ -283,7 +300,7 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
             Expanded(
               child: status != null
                   ? installationResult(c, status, controller, widget.onOpenMods)
-                  : draft == null
+                  : draft == null || directInstall
                   ? controller.busy
                         ? const Center(child: CircularProgressIndicator())
                         : const SizedBox.shrink()
@@ -329,7 +346,11 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
                       ],
                     ),
             ),
-            if (draft != null && status == null && !manual && !narrow) ...[
+            if (draft != null &&
+                status == null &&
+                !directInstall &&
+                !manual &&
+                !narrow) ...[
               const SizedBox(height: 8),
               Text(
                 'The new mod will be added disabled.',

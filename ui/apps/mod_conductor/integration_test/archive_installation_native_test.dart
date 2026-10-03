@@ -16,7 +16,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   WidgetController.hitTestWarningShouldBeFatal = true;
   testWidgets(
-    'confirmed installation uses production layout, navigation and temporary cleanup',
+    'direct and manual installation retain navigation and temporary cleanup',
     (tester) async {
       const engine = String.fromEnvironment('MC_ENGINE_PATH'),
           fixture = String.fromEnvironment('MC_NATIVE_FIXTURE'),
@@ -36,6 +36,19 @@ void main() {
       final files = '${area.path}/archives';
       final made = await Process.run(fixture, ['--installation-files', files]);
       expect(made.exitCode, 0, reason: '${made.stderr}');
+      final gameFiles = '${area.path}/game';
+      final gameMade = await Process.run(fixture, [
+        '--proton-files',
+        gameFiles,
+      ]);
+      expect(gameMade.exitCode, 0, reason: '${gameMade.stderr}');
+      final steam = '$gameFiles/Steam', library = '$gameFiles/Second library';
+      final runtime = '$steam/compatibilitytools.d/Custom Ω Proton';
+      await File('$runtime/proton').writeAsString('#!/bin/sh\nexit 0\n');
+      final executable = await Process.run('chmod', ['700', '$runtime/proton']);
+      expect(executable.exitCode, 0, reason: '${executable.stderr}');
+      await File('$runtime/toolmanifest.vdf')
+          .writeAsString('manifest { version 2 commandline "/proton %verb%" }');
       final owner = EngineOwner(
         engine,
         launch: (path) =>
@@ -100,6 +113,21 @@ void main() {
           0,
           ProfileInfo(profile, 'Everyday'),
         );
+        final context = await owner.gameContexts!.save(
+          workspace,
+          profile,
+          'skyrim-se-steam',
+          0,
+          '$library/steamapps/common/Skyrim Special Edition',
+          proton: ProtonSelection(
+            appId: 489830,
+            association: SteamProtonAssociation(steam, library),
+            compatData: '$library/steamapps/compatdata/489830',
+            runtimeDirectory: runtime,
+            toolId: 'fixture_tool',
+          ),
+        );
+        expect(context.binding!.evidence.runtimeReady, isTrue);
         await tester.pumpWidget(
           RepaintBoundary(
             key: boundary,
@@ -153,11 +181,44 @@ void main() {
           '$files/wrong-size.zip',
           ArtifactStorage.reference,
         );
+        final direct = await owner.artifacts!.add(
+          workspace,
+          newOperationId(),
+          '$files/Nested data.zip',
+          ArtifactStorage.reference,
+        );
         await controller().load();
-        await until(() => controller().model.ids.length == 2);
-        await tester.tap(find.byKey(ValueKey(good.id)).first);
+        await until(() => controller().model.ids.length == 3);
+        await tester.tap(find.byKey(ValueKey(direct.id)).first);
         await tester.pumpAndSettle();
         await tap('Install');
+        await until(() => action('Open Mods').evaluate().isNotEmpty);
+        await until(
+          () => controller().model[direct.id]?.state == ArtifactState.installed,
+        );
+        final directlyInstalled = (await owner.installations!.recent(workspace))
+            .single;
+        expect(directlyInstalled.phase, InstallationPhase.complete);
+        expect(
+          controller().model[direct.id]!.links.single.modId,
+          directlyInstalled.modId,
+        );
+        final directVersion = await owner.modLibrary!.version(
+          directlyInstalled.versionId!,
+        );
+        expect(
+          directVersion.entries.map((entry) => entry.path.join('/')),
+          unorderedEquals([
+            'Meshes/actors/character/behaviors/0_master.hkx',
+            'source/scripts/FNIS_example.psc',
+            'FNIS.esp',
+          ]),
+        );
+        await capture('direct-installed');
+        await tap('Back to archives');
+        await tester.tap(find.byKey(ValueKey(good.id)).first);
+        await tester.pumpAndSettle();
+        await tap('Install options');
         await until(() => action('Change layout').evaluate().isNotEmpty);
         await capture('quick-review');
         await tap('Change layout');
@@ -165,17 +226,19 @@ void main() {
         final list = find
             .descendant(
               of: find.byType(ArchiveInstallationView),
-              matching: find.byType(Scrollable),
+              matching: find.byWidgetPredicate(
+                (widget) =>
+                    widget is Scrollable &&
+                    widget.axisDirection == AxisDirection.down,
+              ),
             )
             .first;
-        if (narrow) {
-          await tester.scrollUntilVisible(
-            find.text('water.dds'),
-            90,
-            scrollable: list,
-          );
-          await tester.pumpAndSettle();
-        }
+        await tester.scrollUntilVisible(
+          find.text('water.dds'),
+          90,
+          scrollable: list,
+        );
+        await tester.pumpAndSettle();
         await tester.tap(find.text('water.dds').last);
         await tester.pumpAndSettle();
         await tap('Change destination');
@@ -227,8 +290,6 @@ void main() {
         await tester.tap(find.byKey(ValueKey(bad.id)).first);
         await tester.pumpAndSettle();
         await tap('Install');
-        await until(() => action('Change layout').evaluate().isNotEmpty);
-        await tap('Install');
         await until(
           () => action('Delete temporary files').evaluate().isNotEmpty,
         );
@@ -239,7 +300,7 @@ void main() {
         );
         await capture('after-cleanup');
         await File('$output/result.txt').writeAsString(
-          'Compiled production widgets and the NativeAOT v1 service showed quick/manual layout, a changed destination, excluded paths, installation across tab navigation, the Mods result and ordinary corrupt-payload temporary cleanup.\n',
+          'Production widgets and the supplied engine completed a direct ordinary install, preserved archive links and file destinations, allowed manual layout changes, retained installation across tab navigation, and removed temporary files after a corrupt payload.\n',
         );
       } catch (error, stack) {
         File('$output/primary-ui-error.log')

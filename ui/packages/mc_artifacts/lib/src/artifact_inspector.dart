@@ -15,6 +15,7 @@ class ArtifactInspector extends StatelessWidget {
     required this.onClose,
     required this.onRead,
     this.onInstall,
+    this.onInstallOptions,
     this.onBundle,
     required this.onLocate,
     required this.onLink,
@@ -23,7 +24,7 @@ class ArtifactInspector extends StatelessWidget {
   final ArtifactController controller;
   final VoidCallback onClose;
   final ValueChanged<Artifact> onRead;
-  final ValueChanged<Artifact>? onInstall, onBundle;
+  final ValueChanged<Artifact>? onInstall, onInstallOptions, onBundle;
   final Future<void> Function(Artifact) onLocate, onLink;
   final Future<void> Function(Artifact, bool) onCleanup;
   Widget details(BuildContext c, Artifact artifact) => ExpansionTile(
@@ -67,6 +68,16 @@ class ArtifactInspector extends StatelessWidget {
                     emphasis: McActionEmphasis.primary,
                     onPressed: controller.canEdit
                         ? () => onInstall!(artifact)
+                        : null,
+                  ),
+                if (onInstallOptions != null &&
+                    (artifact.state == ArtifactState.ready ||
+                        artifact.state == ArtifactState.installed))
+                  McIconAction(
+                    label: 'Install options',
+                    icon: const Icon(Icons.tune),
+                    onPressed: controller.canEdit
+                        ? () => onInstallOptions!(artifact)
                         : null,
                   ),
                 if (artifact.state == ArtifactState.ready ||

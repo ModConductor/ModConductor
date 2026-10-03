@@ -78,6 +78,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   String? suggestedVersion;
   bool inspected = false;
   bool nexus = false;
+  bool installImmediately = false;
   Artifact? contents, installing, bundle;
   Future<void>? installationRefresh;
   ArtifactController get controller => widget.controller;
@@ -197,6 +198,20 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
     );
   }
 
+  void install(Artifact artifact, {required bool immediately}) {
+    pane.currentState?.closeEndDrawer();
+    setState(() {
+      installing = artifact;
+      installImmediately = immediately;
+      suggestedVersion = controller.updateReview?.artifact.id == artifact.id
+          ? controller.updateReview?.version
+          : null;
+      suggestedTarget = controller.updateReview?.artifact.id == artifact.id
+          ? controller.updateReview?.target
+          : null;
+    });
+  }
+
   Widget inspector(BuildContext c, VoidCallback close) => ArtifactInspector(
     controller: controller,
     onClose: close,
@@ -212,20 +227,10 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
           },
     onInstall: widget.installations == null
         ? null
-        : (artifact) {
-            pane.currentState?.closeEndDrawer();
-            setState(() {
-              installing = artifact;
-              suggestedVersion =
-                  controller.updateReview?.artifact.id == artifact.id
-                  ? controller.updateReview?.version
-                  : null;
-              suggestedTarget =
-                  controller.updateReview?.artifact.id == artifact.id
-                  ? controller.updateReview?.target
-                  : null;
-            });
-          },
+        : (artifact) => install(artifact, immediately: true),
+    onInstallOptions: widget.installations == null
+        ? null
+        : (artifact) => install(artifact, immediately: false),
     onLocate: fileForm,
     onLink: link,
     onCleanup: (artifact, bytes) => cleanup(artifact, bytes: bytes),
@@ -312,6 +317,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
           final review = controller.updateReview;
           if (review?.artifact.workspaceId == controller.workspaceId) {
             installing = review!.artifact;
+            installImmediately = false;
             suggestedTarget = review.target;
             suggestedVersion = review.version;
           }
@@ -320,6 +326,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
           return ArchiveInstallationView(
             key: ValueKey((installing!.id, widget.installations)),
             artifact: installing!,
+            installImmediately: installImmediately,
             suggestedTarget: suggestedTarget,
             suggestedVersion: suggestedVersion,
             client: widget.installations!,
