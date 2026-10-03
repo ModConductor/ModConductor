@@ -136,28 +136,30 @@ module LootFreshProfileFixtures =
             |> wait
             |> value
 
-            loot.RefreshMetadata token |> Async.StartAsTask |> wait |> value |> ignore
-            let proposal = loot.Preview(order, token) |> Async.StartAsTask |> wait |> value
-            let replacement = store.Plugins.Scan(profile, token) |> wait |> value
             let service = LootService(loot, store.PluginOrders)
 
-            let reply =
+            let emittedProposal () =
+                let reply =
+                    service.ReadLootState(ReadLootStateRequest(), Unchecked.defaultof<_>) |> wait
+
+                LootStateReply.Parser.ParseFrom(reply.ToByteArray()).State.Proposal
+
+            let apply (proposal: LootSortProposal) =
                 service.ApplyLootSort(
                     ApplyLootSortRequest(
-                        ProposalId = proposal.Id.ToString("N"),
-                        HeadersId = proposal.HeadersId.ToString("N"),
-                        Expected =
-                            ModConductor.Protocol.V1.ProfileDataRef(
-                                WorkspaceId = workspace.ToString("N"),
-                                ProfileId = profile.ToString("N"),
-                                ContextId = proposal.Expected.ContextId.ToString("N"),
-                                Revision = uint64 proposal.Expected.Revision
-                            )
+                        ProposalId = proposal.Id,
+                        HeadersId = proposal.HeadersId,
+                        Expected = proposal.Expected
                     ),
                     Unchecked.defaultof<_>
                 )
                 |> wait
 
+            loot.RefreshMetadata token |> Async.StartAsTask |> wait |> value |> ignore
+            loot.Preview(order, token) |> Async.StartAsTask |> wait |> value |> ignore
+            let proposal = emittedProposal ()
+            let replacement = store.Plugins.Scan(profile, token) |> wait |> value
+            let reply = apply proposal
             let transmitted = PluginOrderReply.Parser.ParseFrom(reply.ToByteArray())
             writer.WriteStartObject()
 
@@ -191,7 +193,8 @@ module LootFreshProfileFixtures =
             let current =
                 store.PluginOrders.Read(workspace, profile, replacement.Id) |> wait |> value
 
-            let proposed = loot.Preview(current, token) |> Async.StartAsTask |> wait |> value
+            loot.Preview(current, token) |> Async.StartAsTask |> wait |> value |> ignore
+            let proposed = emittedProposal ()
 
             let selected =
                 after.Entries |> List.find (fun row -> row.Entry.Mod.Metadata.Name = "Textures")
@@ -209,22 +212,7 @@ module LootFreshProfileFixtures =
             let changed = store.Plugins.Scan(profile, token) |> wait |> value
             check "changedInputsReplaceSnapshot" (changed.Id <> replacement.Id)
 
-            let refused =
-                service.ApplyLootSort(
-                    ApplyLootSortRequest(
-                        ProposalId = proposed.Id.ToString("N"),
-                        HeadersId = proposed.HeadersId.ToString("N"),
-                        Expected =
-                            ModConductor.Protocol.V1.ProfileDataRef(
-                                WorkspaceId = workspace.ToString("N"),
-                                ProfileId = profile.ToString("N"),
-                                ContextId = proposed.Expected.ContextId.ToString("N"),
-                                Revision = uint64 proposed.Expected.Revision
-                            )
-                    ),
-                    Unchecked.defaultof<_>
-                )
-                |> wait
+            let refused = apply proposed
 
             check
                 "changedInputsStillRefused"

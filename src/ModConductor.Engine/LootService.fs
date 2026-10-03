@@ -20,9 +20,9 @@ module internal LootWire =
     let proposal (value: LootProposal) =
         let result =
             LootSortProposal(
-                Id = value.Id.ToString("D"),
+                Id = value.Id.ToString("N"),
                 Expected = ProfileDataWire.reference value.Expected,
-                HeadersId = value.HeadersId.ToString("D"),
+                HeadersId = value.HeadersId.ToString("N"),
                 CreatedUnixMs = value.CreatedAt.ToUnixTimeMilliseconds(),
                 Metadata = metadata value.Metadata,
                 HelperVersion = value.HelperVersion,
