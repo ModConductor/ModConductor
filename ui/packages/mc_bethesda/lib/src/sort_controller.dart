@@ -76,6 +76,7 @@ class SortOrderController extends ChangeNotifier {
     state = null;
     lastResult = null;
     problem = null;
+    reading = writing = false;
     stale = false;
     inspecting = false;
     rows.clear();
@@ -150,10 +151,12 @@ class SortOrderController extends ChangeNotifier {
       if (!_disposed && epoch == _epoch) {
         if (error.kind == LootFailureKind.helper) {
           try {
-            _set(await _client!.read());
+            final value = await _client!.read();
+            if (_disposed || epoch != _epoch) return;
+            _set(value);
             problem = state?.available == false ? null : error.detail;
           } on Exception {
-            problem = error.detail;
+            if (!_disposed && epoch == _epoch) problem = error.detail;
           }
         } else {
           problem = error.detail;
@@ -193,10 +196,12 @@ class SortOrderController extends ChangeNotifier {
       if (!_disposed && epoch == _epoch) {
         if (error.kind == LootFailureKind.helper) {
           try {
-            _set(await _client!.read());
+            final value = await _client!.read();
+            if (_disposed || epoch != _epoch) return;
+            _set(value);
             problem = state?.available == false ? null : error.detail;
           } on Exception {
-            problem = error.detail;
+            if (!_disposed && epoch == _epoch) problem = error.detail;
           }
         } else {
           problem = error.detail;

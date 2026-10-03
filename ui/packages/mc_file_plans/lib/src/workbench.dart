@@ -167,6 +167,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
       _scaffold.currentState!.closeEndDrawer();
     } else {
       widget.plans.inspector.close();
+      widget.plugins?.closeInspector();
       widget.archives?.closeInspector();
       widget.sortOrder?.closeInspector();
       widget.onCloseAdditionalInspector?.call();
@@ -448,6 +449,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
               ),
               if (!_compact &&
                   (widget.plans.inspector.visible ||
+                      widget.plugins?.inspecting == true ||
                       widget.archives?.inspecting == true ||
                       widget.sortOrder?.inspecting == true ||
                       widget.additionalInspector != null)) ...[

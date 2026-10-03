@@ -1,25 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_bethesda/mc_bethesda.dart';
 import 'package:mc_client/mc_client.dart';
 
-const reference = ProfileDataRef(
-  workspaceId: 'workspace',
-  profileId: 'profile',
-  contextId: 'context',
-  revision: 3,
-);
-
 class _Bethesda implements BethesdaClient {
-  final snapshot = PluginSnapshot(
-    'headers',
-    'workspace',
-    'profile',
-    DateTime.utc(2026),
-    false,
-    const [],
-    const [],
-  );
+  _Bethesda([String profile = 'profile'])
+    : snapshot = PluginSnapshot(
+        'headers',
+        'workspace',
+        profile,
+        DateTime.utc(2026),
+        false,
+        const [],
+        const [],
+      );
+  final PluginSnapshot snapshot;
   @override
   Future<PluginSnapshot> read(String snapshot) async => this.snapshot;
   @override
@@ -30,7 +27,12 @@ class _Orders implements PluginOrderClient {
   _Orders(this.headers);
   final PluginSnapshot headers;
   ProfilePluginOrder get value => ProfilePluginOrder(
-    reference,
+    ProfileDataRef(
+      workspaceId: headers.workspaceId,
+      profileId: headers.profileId,
+      contextId: 'context',
+      revision: 3,
+    ),
     headers,
     const [
       PluginSetting('Patch.esp', true, null, null),
@@ -85,11 +87,11 @@ class _Loot implements LootClient {
     'skyrim-se-steam',
     true,
     '',
-    null,
+    empty.metadata,
     LootProposalView(
       'proposal',
-      reference,
-      'headers',
+      order.reference,
+      order.headers.id,
       DateTime.utc(2026),
       const ['Weather.esp', 'Patch.esp'],
       const ['Patch.esp', 'Weather.esp'],
@@ -148,7 +150,105 @@ class _Loot implements LootClient {
   }
 }
 
+class _PendingLoot extends _Loot {
+  _PendingLoot(super.order);
+  Completer<LootStateView>? pendingPreview, pendingRead;
+  Completer<ProfilePluginOrder>? pendingApply;
+  final applyProfiles = <String>[];
+  @override
+  Future<LootStateView> read() => pendingRead?.future ?? super.read();
+  @override
+  Future<LootStateView> preview(
+    String workspace,
+    String profile,
+    String headers,
+  ) => pendingPreview?.future ?? super.preview(workspace, profile, headers);
+  @override
+  Future<ProfilePluginOrder> apply(
+    String proposal,
+    ProfileDataRef expected,
+    String headers,
+  ) {
+    applyProfiles.add(expected.profileId);
+    return pendingApply?.future ?? super.apply(proposal, expected, headers);
+  }
+}
+
 void main() {
+  for (final applying in [false, true]) {
+    for (final helperRead in [false, true]) {
+      testWidgets(
+        'profile attach releases ${applying ? 'apply' : 'preview'} busy state and rejects old ${helperRead ? 'helper read' : 'completion'}',
+        (tester) async {
+          final bethesda = _Bethesda(), orders = _Orders(_Bethesda().snapshot);
+          final plugins = PluginsController()
+            ..attach(bethesda, 'profile', orders: orders);
+          addTearDown(plugins.dispose);
+          await plugins.scan();
+          final oldClient = _PendingLoot(orders.value);
+          final controller = SortOrderController()
+            ..attach(oldClient, plugins, 'profile');
+          addTearDown(controller.dispose);
+          await tester.pump();
+          if (applying) {
+            oldClient.pendingApply = Completer<ProfilePluginOrder>();
+          } else {
+            oldClient.pendingPreview = Completer<LootStateView>();
+          }
+          final running = controller.optimise();
+          await tester.pump();
+          expect(applying ? controller.writing : controller.reading, isTrue);
+          if (helperRead) {
+            oldClient.pendingRead = Completer<LootStateView>();
+            const error = LootFailure(
+              LootFailureKind.helper,
+              'helper unavailable',
+            );
+            if (applying) {
+              oldClient.pendingApply!.completeError(error);
+            } else {
+              oldClient.pendingPreview!.completeError(error);
+            }
+            await tester.pump();
+          }
+          final nextBethesda = _Bethesda('next-profile');
+          final nextOrders = _Orders(nextBethesda.snapshot);
+          final nextPlugins = PluginsController()
+            ..attach(nextBethesda, 'next-profile', orders: nextOrders);
+          addTearDown(nextPlugins.dispose);
+          await nextPlugins.scan();
+          final nextClient = _Loot(nextOrders.value);
+          controller.attach(nextClient, nextPlugins, 'next-profile');
+          await tester.pump();
+          expect(controller.canPreview, isTrue);
+          await controller.optimise();
+          final nextResult = controller.lastResult;
+          final nextState = controller.state;
+          expect(nextClient.previews, 1);
+          expect(nextClient.applies, 1);
+          expect(nextResult?.expected.profileId, 'next-profile');
+          if (helperRead) {
+            oldClient.pendingRead!.complete(oldClient.proposed);
+          } else if (applying) {
+            oldClient.pendingApply!.complete(orders.value);
+          } else {
+            oldClient.pendingPreview!.complete(oldClient.proposed);
+          }
+          await running;
+          await tester.pump();
+          expect(controller.lastResult, same(nextResult));
+          expect(controller.state, same(nextState));
+          expect(controller.proposal, isNull);
+          expect(controller.problem, isNull);
+          expect(controller.reading, isFalse);
+          expect(controller.writing, isFalse);
+          expect(controller.canPreview, isTrue);
+          expect(oldClient.applyProfiles, applying ? ['profile'] : isEmpty);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'one optimise action saves plugin order and retains LOOT reasons',
     (tester) async {

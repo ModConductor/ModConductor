@@ -280,6 +280,7 @@ class LoadOrderController extends ChangeNotifier {
         .toSet();
     if (!canMove || selected.isEmpty) return;
     final next = List<String>.of(_layout);
+    final movedPlugins = <String>{}, movedFiles = <String>{};
     final up = direction == ProfileModMove.up;
     for (final index
         in up
@@ -288,18 +289,26 @@ class LoadOrderController extends ChangeNotifier {
       final other = up ? index - 1 : index + 1;
       if (selected.contains(next[index]) && !selected.contains(next[other])) {
         final row = next[index];
+        if (row.startsWith('plugin:') && next[other].startsWith('plugin:')) {
+          movedPlugins.add(row);
+        } else if (row.startsWith('files:') &&
+            next[other].startsWith('files:')) {
+          movedFiles.add(row);
+        }
         next[index] = next[other];
         next[other] = row;
       }
     }
-    bool orderChanged(String prefix) => !listEquals(
-      _layout.where((id) => id.startsWith(prefix)).toList(),
-      next.where((id) => id.startsWith(prefix)).toList(),
-    );
-    final pluginsChanged = orderChanged('plugin:'),
-        filesChanged = orderChanged('files:');
+    final pluginsChanged = movedPlugins.isNotEmpty,
+        filesChanged = movedFiles.isNotEmpty;
     if (pluginsChanged && movePlugins == null) return;
-    final epoch = _epoch;
+    final epoch = _epoch,
+        inputs = _inputs,
+        organization = _organization!,
+        selection = _selection!,
+        profile = _profile!,
+        expectedRevision = revision!,
+        changed = onChanged;
     writing = true;
     problem = null;
     notifyListeners();
@@ -307,38 +316,44 @@ class LoadOrderController extends ChangeNotifier {
       if (pluginsChanged) {
         final names = _plugins
             .where(
-              (plugin) => selected.contains(LoadOrderRow.pluginId(plugin.name)),
+              (plugin) =>
+                  movedPlugins.contains(LoadOrderRow.pluginId(plugin.name)),
             )
             .map((plugin) => plugin.name)
             .toList();
-        if (!await movePlugins!(names, direction)) return;
+        final applied = await movePlugins!(names, direction);
+        if (_disposed || epoch != _epoch || !applied) return;
       }
       if (filesChanged) {
         final ids = _sources
             .where(
               (source) =>
-                  selected.contains(LoadOrderRow.sourceId(source.mod.id)),
+                  movedFiles.contains(LoadOrderRow.sourceId(source.mod.id)),
             )
             .map((source) => source.mod.id)
             .toList();
-        final changed = await _selection!.move(
-          _profile!,
-          revision!,
+        final result = await selection.move(
+          profile,
+          expectedRevision,
           ids,
           direction,
           fileSourcesOnly: true,
         );
-        revision = changed.revision;
+        if (_disposed || epoch != _epoch) return;
+        revision = result.revision;
       }
       if (_disposed || epoch != _epoch) return;
-      await _organization!.saveLoadOrderLayout(_profile!, next);
+      await organization.saveLoadOrderLayout(profile, next);
       if (_disposed || epoch != _epoch) return;
       _layout = next;
       _persistedLayout = next;
       // Domain events can arrive during the save; re-read precedence before reconciling slots.
       writing = false;
       if (filesChanged) {
-        await onChanged?.call();
+        await changed?.call();
+        if (_disposed || epoch != _epoch) return;
+      }
+      if (filesChanged || inputs != _inputs) {
         await read();
       } else {
         _project();

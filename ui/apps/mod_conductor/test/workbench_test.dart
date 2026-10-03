@@ -347,6 +347,86 @@ class Loot extends Fake implements LootClient {
 }
 
 void main() {
+  for (final compact in [false, true]) {
+    for (final additional in [false, true]) {
+      testWidgets(
+        '${compact ? 'compact' : 'desktop'} combined plugin inspection opens and closes ${additional ? 'with another inspector' : 'alone'}',
+        (tester) async {
+          tester.view.physicalSize = Size(compact ? 1100 : 1440, 900);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final organization = Organization();
+          final mods = ModLibraryController()
+            ..attach(
+              Library(organization),
+              Selection(),
+              organizationClient: organization,
+              workspaceId: 'workspace',
+              profileId: 'profile',
+              editable: true,
+            );
+          final plugins = PluginsController()
+            ..attach(Bethesda(), 'profile', orders: Orders());
+          final plans = FilePlansController();
+          for (final controller in [mods, plugins, plans]) {
+            addTearDown(controller.dispose);
+          }
+          await plugins.scan();
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: mcTheme(Brightness.dark),
+              home: Scaffold(
+                body: FilePlanningWorkbench(
+                  mods: mods,
+                  plans: plans,
+                  plugins: plugins,
+                  workspacePath: '/workspace',
+                  chooseDirectory: (_) async => null,
+                  additionalInspector: additional
+                      ? (_) => const SizedBox()
+                      : null,
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('plugin:skyrim.esm')));
+          await tester.pump(const Duration(milliseconds: 350));
+          await tester.tap(
+            find
+                .byWidgetPredicate(
+                  (widget) =>
+                      widget is McIconAction &&
+                      (widget.icon as Icon).icon == Icons.info_outline,
+                )
+                .hitTestable(),
+          );
+          await tester.pumpAndSettle();
+          expect(plugins.rows.selectedId, 'Skyrim.esm');
+          expect(plugins.inspecting, isTrue);
+          final inspector = find.byType(PluginInspector).hitTestable();
+          expect(inspector, findsOneWidget);
+          await tester.tap(
+            find.descendant(
+              of: inspector,
+              matching: find.byWidgetPredicate(
+                (widget) =>
+                    widget is McIconAction &&
+                    (widget.icon as Icon).icon == Icons.close,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(plugins.inspecting, isFalse);
+          expect(find.byType(PluginInspector).hitTestable(), findsNothing);
+          expect(mods.loadOrder.rows.selectedId, 'plugin:skyrim.esm');
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'one click LOOT saves plugins while retaining mixed file slots and selected copies',
     (tester) async {
