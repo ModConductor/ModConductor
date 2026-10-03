@@ -35,27 +35,27 @@ namespace ModConductor.Protocol.V1 {
             "ZHVjdG9yLnYxLlByb2ZpbGVNb2RSZXN0cmljdGlvbkgAQgcKBXN0YXRlInUK",
             "DlByb2ZpbGVNb2RWaWV3EioKA21vZBgBIAEoCzIdLm1vZGNvbmR1Y3Rvci52",
             "MS5JbnZlbnRvcnlNb2QSNwoJc2VsZWN0aW9uGAIgASgLMiQubW9kY29uZHVj",
-            "dG9yLnYxLlByb2ZpbGVNb2RTZWxlY3Rpb24ipgEKGENoYW5nZVByb2ZpbGVN",
+            "dG9yLnYxLlByb2ZpbGVNb2RTZWxlY3Rpb24iwQEKGENoYW5nZVByb2ZpbGVN",
             "b2RzUmVxdWVzdBISCgpwcm9maWxlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3Jl",
             "dmlzaW9uGAIgASgEEg8KB21vZF9pZHMYAyADKAkSEQoHZW5hYmxlZBgEIAEo",
             "CEgAEi8KBG1vdmUYBSABKA4yHy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZU1v",
-            "ZE1vdmVIAEIGCgRlZGl0InIKEFByb2ZpbGVNb2RzRGVsdGESEAoIcmV2aXNp",
-            "b24YASABKAQSNQoHY2hhbmdlZBgCIAMoCzIkLm1vZGNvbmR1Y3Rvci52MS5Q",
-            "cm9maWxlTW9kU2VsZWN0aW9uEhUKDWVuYWJsZWRfY291bnQYAyABKA0iigEK",
-            "FlByb2ZpbGVNb2RzQ2hhbmdlUmVwbHkSMgoFZGVsdGEYASABKAsyIS5tb2Rj",
-            "b25kdWN0b3IudjEuUHJvZmlsZU1vZHNEZWx0YUgAEjEKBWZhdWx0GAIgASgL",
-            "MiAubW9kY29uZHVjdG9yLnYxLk1vZExpYnJhcnlGYXVsdEgAQgkKB291dGNv",
-            "bWUqsgEKFVByb2ZpbGVNb2RSZXN0cmljdGlvbhInCiNQUk9GSUxFX01PRF9S",
-            "RVNUUklDVElPTl9VTlNQRUNJRklFRBAAEiIKHlBST0ZJTEVfTU9EX1JFU1RS",
-            "SUNUSU9OX0JBQ0tVUBABEiUKIVBST0ZJTEVfTU9EX1JFU1RSSUNUSU9OX1VO",
-            "TUFOQUdFRBACEiUKIVBST0ZJTEVfTU9EX1JFU1RSSUNUSU9OX0FVVE9NQVRJ",
-            "QxADKmYKDlByb2ZpbGVNb2RNb3ZlEiAKHFBST0ZJTEVfTU9EX01PVkVfVU5T",
-            "UEVDSUZJRUQQABIXChNQUk9GSUxFX01PRF9NT1ZFX1VQEAESGQoVUFJPRklM",
-            "RV9NT0RfTU9WRV9ET1dOEAIyfwoUUHJvZmlsZU1vZE9wZXJhdGlvbnMSZwoR",
-            "Q2hhbmdlUHJvZmlsZU1vZHMSKS5tb2Rjb25kdWN0b3IudjEuQ2hhbmdlUHJv",
-            "ZmlsZU1vZHNSZXF1ZXN0GicubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVNb2Rz",
-            "Q2hhbmdlUmVwbHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJv",
-            "dG8z"));
+            "ZE1vdmVIABIZChFmaWxlX3NvdXJjZXNfb25seRgGIAEoCEIGCgRlZGl0InIK",
+            "EFByb2ZpbGVNb2RzRGVsdGESEAoIcmV2aXNpb24YASABKAQSNQoHY2hhbmdl",
+            "ZBgCIAMoCzIkLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlTW9kU2VsZWN0aW9u",
+            "EhUKDWVuYWJsZWRfY291bnQYAyABKA0iigEKFlByb2ZpbGVNb2RzQ2hhbmdl",
+            "UmVwbHkSMgoFZGVsdGEYASABKAsyIS5tb2Rjb25kdWN0b3IudjEuUHJvZmls",
+            "ZU1vZHNEZWx0YUgAEjEKBWZhdWx0GAIgASgLMiAubW9kY29uZHVjdG9yLnYx",
+            "Lk1vZExpYnJhcnlGYXVsdEgAQgkKB291dGNvbWUqsgEKFVByb2ZpbGVNb2RS",
+            "ZXN0cmljdGlvbhInCiNQUk9GSUxFX01PRF9SRVNUUklDVElPTl9VTlNQRUNJ",
+            "RklFRBAAEiIKHlBST0ZJTEVfTU9EX1JFU1RSSUNUSU9OX0JBQ0tVUBABEiUK",
+            "IVBST0ZJTEVfTU9EX1JFU1RSSUNUSU9OX1VOTUFOQUdFRBACEiUKIVBST0ZJ",
+            "TEVfTU9EX1JFU1RSSUNUSU9OX0FVVE9NQVRJQxADKmYKDlByb2ZpbGVNb2RN",
+            "b3ZlEiAKHFBST0ZJTEVfTU9EX01PVkVfVU5TUEVDSUZJRUQQABIXChNQUk9G",
+            "SUxFX01PRF9NT1ZFX1VQEAESGQoVUFJPRklMRV9NT0RfTU9WRV9ET1dOEAIy",
+            "fwoUUHJvZmlsZU1vZE9wZXJhdGlvbnMSZwoRQ2hhbmdlUHJvZmlsZU1vZHMS",
+            "KS5tb2Rjb25kdWN0b3IudjEuQ2hhbmdlUHJvZmlsZU1vZHNSZXF1ZXN0Gicu",
+            "bW9kY29uZHVjdG9yLnYxLlByb2ZpbGVNb2RzQ2hhbmdlUmVwbHlCG6oCGE1v",
+            "ZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ModLibraryReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.ProfileModRestriction), typeof(global::ModConductor.Protocol.V1.ProfileModMove), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -63,7 +63,7 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.OrderedProfileMod), global::ModConductor.Protocol.V1.OrderedProfileMod.Parser, new[]{ "Priority" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileModSelection), global::ModConductor.Protocol.V1.ProfileModSelection.Parser, new[]{ "ModId", "Managed", "Separator", "Locked" }, new[]{ "State" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileModView), global::ModConductor.Protocol.V1.ProfileModView.Parser, new[]{ "Mod", "Selection" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ChangeProfileModsRequest), global::ModConductor.Protocol.V1.ChangeProfileModsRequest.Parser, new[]{ "ProfileId", "ExpectedRevision", "ModIds", "Enabled", "Move" }, new[]{ "Edit" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ChangeProfileModsRequest), global::ModConductor.Protocol.V1.ChangeProfileModsRequest.Parser, new[]{ "ProfileId", "ExpectedRevision", "ModIds", "Enabled", "Move", "FileSourcesOnly" }, new[]{ "Edit" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileModsDelta), global::ModConductor.Protocol.V1.ProfileModsDelta.Parser, new[]{ "Revision", "Changed", "EnabledCount" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfileModsChangeReply), global::ModConductor.Protocol.V1.ProfileModsChangeReply.Parser, new[]{ "Delta", "Fault" }, new[]{ "Outcome" }, null, null, null)
           }));
@@ -1199,6 +1199,7 @@ namespace ModConductor.Protocol.V1 {
       profileId_ = other.profileId_;
       expectedRevision_ = other.expectedRevision_;
       modIds_ = other.modIds_.Clone();
+      fileSourcesOnly_ = other.fileSourcesOnly_;
       switch (other.EditCase) {
         case EditOneofCase.Enabled:
           Enabled = other.Enabled;
@@ -1307,6 +1308,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "file_sources_only" field.</summary>
+    public const int FileSourcesOnlyFieldNumber = 6;
+    private bool fileSourcesOnly_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool FileSourcesOnly {
+      get { return fileSourcesOnly_; }
+      set {
+        fileSourcesOnly_ = value;
+      }
+    }
+
     private object edit_;
     /// <summary>Enum of possible cases for the "edit" oneof.</summary>
     public enum EditOneofCase {
@@ -1348,6 +1361,7 @@ namespace ModConductor.Protocol.V1 {
       if(!modIds_.Equals(other.modIds_)) return false;
       if (Enabled != other.Enabled) return false;
       if (Move != other.Move) return false;
+      if (FileSourcesOnly != other.FileSourcesOnly) return false;
       if (EditCase != other.EditCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -1361,6 +1375,7 @@ namespace ModConductor.Protocol.V1 {
       hash ^= modIds_.GetHashCode();
       if (HasEnabled) hash ^= Enabled.GetHashCode();
       if (HasMove) hash ^= Move.GetHashCode();
+      if (FileSourcesOnly != false) hash ^= FileSourcesOnly.GetHashCode();
       hash ^= (int) editCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -1397,6 +1412,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(40);
         output.WriteEnum((int) Move);
       }
+      if (FileSourcesOnly != false) {
+        output.WriteRawTag(48);
+        output.WriteBool(FileSourcesOnly);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1424,6 +1443,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(40);
         output.WriteEnum((int) Move);
       }
+      if (FileSourcesOnly != false) {
+        output.WriteRawTag(48);
+        output.WriteBool(FileSourcesOnly);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1447,6 +1470,9 @@ namespace ModConductor.Protocol.V1 {
       if (HasMove) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Move);
       }
+      if (FileSourcesOnly != false) {
+        size += 1 + 1;
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1466,6 +1492,9 @@ namespace ModConductor.Protocol.V1 {
         ExpectedRevision = other.ExpectedRevision;
       }
       modIds_.Add(other.modIds_);
+      if (other.FileSourcesOnly != false) {
+        FileSourcesOnly = other.FileSourcesOnly;
+      }
       switch (other.EditCase) {
         case EditOneofCase.Enabled:
           Enabled = other.Enabled;
@@ -1515,6 +1544,10 @@ namespace ModConductor.Protocol.V1 {
             editCase_ = EditOneofCase.Move;
             break;
           }
+          case 48: {
+            FileSourcesOnly = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -1553,6 +1586,10 @@ namespace ModConductor.Protocol.V1 {
           case 40: {
             edit_ = input.ReadEnum();
             editCase_ = EditOneofCase.Move;
+            break;
+          }
+          case 48: {
+            FileSourcesOnly = input.ReadBool();
             break;
           }
         }

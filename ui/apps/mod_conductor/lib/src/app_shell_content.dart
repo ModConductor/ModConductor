@@ -56,20 +56,63 @@ mixin _ShellContent
                 : null,
           ),
     discoveryBuilder:
-        widget.thunderstore == null ||
-            _game.state?.definition?.thunderstoreCommunity.isNotEmpty != true
+        !(_supportsBethesda &&
+                widget.nexus != null &&
+                widget.nexusMetadata != null &&
+                widget.modOrganization != null &&
+                _workspaces.confirmedWorkspace?.selectedProfile != null) &&
+            (widget.thunderstore == null ||
+                _game.state?.definition?.thunderstoreCommunity.isNotEmpty !=
+                    true)
         ? null
-        : (context, workspace, visible) => ThunderstoreBrowser(
-            key: ValueKey('thunderstore-${workspace.id}'),
-            client: widget.thunderstore!,
-            community: _game.state!.definition!.thunderstoreCommunity,
-            workspaceId: workspace.id,
-            visible: visible,
-            onInstalled: () => _installationCommitted(
-              workspace.id,
-              workspace.selectedProfile?.id,
-            ),
-          ),
+        : (context, workspace, visible) {
+            final profile = workspace.selectedProfile;
+            if (_supportsBethesda &&
+                profile != null &&
+                widget.nexus != null &&
+                widget.nexusMetadata != null &&
+                widget.modOrganization != null) {
+              return NexusDiscoveryBrowser(
+                key: ValueKey((workspace.id, profile.id)),
+                workspace: workspace.id,
+                profile: profile.id,
+                nexus: widget.nexus!,
+                metadata: widget.nexusMetadata!,
+                organization: widget.modOrganization!,
+                inventory: _mods.inventory,
+                trackedChanges: _discoveryTrackedChanges,
+                localChanges: _discoveryLocalChanges,
+                active: visible,
+                onViewFiles: (id) {
+                  setState(
+                    () => _nexusFileRequest = NexusFileRequest(
+                      workspace.id,
+                      profile.id,
+                      id,
+                      ++_nexusFileRevision,
+                    ),
+                  );
+                  _workspaces.showArchives();
+                },
+              );
+            }
+            if (widget.thunderstore == null ||
+                _game.state?.definition?.thunderstoreCommunity.isNotEmpty !=
+                    true) {
+              return const SizedBox.shrink();
+            }
+            return ThunderstoreBrowser(
+              key: ValueKey('thunderstore-${workspace.id}'),
+              client: widget.thunderstore!,
+              community: _game.state!.definition!.thunderstoreCommunity,
+              workspaceId: workspace.id,
+              visible: visible,
+              onInstalled: () => _installationCommitted(
+                workspace.id,
+                workspace.selectedProfile?.id,
+              ),
+            );
+          },
     executableBuilder: !_supportsGameMods || widget.executables == null
         ? null
         : (context, workspace) => ExecutablesBrowser(
@@ -145,6 +188,56 @@ mixin _ShellContent
           ),
     compactCloseAction:
         widget.gameLaunching != null && MediaQuery.sizeOf(context).width < 950,
+    workbenchActions: (context, workspace) => [
+      ListenableBuilder(
+        listenable: _modView,
+        builder: (context, _) {
+          final panes = <String, String>{
+            'load-order': 'Load order',
+            'saved': 'Saved mod files',
+            if (_supportsBethesda && widget.bethesda != null)
+              'bethesda-plugins': 'Plugin details',
+            if (_supportsBethesda && widget.archivePolicies != null)
+              'bethesda-archives': 'Archives',
+            if (_supportsBethesda && widget.loot != null)
+              'loot-sort-order': 'LOOT details',
+            if (_supportsBethesda && widget.filePlans != null)
+              'skyrim-data': 'File inspection',
+            if (_supportsBethesda && widget.outputs != null) ...{
+              'tool-outputs': 'Tool outputs',
+              'writable-files': 'Writable game files',
+            },
+          };
+          return SizedBox(
+            width: 190,
+            child: McChoice<String>(
+              label: 'View',
+              value: panes.containsKey(_modView.pane)
+                  ? _modView.pane
+                  : 'load-order',
+              choices: panes.keys.toList(),
+              describe: (id) => panes[id]!,
+              onChanged: _modView.select,
+            ),
+          );
+        },
+      ),
+      if (_supportsBethesda && widget.loot != null)
+        ListenableBuilder(
+          listenable: _sortOrder,
+          builder: (context, _) => Tooltip(
+            message: 'Optimise plugin load order with LOOT',
+            child: McAction(
+              label: 'Optimise',
+              icon: Icons.auto_fix_high,
+              emphasis: McActionEmphasis.primary,
+              onPressed: _sortOrder.canPreview
+                  ? () => unawaited(_sortOrder.optimise())
+                  : null,
+            ),
+          ),
+        ),
+    ],
     headerActions:
         !_supportsGameMods ||
             (widget.deployments == null && widget.migration == null)
@@ -252,208 +345,122 @@ mixin _ShellContent
     modLibraryBuilder: !_supportsGameMods
         ? null
         : (context, workspace, modsVisible) {
-            final canDiscover =
-                _supportsBethesda &&
-                widget.nexus != null &&
-                widget.nexusMetadata != null &&
-                widget.modOrganization != null &&
-                workspace.selectedProfile != null;
-            final showingDiscover = canDiscover && _discoverMods;
-            return Column(
-              children: [
-                if (canDiscover) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('Library')),
-                        ButtonSegment(value: true, label: Text('Discover')),
-                      ],
-                      selected: {_discoverMods},
-                      onSelectionChanged: (value) =>
-                          setState(() => _discoverMods = value.single),
+            return ListenableBuilder(
+              listenable: _nexusDetails,
+              builder: (context, _) => _nexusDetails.viewing
+                  ? ModNexusView(
+                      controller: _nexusDetails,
+                      onMapped: _mods.inventory.refreshCatalogue,
+                      onLinked: () async {
+                        final before = _mods.inventory.catalogueRevision;
+                        await _mods.inventory.refreshCatalogue();
+                        if (_mods.inventory.catalogueRevision == before) {
+                          _discoveryLocalChanges.value++;
+                        }
+                      },
+                      onRefreshed: () => _discoveryLocalChanges.value++,
+                      onTrackingChanged: () => _discoveryTrackedChanges.value++,
+                      organization: widget.modOrganization,
+                      localCategories:
+                          _mods.selected?.metadata.categories ?? const [],
+                      onDownloaded: (artifact, details, version) async {
+                        await _artifacts.load();
+                        _artifacts.model.select(artifact.id);
+                        final target = _mods.selected;
+                        if (target?.id == details.reference.mod &&
+                            target?.currentVersionId ==
+                                details.reference.version) {
+                          _artifacts.reviewUpdate(
+                            artifact,
+                            target!,
+                            version: version,
+                            open:
+                                artifact.state == ArtifactState.ready ||
+                                artifact.state == ArtifactState.installed,
+                          );
+                        }
+                        _nexusDetails.close();
+                        _workspaces.showArchives();
+                      },
+                    )
+                  : (widget.filePlans == null || !_supportsBethesda)
+                  ? ModLibraryBrowser(
+                      controller: _mods,
+                      view: _modView,
+                      externalPaneControls: true,
+                      onOpenNexus:
+                          !_supportsBethesda || widget.nexusMetadata == null
+                          ? null
+                          : _nexusDetails.open,
+                      maintenance: widget.maintenance,
+                      onDeleted: _artifacts.load,
+                      workspacePath: workspace.path,
+                      chooseDirectory: widget.chooseDirectory,
+                      inventoryExports: widget.inventoryExports,
+                      chooseExportLocation: widget.chooseExportLocation,
+                      openExportFolder: widget.openExportFolder,
+                      profileName: workspace.selectedProfile?.name,
+                    )
+                  : widget.outputs == null
+                  ? FilePlanningWorkbench(
+                      mods: _mods,
+                      view: _modView,
+                      externalPaneControls: true,
+                      onOpenNexus: widget.nexusMetadata == null
+                          ? null
+                          : _nexusDetails.open,
+                      maintenance: widget.maintenance,
+                      onDeleted: _artifacts.load,
+                      plans: _files,
+                      onOpenProblems: _workspaces.showHelp,
+                      plugins: widget.bethesda == null ? null : _plugins,
+                      archives: widget.archivePolicies == null
+                          ? null
+                          : _archives,
+                      sortOrder: widget.loot == null ? null : _sortOrder,
+                      workspacePath: workspace.path,
+                      chooseDirectory: widget.chooseDirectory,
+                      profileName: workspace.selectedProfile?.name,
+                      inventoryExports: widget.inventoryExports,
+                      chooseExportLocation: widget.chooseExportLocation,
+                      openExportFolder: widget.openExportFolder,
+                      archiveUnavailable:
+                          _game.state?.definition?.unavailable(
+                            GameCapabilityId.archiveInspection,
+                          ) ??
+                          false,
+                    )
+                  : DeploymentOutputsWorkbench(
+                      mods: _mods,
+                      view: _modView,
+                      externalPaneControls: true,
+                      onOpenNexus: widget.nexusMetadata == null
+                          ? null
+                          : _nexusDetails.open,
+                      maintenance: widget.maintenance,
+                      onDeleted: _artifacts.load,
+                      plans: _files,
+                      onOpenProblems: _workspaces.showHelp,
+                      plugins: widget.bethesda == null ? null : _plugins,
+                      archives: widget.archivePolicies == null
+                          ? null
+                          : _archives,
+                      sortOrder: widget.loot == null ? null : _sortOrder,
+                      outputs: _outputs,
+                      profileId: workspace.selectedProfile?.id,
+                      organization: widget.modOrganization,
+                      workspacePath: workspace.path,
+                      chooseDirectory: widget.chooseDirectory,
+                      profileName: workspace.selectedProfile?.name,
+                      inventoryExports: widget.inventoryExports,
+                      chooseExportLocation: widget.chooseExportLocation,
+                      openExportFolder: widget.openExportFolder,
+                      archiveUnavailable:
+                          _game.state?.definition?.unavailable(
+                            GameCapabilityId.archiveInspection,
+                          ) ??
+                          false,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Expanded(
-                  child: IndexedStack(
-                    index: showingDiscover ? 1 : 0,
-                    children: [
-                      ExcludeFocus(
-                        excluding: showingDiscover,
-                        child: ListenableBuilder(
-                          listenable: _nexusDetails,
-                          builder: (context, _) => _nexusDetails.viewing
-                              ? ModNexusView(
-                                  controller: _nexusDetails,
-                                  onMapped: _mods.inventory.refreshCatalogue,
-                                  onLinked: () async {
-                                    final before =
-                                        _mods.inventory.catalogueRevision;
-                                    await _mods.inventory.refreshCatalogue();
-                                    if (_mods.inventory.catalogueRevision ==
-                                        before) {
-                                      _discoveryLocalChanges.value++;
-                                    }
-                                  },
-                                  onRefreshed: () =>
-                                      _discoveryLocalChanges.value++,
-                                  onTrackingChanged: () =>
-                                      _discoveryTrackedChanges.value++,
-                                  organization: widget.modOrganization,
-                                  localCategories:
-                                      _mods.selected?.metadata.categories ??
-                                      const [],
-                                  onDownloaded:
-                                      (artifact, details, version) async {
-                                        await _artifacts.load();
-                                        _artifacts.model.select(artifact.id);
-                                        final target = _mods.selected;
-                                        if (target?.id ==
-                                                details.reference.mod &&
-                                            target?.currentVersionId ==
-                                                details.reference.version) {
-                                          _artifacts.reviewUpdate(
-                                            artifact,
-                                            target!,
-                                            version: version,
-                                            open:
-                                                artifact.state ==
-                                                    ArtifactState.ready ||
-                                                artifact.state ==
-                                                    ArtifactState.installed,
-                                          );
-                                        }
-                                        _nexusDetails.close();
-                                        _workspaces.showArchives();
-                                      },
-                                )
-                              : (widget.filePlans == null || !_supportsBethesda)
-                              ? ModLibraryBrowser(
-                                  controller: _mods,
-                                  onOpenNexus:
-                                      !_supportsBethesda ||
-                                          widget.nexusMetadata == null
-                                      ? null
-                                      : _nexusDetails.open,
-                                  maintenance: widget.maintenance,
-                                  onDeleted: _artifacts.load,
-                                  workspacePath: workspace.path,
-                                  chooseDirectory: widget.chooseDirectory,
-                                  inventoryExports: widget.inventoryExports,
-                                  chooseExportLocation:
-                                      widget.chooseExportLocation,
-                                  openExportFolder: widget.openExportFolder,
-                                  profileName: workspace.selectedProfile?.name,
-                                )
-                              : widget.outputs == null
-                              ? FilePlanningWorkbench(
-                                  mods: _mods,
-                                  onOpenNexus: widget.nexusMetadata == null
-                                      ? null
-                                      : _nexusDetails.open,
-                                  maintenance: widget.maintenance,
-                                  onDeleted: _artifacts.load,
-                                  plans: _files,
-                                  onOpenProblems: _workspaces.showHelp,
-                                  plugins: widget.bethesda == null
-                                      ? null
-                                      : _plugins,
-                                  archives: widget.archivePolicies == null
-                                      ? null
-                                      : _archives,
-                                  sortOrder: widget.loot == null
-                                      ? null
-                                      : _sortOrder,
-                                  workspacePath: workspace.path,
-                                  chooseDirectory: widget.chooseDirectory,
-                                  profileName: workspace.selectedProfile?.name,
-                                  inventoryExports: widget.inventoryExports,
-                                  chooseExportLocation:
-                                      widget.chooseExportLocation,
-                                  openExportFolder: widget.openExportFolder,
-                                  archiveUnavailable:
-                                      _game.state?.definition?.unavailable(
-                                        GameCapabilityId.archiveInspection,
-                                      ) ??
-                                      false,
-                                )
-                              : DeploymentOutputsWorkbench(
-                                  mods: _mods,
-                                  onOpenNexus: widget.nexusMetadata == null
-                                      ? null
-                                      : _nexusDetails.open,
-                                  maintenance: widget.maintenance,
-                                  onDeleted: _artifacts.load,
-                                  plans: _files,
-                                  onOpenProblems: _workspaces.showHelp,
-                                  plugins: widget.bethesda == null
-                                      ? null
-                                      : _plugins,
-                                  archives: widget.archivePolicies == null
-                                      ? null
-                                      : _archives,
-                                  sortOrder: widget.loot == null
-                                      ? null
-                                      : _sortOrder,
-                                  outputs: _outputs,
-                                  profileId: workspace.selectedProfile?.id,
-                                  organization: widget.modOrganization,
-                                  workspacePath: workspace.path,
-                                  chooseDirectory: widget.chooseDirectory,
-                                  profileName: workspace.selectedProfile?.name,
-                                  inventoryExports: widget.inventoryExports,
-                                  chooseExportLocation:
-                                      widget.chooseExportLocation,
-                                  openExportFolder: widget.openExportFolder,
-                                  archiveUnavailable:
-                                      _game.state?.definition?.unavailable(
-                                        GameCapabilityId.archiveInspection,
-                                      ) ??
-                                      false,
-                                ),
-                        ),
-                      ),
-                      ExcludeFocus(
-                        excluding: !showingDiscover,
-                        child:
-                            widget.nexus == null ||
-                                widget.nexusMetadata == null ||
-                                widget.modOrganization == null ||
-                                workspace.selectedProfile == null
-                            ? const SizedBox.shrink()
-                            : NexusDiscoveryBrowser(
-                                key: ValueKey((
-                                  workspace.id,
-                                  workspace.selectedProfile!.id,
-                                )),
-                                workspace: workspace.id,
-                                profile: workspace.selectedProfile!.id,
-                                nexus: widget.nexus!,
-                                metadata: widget.nexusMetadata!,
-                                organization: widget.modOrganization!,
-                                inventory: _mods.inventory,
-                                trackedChanges: _discoveryTrackedChanges,
-                                localChanges: _discoveryLocalChanges,
-                                active: modsVisible && showingDiscover,
-                                onViewFiles: (id) {
-                                  setState(
-                                    () => _nexusFileRequest = NexusFileRequest(
-                                      workspace.id,
-                                      workspace.selectedProfile!.id,
-                                      id,
-                                      ++_nexusFileRevision,
-                                    ),
-                                  );
-                                  _workspaces.showArchives();
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             );
           },
     chooseDirectory: widget.chooseDirectory,

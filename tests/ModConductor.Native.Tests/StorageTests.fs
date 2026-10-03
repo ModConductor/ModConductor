@@ -36,11 +36,11 @@ type StorageTests() =
             flag codecs name |> should equal true
 
     [<Test>]
-    member _.``empty state should create the complete first release schema atomically and refuse development databases``
+    member _.``empty state should create the current schema atomically and refuse incompatible databases``
         ()
         =
         let schema = field "schema"
-        number schema "version" |> should equal 1L
+        number schema "version" |> should equal 3L
         number schema "applicationId" |> should equal 1296253774L
         number schema "foreignKeyFailures" |> should equal 0L
         flag schema "initializationRollback" |> should equal true

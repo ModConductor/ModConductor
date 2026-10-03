@@ -35,6 +35,8 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.inventoryExports,
     this.chooseExportLocation,
     this.openExportFolder,
+    this.view,
+    this.externalPaneControls = false,
   });
   final ModLibraryController mods;
   final FilePlansController plans;
@@ -55,6 +57,8 @@ class FilePlanningWorkbench extends StatefulWidget {
   final InventoryExportClient? inventoryExports;
   final InventoryExportLocationChooser? chooseExportLocation;
   final InventoryExportFolderOpener? openExportFolder;
+  final ModWorkbenchView? view;
+  final bool externalPaneControls;
 
   @override
   State<FilePlanningWorkbench> createState() => _FilePlanningWorkbenchState();
@@ -71,10 +75,57 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
   @override
   void initState() {
     super.initState();
+    widget.mods.startLoadOrder();
     _selectionRevision = widget.mods.inventory.revision;
     _catalogueRevision = widget.mods.inventory.catalogueRevision;
     widget.mods.addListener(_changed);
     widget.mods.files.addListener(_selectionChanged);
+    widget.plugins?.addListener(_pluginsChanged);
+    widget.plans.addListener(_plansChanged);
+    _plansChanged();
+    _pluginsChanged();
+    if (widget.plugins?.state == null) unawaited(widget.plugins?.scan());
+  }
+
+  void _plansChanged() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.plans.ensureLoaded();
+    });
+  }
+
+  void _pluginsChanged() {
+    final plugins = widget.plugins;
+    widget.mods.loadOrder.syncPlugins(
+      plugins?.state?.entries ?? const [],
+      plugins?.order?.entries.map((row) => row.name).toList() ?? const [],
+      ready: plugins == null || plugins.state != null,
+    );
+  }
+
+  @override
+  void didUpdateWidget(FilePlanningWorkbench oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.mods, widget.mods)) {
+      oldWidget.mods.removeListener(_changed);
+      oldWidget.mods.files.removeListener(_selectionChanged);
+      widget.mods.addListener(_changed);
+      widget.mods.files.addListener(_selectionChanged);
+      widget.mods.startLoadOrder();
+      _selectionRevision = widget.mods.inventory.revision;
+      _catalogueRevision = widget.mods.inventory.catalogueRevision;
+      _pluginsChanged();
+    }
+    if (!identical(oldWidget.plugins, widget.plugins)) {
+      oldWidget.plugins?.removeListener(_pluginsChanged);
+      widget.plugins?.addListener(_pluginsChanged);
+      _pluginsChanged();
+      if (widget.plugins?.state == null) unawaited(widget.plugins?.scan());
+    }
+    if (!identical(oldWidget.plans, widget.plans)) {
+      oldWidget.plans.removeListener(_plansChanged);
+      widget.plans.addListener(_plansChanged);
+      _plansChanged();
+    }
   }
 
   void _selectionChanged() {
@@ -98,6 +149,8 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
   void dispose() {
     widget.mods.removeListener(_changed);
     widget.mods.files.removeListener(_selectionChanged);
+    widget.plugins?.removeListener(_pluginsChanged);
+    widget.plans.removeListener(_plansChanged);
     _filesFocus.dispose();
     _savedInspectFocus.dispose();
     super.dispose();
@@ -217,6 +270,22 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
               Expanded(
                 child: ModLibraryBrowser(
                   controller: widget.mods,
+                  view: widget.view,
+                  externalPaneControls: widget.externalPaneControls,
+                  paneActions: [
+                    if (widget.sortOrder case final sort?)
+                      Tooltip(
+                        message: 'Optimise plugin load order with LOOT',
+                        child: McAction(
+                          label: 'Optimise',
+                          icon: Icons.auto_fix_high,
+                          emphasis: McActionEmphasis.primary,
+                          onPressed: sort.canPreview
+                              ? () => unawaited(sort.optimise())
+                              : null,
+                        ),
+                      ),
+                  ],
                   onOpenNexus: widget.onOpenNexus,
                   maintenance: widget.maintenance,
                   onDeleted: widget.onDeleted,
@@ -253,6 +322,55 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                   ],
                   paneLabel: widget.plugins == null ? 'Files' : 'View',
                   filePanes: [
+                    ModFilePane(
+                      'load-order',
+                      'Load order',
+                      (context, narrow) => LoadOrderPane(
+                        controller: widget.mods.loadOrder,
+                        narrow: narrow,
+                        problem:
+                            widget.plugins?.problem ??
+                            widget.sortOrder?.problem,
+                        pluginSetting: widget.plugins?.setting,
+                        canTogglePlugin: widget.plugins?.canToggle,
+                        onTogglePlugin: (plugin) => unawaited(
+                          widget.plugins!.change(
+                            widget.plugins!.setting(plugin.name)?.enabled ==
+                                    true
+                                ? PluginOrderAction.disable
+                                : PluginOrderAction.enable,
+                            name: plugin.name,
+                          ),
+                        ),
+                        onInspectPlugin: (plugin) => _changeInspector(() {
+                          widget.plans.inspector.close();
+                          widget.archives?.closeInspector();
+                          widget.sortOrder?.closeInspector();
+                          widget.plugins!.select(plugin);
+                          widget.plugins!.inspect();
+                          _open();
+                        }),
+                        onMovePlugins: widget.plugins == null
+                            ? null
+                            : (names, direction) async {
+                                final plugins = widget.plugins!;
+                                await plugins.change(
+                                  direction == ProfileModMove.up
+                                      ? PluginOrderAction.up
+                                      : PluginOrderAction.down,
+                                  names: names,
+                                );
+                                return plugins.problem == null;
+                              },
+                        onInspectCopy: (copy) => _changeInspector(() {
+                          widget.plugins?.closeInspector();
+                          widget.archives?.closeInspector();
+                          widget.sortOrder?.closeInspector();
+                          _open();
+                          unawaited(widget.plans.inspector.showCopy(copy));
+                        }),
+                      ),
+                    ),
                     if (widget.plugins case final plugins?)
                       ModFilePane(
                         'bethesda-plugins',
@@ -287,7 +405,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                     if (widget.sortOrder case final sortOrder?)
                       ModFilePane(
                         'loot-sort-order',
-                        'Sort order',
+                        'LOOT details',
                         (context, narrow) => SortOrderPane(
                           controller: sortOrder,
                           narrow: narrow,
@@ -303,7 +421,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                       ),
                     ModFilePane(
                       'skyrim-data',
-                      'Skyrim Data',
+                      'File inspection',
                       (context, narrow) => PlannedFiles(
                         controller: widget.plans,
                         focusNode: _filesFocus,

@@ -150,7 +150,7 @@ class _Loot implements LootClient {
 
 void main() {
   testWidgets(
-    'a reviewed proposal saves only after the explicit apply action',
+    'one optimise action saves plugin order and retains LOOT reasons',
     (tester) async {
       final bethesda = _Bethesda(), orders = _Orders(_Bethesda().snapshot);
       final plugins = PluginsController()
@@ -160,7 +160,7 @@ void main() {
       final controller = SortOrderController()
         ..attach(client, plugins, 'profile');
       await tester.pump();
-      await controller.preview();
+      await controller.optimise();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -177,11 +177,9 @@ void main() {
           ),
         ),
       );
-      expect(client.applies, 0);
-      expect(find.text('Group: Patches'), findsOneWidget);
-      await tester.tap(find.text('Apply proposed order'));
-      await tester.pumpAndSettle();
+      expect(client.previews, 1);
       expect(client.applies, 1);
+      expect(controller.lastResult?.messages.single.plugin, 'Weather.esp');
       expect(controller.proposal, isNull);
 
       controller.dispose();

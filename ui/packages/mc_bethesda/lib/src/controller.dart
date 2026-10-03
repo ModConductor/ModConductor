@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
@@ -103,7 +105,11 @@ class PluginsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> change(PluginOrderAction action, {String? name}) async {
+  Future<void> change(
+    PluginOrderAction action, {
+    String? name,
+    List<String>? names,
+  }) async {
     if (!canEdit) return;
     final client = _orders!, current = order!, epoch = _epoch;
     writing = true;
@@ -113,7 +119,7 @@ class PluginsController extends ChangeNotifier {
       final value = await client.change(
         current.reference,
         current.headers.id,
-        name == null ? rows.selectedIds.toList() : [name],
+        names ?? (name == null ? rows.selectedIds.toList() : [name]),
         action,
       );
       if (_disposed || epoch != _epoch) return;
@@ -254,6 +260,7 @@ class PluginsController extends ChangeNotifier {
     if (state == null) return;
     stale = true;
     notifyListeners();
+    unawaited(scan());
   }
 
   void select(PluginEntry row) {
@@ -319,6 +326,7 @@ class PluginsController extends ChangeNotifier {
       if (!_disposed && epoch == _epoch) {
         reading = false;
         notifyListeners();
+        if (inputsRevision != _inputsRevision) unawaited(scan());
       }
     }
   }

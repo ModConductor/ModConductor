@@ -344,6 +344,7 @@ class ChangeProfileModsRequest extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? modIds,
     $core.bool? enabled,
     ProfileModMove? move,
+    $core.bool? fileSourcesOnly,
   }) {
     final result = create();
     if (profileId != null) result.profileId = profileId;
@@ -351,6 +352,7 @@ class ChangeProfileModsRequest extends $pb.GeneratedMessage {
     if (modIds != null) result.modIds.addAll(modIds);
     if (enabled != null) result.enabled = enabled;
     if (move != null) result.move = move;
+    if (fileSourcesOnly != null) result.fileSourcesOnly = fileSourcesOnly;
     return result;
   }
 
@@ -383,6 +385,7 @@ class ChangeProfileModsRequest extends $pb.GeneratedMessage {
     ..aOB(4, _omitFieldNames ? '' : 'enabled')
     ..aE<ProfileModMove>(5, _omitFieldNames ? '' : 'move',
         enumValues: ProfileModMove.values)
+    ..aOB(6, _omitFieldNames ? '' : 'fileSourcesOnly')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -451,6 +454,15 @@ class ChangeProfileModsRequest extends $pb.GeneratedMessage {
   $core.bool hasMove() => $_has(4);
   @$pb.TagNumber(5)
   void clearMove() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get fileSourcesOnly => $_getBF(5);
+  @$pb.TagNumber(6)
+  set fileSourcesOnly($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasFileSourcesOnly() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFileSourcesOnly() => $_clearField(6);
 }
 
 class ProfileModsDelta extends $pb.GeneratedMessage {

@@ -34,6 +34,7 @@ message ChangeProfileModsRequest {
   uint64 expected_revision = 2;
   repeated string mod_ids = 3; // Up to 512 stable IDs. No filtered indices.
   oneof edit { bool enabled = 4; ProfileModMove move = 5; }
+  bool file_sources_only = 6;
 }
 message ProfileModsDelta {
   uint64 revision = 1;

@@ -54,7 +54,8 @@ type InventoryExportTests() =
                   Actions = [] }
               Selection = selection }
           GroupId = None
-          GroupSize = None }
+          GroupSize = None
+          Position = Some 0 }
 
     [<Test>]
     member _.``CSV output should preserve text and apply the fixed portable format``() =
@@ -250,11 +251,19 @@ type InventoryExportTests() =
                     member _.EditWithProgress(_, _, _, _, _) = raise (NotSupportedException())
                     member _.ResumeProfileEdit(_, _, _, _) = raise (NotSupportedException())
                     member _.Check(_, _) = raise (NotSupportedException())
-                    member _.Recent _ = raise (NotSupportedException()) }
+                    member _.Recent _ = raise (NotSupportedException())
+                    member _.DeletionInfo _ = raise (NotSupportedException())
+                    member _.Delete(_, _, _, _) = raise (NotSupportedException()) }
 
             let prepare rows fields =
                 let organization =
                     { new IModOrganization with
+                        member _.Change(_, _, _, _) =
+                            Task.FromResult(Error LibraryError.UnsupportedAction)
+
+                        member _.LoadOrderLayout _ = Task.FromResult(Ok [])
+                        member _.SaveLoadOrderLayout(_, _) = Task.FromResult(Ok())
+
                         member _.Query(_, _, _, _) =
                             Task.FromResult(
                                 Ok
@@ -363,12 +372,20 @@ type InventoryExportTests() =
                             member _.ResumeProfileEdit(_, _, _, _) = raise (NotSupportedException())
 
                             member _.Check(_, _) = raise (NotSupportedException())
-                            member _.Recent _ = raise (NotSupportedException()) }
+                            member _.Recent _ = raise (NotSupportedException())
+                            member _.DeletionInfo _ = raise (NotSupportedException())
+                            member _.Delete(_, _, _, _) = raise (NotSupportedException()) }
 
                     let item = row (Guid.NewGuid()) "Mod" "" "" [] (SelectionState.Managed(0, true))
 
                     let organization =
                         { new IModOrganization with
+                            member _.Change(_, _, _, _) =
+                                Task.FromResult(Error LibraryError.UnsupportedAction)
+
+                            member _.LoadOrderLayout _ = Task.FromResult(Ok [])
+                            member _.SaveLoadOrderLayout(_, _) = Task.FromResult(Ok())
+
                             member _.Query(_, _, _, _) =
                                 Task.FromResult(
                                     Ok

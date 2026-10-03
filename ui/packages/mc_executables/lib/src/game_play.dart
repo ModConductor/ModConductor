@@ -32,18 +32,22 @@ class GamePlayActions extends StatelessWidget {
                 }
               : null,
         ),
-        McIconMenu<String>(
+        Semantics(
           label: 'Game launch options',
-          enabled: controller.connected,
-          itemBuilder: (_) => [
-            const PopupMenuItem(value: 'details', child: Text('Run details')),
-            if (controller.uncertain)
-              const PopupMenuItem(value: 'read', child: Text('Read result')),
-          ],
-          onSelected: (value) {
-            if (value == 'read') unawaited(controller.readResult());
-            details(context);
-          },
+          child: Tooltip(
+            message: 'Game launch options',
+            child: McMenuAction<String>(
+              label: '',
+              enabled: controller.connected,
+              choices: ['details', if (controller.uncertain) 'read'],
+              describe: (value) =>
+                  value == 'read' ? 'Read result' : 'Run details',
+              onSelected: (value) {
+                if (value == 'read') unawaited(controller.readResult());
+                details(context);
+              },
+            ),
+          ),
         ),
       ],
     ),

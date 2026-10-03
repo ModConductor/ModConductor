@@ -20,6 +20,7 @@ class McCollectionModel<I extends Object, T extends Object>
   final Map<I, String> _search = {};
   final Set<I> _expanded = {};
   List<I> _visible = [];
+  int projectionRevision = 0;
   Set<I>? _included;
   Map<I, int> _positions = {};
   I? _selected, _focused, _anchor;
@@ -158,6 +159,7 @@ class McCollectionModel<I extends Object, T extends Object>
   }
 
   void _project() {
+    ++projectionRevision;
     final needle = _query.toLowerCase().trim();
     Set<I>? matches;
     if (needle.isNotEmpty) {
@@ -233,6 +235,7 @@ class McCollectionModel<I extends Object, T extends Object>
     _search.clear();
     _expanded.clear();
     _visible = [];
+    ++projectionRevision;
     _positions = {};
     _selected = _focused = _anchor = null;
     _selection.clear();

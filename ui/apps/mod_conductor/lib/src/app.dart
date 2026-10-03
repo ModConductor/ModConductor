@@ -343,6 +343,7 @@ class _ModConductorAppState extends _AppStateBase
     _files.dispose();
     _diagnostics.dispose();
     _mods.dispose();
+    _modView.dispose();
     _game.dispose();
     _gameCatalogue.dispose();
     _workspaces.dispose();

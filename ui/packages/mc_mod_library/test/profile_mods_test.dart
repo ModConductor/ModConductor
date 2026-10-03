@@ -11,18 +11,28 @@ OrganizedMod row(String id, int priority, {bool enabled = false}) =>
     OrganizedMod(
       ProfileMod(mod(id), ManagedProfileMod(id, priority, enabled)),
       null,
+      position: priority,
     );
 
 class ProfileClient extends Fake implements ProfileModsClient {
   late Future<ProfileModsDelta> Function(int, List<String>, ProfileModMove)
   onMove;
+  Future<ProfileModsDelta> Function()? onEnable;
+  @override
+  Future<ProfileModsDelta> enable(
+    String profile,
+    int revision,
+    Iterable<String> ids,
+    bool enabled,
+  ) => onEnable!();
   @override
   Future<ProfileModsDelta> move(
     String profile,
     int revision,
     Iterable<String> ids,
-    ProfileModMove direction,
-  ) => onMove(revision, ids.toList(), direction);
+    ProfileModMove direction, {
+    bool fileSourcesOnly = false,
+  }) => onMove(revision, ids.toList(), direction);
 }
 
 class AddingLibrary extends LibraryClient {
@@ -48,6 +58,8 @@ void main() {
       ..onQuery = (_, _, _, _) async => queryPage([row('a', 0)]);
     final state = ProfileModsController();
     addTearDown(state.dispose);
+    queries.onMove = (revision, ids, direction) async =>
+        (await client.onMove(revision, ids, direction)).revision;
     state.attach(client, queries, 'workspace', 'profile');
     await settle();
     state.model.select((modId: 'a'));
@@ -83,6 +95,8 @@ void main() {
       );
     final state = ProfileModsController();
     addTearDown(state.dispose);
+    queries.onMove = (revision, ids, direction) async =>
+        (await client.onMove(revision, ids, direction)).revision;
     state.attach(client, queries, 'workspace', 'profile');
     await settle();
     state.model.select((modId: 'b'));
@@ -117,7 +131,7 @@ void main() {
     };
     await state.move(ProfileModMove.up);
     expect(revisions.where((value) => value == 5).length, 1);
-    expect(state.model[(modId: 'b')]!.selection.priority, 0);
+    expect(state.model[(modId: 'b')]!.selection.priority, 1);
     expect(state.model.selectedIds, {(modId: 'b'), (modId: 'c')});
     expect(state.model.focusedId, (modId: 'c'));
     expect(state.hiddenSelected, 1);
@@ -155,6 +169,8 @@ void main() {
           queryPage([row('a', 0), row('z', 1)], revision: 1);
     final state = ProfileModsController();
     addTearDown(state.dispose);
+    queries.onMove = (revision, ids, direction) async =>
+        (await client.onMove(revision, ids, direction)).revision;
     state.attach(client, queries, 'workspace', 'profile');
     await settle();
     state.model.select((modId: 'z'));

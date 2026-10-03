@@ -6,6 +6,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
 import 'profile_mods_controller.dart';
+import 'load_order_controller.dart';
 export 'profile_mods_controller.dart';
 
 typedef FileRowId = ({String versionId, String path});
@@ -30,6 +31,8 @@ class SavedFileNode {
 
 class ModLibraryController extends ChangeNotifier {
   final inventory = ProfileModsController();
+  final loadOrder = LoadOrderController();
+  int? _loadOrderRevision, _loadOrderCatalogue;
   McCollectionModel<ModRowId, OrganizedMod> get mods => inventory.model;
   ModEntry? get selected => mods.selected?.mod;
   final files = McCollectionModel<FileRowId, SavedFileNode>(
@@ -39,6 +42,13 @@ class ModLibraryController extends ChangeNotifier {
     isBranch: (row) => row.folder,
   );
   ModLibraryClient? _client;
+  ProfileModsClient? _selectionClient;
+  bool _loadOrderActive = false;
+  void startLoadOrder() {
+    _loadOrderActive = true;
+    loadOrder.attach(_client, organization, _selectionClient, _profile);
+  }
+
   ModOrganizationClient? organization;
   String? get workspaceId => _workspace;
   String? get profileId => _profile;
@@ -65,10 +75,17 @@ class ModLibraryController extends ChangeNotifier {
 
   ModLibraryController() {
     inventory.addListener(_inventoryChanged);
+    loadOrder.onChanged = inventory.refreshCatalogue;
     files.sort((a, b) => a.name.compareTo(b.name));
   }
 
   void _inventoryChanged() {
+    if (inventory.revision != _loadOrderRevision ||
+        inventory.catalogueRevision != _loadOrderCatalogue) {
+      _loadOrderRevision = inventory.revision;
+      _loadOrderCatalogue = inventory.catalogueRevision;
+      loadOrder.invalidate();
+    }
     final row = mods.selected;
     if (_pendingRegistration != null &&
         row?.mod.id == _pendingRegistration &&
@@ -97,6 +114,10 @@ class ModLibraryController extends ChangeNotifier {
     int? workspaceRevision,
     required bool editable,
   }) {
+    _selectionClient = selectionClient;
+    if (_loadOrderActive) {
+      loadOrder.attach(client, organizationClient, selectionClient, profileId);
+    }
     organization = organizationClient;
     canEdit =
         editable &&
@@ -293,6 +314,30 @@ class ModLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> addSeparator(
+    String name, {
+    List<String> members = const [],
+  }) async {
+    final workspace = _workspace;
+    if (workspace == null || !canEdit || _client == null || activity != null) {
+      return;
+    }
+    final id = newOperationId();
+    await _action(
+      'Add separator',
+      (client) => client.register(
+        workspace,
+        id,
+        ModMetadata(name: name),
+        const SeparatorMod(),
+      ),
+      registered: true,
+    );
+    if (inventory.model[(modId: id)] != null && members.isNotEmpty) {
+      await inventory.group(members, id);
+    }
+  }
+
   Future<void> edit(ModEntry original, ModMetadata metadata) => _action(
     'Save mod details',
     (client) => client.edit(original.id, original.revision, metadata),
@@ -315,6 +360,7 @@ class ModLibraryController extends ChangeNotifier {
     ++_epoch;
     inventory.removeListener(_inventoryChanged);
     inventory.dispose();
+    loadOrder.dispose();
     files.dispose();
     super.dispose();
   }

@@ -56,7 +56,7 @@ module internal Sqlite =
                 || not (
                     List.contains
                         (int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(60, 4))))
-                        [ 1L; Schema.CurrentVersion ]
+                        [ Schema.CurrentVersion ]
                 )
                 || int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(68, 4)))
                    <> Schema.ApplicationId
@@ -79,12 +79,6 @@ module internal Sqlite =
 
         match version, application, objects with
         | 0L, 0L, 0L -> execute connection transaction Schema.sql []
-        | 1L, Schema.ApplicationId, _ ->
-            execute
-                connection
-                transaction
-                "ALTER TABLE game_contexts ADD COLUMN wine_selection TEXT; PRAGMA user_version=2;"
-                []
         | Schema.CurrentVersion, Schema.ApplicationId, _ -> ()
         | _ -> incompatible ()
 

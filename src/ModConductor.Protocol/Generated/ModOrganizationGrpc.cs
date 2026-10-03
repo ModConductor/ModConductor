@@ -57,6 +57,14 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.QueryModsRequest> __Marshaller_modconductor_v1_QueryModsRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.QueryModsRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModQueryReply> __Marshaller_modconductor_v1_ModQueryReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModQueryReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest> __Marshaller_modconductor_v1_ReadLoadOrderLayoutRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.LoadOrderLayoutReply> __Marshaller_modconductor_v1_LoadOrderLayoutReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.LoadOrderLayoutReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest> __Marshaller_modconductor_v1_SaveLoadOrderLayoutRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ChangeModOrganizationRequest> __Marshaller_modconductor_v1_ChangeModOrganizationRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ChangeModOrganizationRequest.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadCategoriesRequest, global::ModConductor.Protocol.V1.CategoriesReply> __Method_ReadCategories = new grpc::Method<global::ModConductor.Protocol.V1.ReadCategoriesRequest, global::ModConductor.Protocol.V1.CategoriesReply>(
@@ -82,6 +90,30 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_QueryModsRequest,
         __Marshaller_modconductor_v1_ModQueryReply);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest, global::ModConductor.Protocol.V1.LoadOrderLayoutReply> __Method_ReadLoadOrderLayout = new grpc::Method<global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest, global::ModConductor.Protocol.V1.LoadOrderLayoutReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReadLoadOrderLayout",
+        __Marshaller_modconductor_v1_ReadLoadOrderLayoutRequest,
+        __Marshaller_modconductor_v1_LoadOrderLayoutReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply> __Method_SaveLoadOrderLayout = new grpc::Method<global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "SaveLoadOrderLayout",
+        __Marshaller_modconductor_v1_SaveLoadOrderLayoutRequest,
+        __Marshaller_modconductor_v1_OrganizationChangeReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ChangeModOrganizationRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply> __Method_ChangeModOrganization = new grpc::Method<global::ModConductor.Protocol.V1.ChangeModOrganizationRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ChangeModOrganization",
+        __Marshaller_modconductor_v1_ChangeModOrganizationRequest,
+        __Marshaller_modconductor_v1_OrganizationChangeReply);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -106,6 +138,24 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModQueryReply> QueryMods(global::ModConductor.Protocol.V1.QueryModsRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.LoadOrderLayoutReply> ReadLoadOrderLayout(global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.OrganizationChangeReply> SaveLoadOrderLayout(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.OrganizationChangeReply> ChangeModOrganization(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -199,6 +249,66 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_QueryMods, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.LoadOrderLayoutReply ReadLoadOrderLayout(global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadLoadOrderLayout(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.LoadOrderLayoutReply ReadLoadOrderLayout(global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReadLoadOrderLayout, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.LoadOrderLayoutReply> ReadLoadOrderLayoutAsync(global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadLoadOrderLayoutAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.LoadOrderLayoutReply> ReadLoadOrderLayoutAsync(global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReadLoadOrderLayout, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.OrganizationChangeReply SaveLoadOrderLayout(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SaveLoadOrderLayout(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.OrganizationChangeReply SaveLoadOrderLayout(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_SaveLoadOrderLayout, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.OrganizationChangeReply> SaveLoadOrderLayoutAsync(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SaveLoadOrderLayoutAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.OrganizationChangeReply> SaveLoadOrderLayoutAsync(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_SaveLoadOrderLayout, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.OrganizationChangeReply ChangeModOrganization(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ChangeModOrganization(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.OrganizationChangeReply ChangeModOrganization(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ChangeModOrganization, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.OrganizationChangeReply> ChangeModOrganizationAsync(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ChangeModOrganizationAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.OrganizationChangeReply> ChangeModOrganizationAsync(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ChangeModOrganization, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override ModOrganizationOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -215,7 +325,10 @@ namespace ModConductor.Protocol.V1 {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_ReadCategories, serviceImpl.ReadCategories)
           .AddMethod(__Method_EditCategory, serviceImpl.EditCategory)
-          .AddMethod(__Method_QueryMods, serviceImpl.QueryMods).Build();
+          .AddMethod(__Method_QueryMods, serviceImpl.QueryMods)
+          .AddMethod(__Method_ReadLoadOrderLayout, serviceImpl.ReadLoadOrderLayout)
+          .AddMethod(__Method_SaveLoadOrderLayout, serviceImpl.SaveLoadOrderLayout)
+          .AddMethod(__Method_ChangeModOrganization, serviceImpl.ChangeModOrganization).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -228,6 +341,9 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_ReadCategories, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadCategoriesRequest, global::ModConductor.Protocol.V1.CategoriesReply>(serviceImpl.ReadCategories));
       serviceBinder.AddMethod(__Method_EditCategory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EditCategoryRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply>(serviceImpl.EditCategory));
       serviceBinder.AddMethod(__Method_QueryMods, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.QueryModsRequest, global::ModConductor.Protocol.V1.ModQueryReply>(serviceImpl.QueryMods));
+      serviceBinder.AddMethod(__Method_ReadLoadOrderLayout, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest, global::ModConductor.Protocol.V1.LoadOrderLayoutReply>(serviceImpl.ReadLoadOrderLayout));
+      serviceBinder.AddMethod(__Method_SaveLoadOrderLayout, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply>(serviceImpl.SaveLoadOrderLayout));
+      serviceBinder.AddMethod(__Method_ChangeModOrganization, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ChangeModOrganizationRequest, global::ModConductor.Protocol.V1.OrganizationChangeReply>(serviceImpl.ChangeModOrganization));
     }
 
   }

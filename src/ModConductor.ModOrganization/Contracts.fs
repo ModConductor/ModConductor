@@ -65,8 +65,21 @@ type QueryCursor =
 
 type GroupSize = { Matching: int; Total: int }
 
+type OrganizationItem =
+    { Id: Guid
+      Position: int
+      GroupId: Guid option
+      IsSeparator: bool }
+
+[<RequireQualifiedAccess>]
+type OrganizationEdit =
+    | MoveUp
+    | MoveDown
+    | Group of Guid
+
 type OrganizedMod =
     { Entry: ProfileMod
+      Position: int option
       GroupId: Guid option
       GroupSize: GroupSize option }
 
@@ -85,6 +98,12 @@ type ModQueryPage =
       EnabledCount: int }
 
 type IModOrganization =
+    abstract LoadOrderLayout: Guid -> Task<Result<string list, LibraryError>>
+    abstract SaveLoadOrderLayout: Guid * string list -> Task<Result<unit, LibraryError>>
+
+    abstract Change:
+        Guid * int64 * Guid list * OrganizationEdit -> Task<Result<int64, LibraryError>>
+
     abstract Categories:
         Guid * Guid option * Guid option * int64 option -> Task<Result<CategoryPage, LibraryError>>
 

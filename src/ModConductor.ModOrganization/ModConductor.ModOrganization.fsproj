@@ -4,6 +4,7 @@
     <Compile Include="Contracts.fs" />
     <Compile Include="CategoryPolicy.fs" />
     <Compile Include="OrganizationPolicy.fs" />
+    <Compile Include="GroupPolicy.fs" />
     <Compile Include="InventoryExportContracts.fs" />
     <Compile Include="InventoryExportCsv.fs" />
     <Compile Include="InventoryExport.fs" />

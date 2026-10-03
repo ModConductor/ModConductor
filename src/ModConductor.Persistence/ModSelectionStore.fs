@@ -57,7 +57,18 @@ type ModSelectionStore internal (database: StateDatabase, access: LibraryAccess)
             then
                 Error LibraryError.NotFound
             else
-                let current = SelectionRows.all connection transaction profile
+                let current =
+                    SelectionRows.all connection transaction profile
+                    |> List.filter (fun row ->
+                        match edit with
+                        | SelectionEdit.MoveFilesUp
+                        | SelectionEdit.MoveFilesDown ->
+                            row.Enabled.IsSome
+                            && (LibraryRows.find connection transaction row.Id
+                                |> Option.exists (fun entry -> entry.Entry.CurrentVersion.IsSome))
+                        | SelectionEdit.Enable _
+                        | SelectionEdit.MoveUp
+                        | SelectionEdit.MoveDown -> true)
 
                 match SelectionPolicy.change ids edit current with
                 | Error error -> Error error

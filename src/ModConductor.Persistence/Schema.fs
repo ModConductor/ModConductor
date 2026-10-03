@@ -2,7 +2,7 @@ namespace ModConductor.Persistence
 
 module internal Schema =
     [<Literal>]
-    let CurrentVersion = 2L
+    let CurrentVersion = 3L
 
     [<Literal>]
     let ApplicationId = 1296253774L
@@ -285,7 +285,8 @@ CREATE TABLE output_observations(location_id TEXT NOT NULL REFERENCES output_loc
 CREATE TABLE profile_data_actions(id TEXT PRIMARY KEY,context_id TEXT NOT NULL REFERENCES profile_data_contexts(id),owner TEXT NOT NULL,busy INTEGER NOT NULL,complete INTEGER NOT NULL,body BLOB NOT NULL);
 CREATE TABLE profile_data_contexts(id TEXT PRIMARY KEY,workspace_id TEXT NOT NULL REFERENCES workspaces(id),documents_identity TEXT NOT NULL,revision INTEGER NOT NULL,pending TEXT,body BLOB NOT NULL);
 CREATE TABLE profile_data_profiles(context_id TEXT NOT NULL REFERENCES profile_data_contexts(id),profile_id TEXT NOT NULL REFERENCES profiles(id),body BLOB NOT NULL,PRIMARY KEY(context_id,profile_id));
-CREATE TABLE profile_mods(profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, mod_id TEXT NOT NULL REFERENCES mods(id), priority INTEGER NOT NULL, enabled INTEGER, PRIMARY KEY(profile_id,mod_id), UNIQUE(profile_id,priority));
+CREATE TABLE profile_load_layout(profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, position INTEGER NOT NULL, entry_id TEXT NOT NULL, PRIMARY KEY(profile_id,position), UNIQUE(profile_id,entry_id));
+CREATE TABLE profile_mods(profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, mod_id TEXT NOT NULL REFERENCES mods(id), priority INTEGER NOT NULL, enabled INTEGER, organization_position INTEGER NOT NULL, group_id TEXT REFERENCES mods(id) ON DELETE SET NULL, PRIMARY KEY(profile_id,mod_id), UNIQUE(profile_id,priority));
 CREATE TABLE profiles (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id), name TEXT NOT NULL, selection_revision INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE root_creation_receipts (id TEXT PRIMARY KEY REFERENCES workspace_roots(id), owner TEXT NOT NULL, marker TEXT NOT NULL, revision INTEGER NOT NULL, phase INTEGER NOT NULL CHECK(phase BETWEEN 1 AND 4), busy INTEGER NOT NULL, abandoned INTEGER NOT NULL, marker_device_kind INTEGER, marker_device TEXT, marker_low TEXT, marker_high TEXT, detail TEXT NOT NULL);
 CREATE TABLE skse_artifact_selections(
@@ -406,5 +407,5 @@ CREATE UNIQUE INDEX workspace_root_identity ON workspace_roots(device_kind,devic
 CREATE TRIGGER mod_catalogue_insert AFTER INSERT ON mods BEGIN UPDATE workspaces SET catalogue_revision=catalogue_revision+1 WHERE id=NEW.workspace_id; END;
 CREATE TRIGGER mod_catalogue_update AFTER UPDATE ON mods BEGIN UPDATE workspaces SET catalogue_revision=catalogue_revision+1 WHERE id=NEW.workspace_id; END;
 PRAGMA application_id=1296253774;
-PRAGMA user_version=2;
+PRAGMA user_version=3;
         """

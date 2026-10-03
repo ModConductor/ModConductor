@@ -30,12 +30,14 @@ class ProfileModsClient {
     String profileId,
     int revision,
     Iterable<String> ids,
-    ProfileModMove direction,
-  ) => _change(
+    ProfileModMove direction, {
+    bool fileSourcesOnly = false,
+  }) => _change(
     wire.ChangeProfileModsRequest(
       profileId: profileId,
       expectedRevision: Int64(revision),
       modIds: ids,
+      fileSourcesOnly: fileSourcesOnly,
       move: switch (direction) {
         ProfileModMove.up => wire.ProfileModMove.PROFILE_MOD_MOVE_UP,
         ProfileModMove.down => wire.ProfileModMove.PROFILE_MOD_MOVE_DOWN,

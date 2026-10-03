@@ -29,6 +29,7 @@ class SortOrderController extends ChangeNotifier {
   PluginsController? _plugins;
   String? _profile;
   LootStateView? state;
+  LootProposalView? lastResult;
   bool reading = false, writing = false, stale = false, inspecting = false;
   String? problem;
   int _epoch = 0;
@@ -73,6 +74,7 @@ class SortOrderController extends ChangeNotifier {
     _profile = profile;
     ++_epoch;
     state = null;
+    lastResult = null;
     problem = null;
     stale = false;
     inspecting = false;
@@ -104,6 +106,15 @@ class SortOrderController extends ChangeNotifier {
     );
   }
 
+  Future<void> optimise() async {
+    if (!canPreview) return;
+    final epoch = _epoch;
+    await preview();
+    if (!_disposed && epoch == _epoch && canApply && problem == null) {
+      await apply();
+    }
+  }
+
   Future<void> refreshMetadata() async {
     if (!canRefreshMetadata) return;
     await _run(() => _client!.refreshMetadata());
@@ -125,6 +136,7 @@ class SortOrderController extends ChangeNotifier {
     try {
       await _client!.apply(current.id, current.expected, current.headersId);
       if (_disposed || epoch != _epoch) return;
+      lastResult = current;
       state = LootStateView(
         state!.capabilityId,
         state!.available,
@@ -132,7 +144,6 @@ class SortOrderController extends ChangeNotifier {
         state!.metadata,
         null,
       );
-      rows.clear();
       inspecting = false;
       await _plugins!.scan();
     } on LootFailure catch (error) {
@@ -176,7 +187,8 @@ class SortOrderController extends ChangeNotifier {
     problem = null;
     notifyListeners();
     try {
-      _set(await action());
+      final value = await action();
+      if (!_disposed && epoch == _epoch) _set(value);
     } on LootFailure catch (error) {
       if (!_disposed && epoch == _epoch) {
         if (error.kind == LootFailureKind.helper) {

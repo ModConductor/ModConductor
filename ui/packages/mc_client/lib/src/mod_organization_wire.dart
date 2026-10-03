@@ -19,6 +19,7 @@ ModCategory category(wire.ModCategory value) => ModCategory(
 OrganizedMod row(wire.OrganizedModView value) => OrganizedMod(
   profile.entry(value.entry),
   value.hasGroupId() ? value.groupId : null,
+  position: value.hasPosition() ? value.position : null,
   groupSize: value.hasGroupSize()
       ? GroupSize(value.groupSize.matching, value.groupSize.total)
       : null,

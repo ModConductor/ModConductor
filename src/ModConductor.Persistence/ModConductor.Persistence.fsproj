@@ -58,6 +58,7 @@
     <Compile Include="OutputRows.fs" />
     <Compile Include="OrganizationQuerySql.fs" />
     <Compile Include="OrganizationQuery.fs" />
+    <Compile Include="OrganizationCommands.fs" />
     <Compile Include="ModOrganizationStore.fs" />
     <Compile Include="OutputEncoding.fs" />
     <Compile Include="OutputLocationStore.fs" />

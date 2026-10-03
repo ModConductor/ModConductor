@@ -6,6 +6,54 @@ open ModConductor.Protocol.V1
 type ModOrganizationService(organization: IModOrganization) =
     inherit ModOrganizationOperations.ModOrganizationOperationsBase()
 
+    override _.ReadLoadOrderLayout(request, _) =
+        task {
+            let! result = organization.LoadOrderLayout(ModLibraryWire.id request.ProfileId)
+
+            return
+                match result with
+                | Error error -> LoadOrderLayoutReply(Fault = OrganizationWire.fault error)
+                | Ok entries ->
+                    let layout = LoadOrderLayout()
+                    layout.Entries.AddRange entries
+                    LoadOrderLayoutReply(Layout = layout)
+        }
+
+    override _.SaveLoadOrderLayout(request, _) =
+        task {
+            let! result =
+                organization.SaveLoadOrderLayout(
+                    ModLibraryWire.id request.ProfileId,
+                    request.Entries |> Seq.toList
+                )
+
+            return OrganizationWire.changed (result |> Result.map (fun () -> 0L))
+        }
+
+    override _.ChangeModOrganization(request, _) =
+        task {
+            let edit =
+                match request.EditCase with
+                | ChangeModOrganizationRequest.EditOneofCase.Move ->
+                    match request.Move with
+                    | ProfileModMove.Up -> OrganizationEdit.MoveUp
+                    | ProfileModMove.Down -> OrganizationEdit.MoveDown
+                    | _ -> ModLibraryWire.reject "Choose a move direction."
+                | ChangeModOrganizationRequest.EditOneofCase.GroupId ->
+                    OrganizationEdit.Group(ModLibraryWire.id request.GroupId)
+                | _ -> ModLibraryWire.reject "Choose an organization action."
+
+            let! result =
+                organization.Change(
+                    ModLibraryWire.id request.ProfileId,
+                    ModLibraryWire.number request.ExpectedRevision,
+                    request.ModIds |> Seq.map ModLibraryWire.id |> Seq.toList,
+                    edit
+                )
+
+            return OrganizationWire.changed result
+        }
+
     override _.ReadCategories(request, _) =
         task {
             let! result =

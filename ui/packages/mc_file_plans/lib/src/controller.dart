@@ -21,6 +21,7 @@ class FilePlansController extends ChangeNotifier {
   bool _guardingAttach = false;
   (FilePlansClient?, String?, bool)? _pendingAttach;
   String? problem;
+  String? _automaticRequest;
   bool get connected => _client != null && _profile != null && _available;
   FilePlansController() {
     tree.addListener(_notify);
@@ -80,6 +81,7 @@ class FilePlansController extends ChangeNotifier {
     _client = client;
     _profile = profileId;
     state = null;
+    _automaticRequest = null;
     loading = reading = changing = needsRead = false;
     problem = null;
     progress = null;
@@ -94,6 +96,25 @@ class FilePlansController extends ChangeNotifier {
     needsRead = true;
     unawaited(_validateRetained());
     _notify();
+  }
+
+  void ensureLoaded() {
+    final current = state;
+    if (!connected ||
+        loading ||
+        reading ||
+        changing ||
+        current == null ||
+        inspector.editingText) {
+      return;
+    }
+    if (current.loaded && !current.stale && !needsRead) return;
+    final request =
+        '${current.id}:${current.fingerprint}:${current.loaded}:'
+        '${current.stale}:$needsRead';
+    if (_automaticRequest == request) return;
+    _automaticRequest = request;
+    unawaited(acquire(refresh: current.loaded));
   }
 
   Future<void> _validateRetained() async {

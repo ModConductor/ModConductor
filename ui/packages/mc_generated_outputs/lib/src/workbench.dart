@@ -30,6 +30,8 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     this.inventoryExports,
     this.chooseExportLocation,
     this.openExportFolder,
+    this.view,
+    this.externalPaneControls = false,
   });
   final ModLibraryController mods;
   final FilePlansController plans;
@@ -37,6 +39,8 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   final ArchivePolicyController? archives;
   final SortOrderController? sortOrder;
   final OutputController outputs;
+  final ModWorkbenchView? view;
+  final bool externalPaneControls;
   final String workspacePath;
   final Future<String?> Function(String?) chooseDirectory;
   final String? profileId, profileName;
@@ -54,6 +58,8 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     listenable: outputs,
     builder: (context, _) => FilePlanningWorkbench(
       mods: mods,
+      view: view,
+      externalPaneControls: externalPaneControls,
       onOpenNexus: onOpenNexus,
       maintenance: maintenance,
       onDeleted: onDeleted,

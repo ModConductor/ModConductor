@@ -24,7 +24,7 @@ class ModQueryCache {
   }
 
   int comparePriority(OrganizedMod a, OrganizedMod b) {
-    final left = a.selection.priority, right = b.selection.priority;
+    final left = a.position, right = b.position;
     if (left == null && right != null) {
       return _view == OrganizationView.flat ? 1 : -1;
     }
@@ -53,6 +53,7 @@ class ModQueryCache {
             ProfileMod(old.mod, selection),
             old.groupId,
             groupSize: old.groupSize,
+            position: old.position,
           ),
       ...page.entries,
       ...page.context,

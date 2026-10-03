@@ -21,7 +21,7 @@ class SortOrderPane extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
     builder: (context, _) {
-      final proposal = controller.proposal;
+      final proposal = controller.proposal ?? controller.lastResult;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -35,7 +35,9 @@ class SortOrderPane extends StatelessWidget {
           ],
           if (proposal != null) ...[
             McStatus(
-              title: 'Proposed order is ready',
+              title: controller.proposal == null
+                  ? 'Plugin order saved'
+                  : 'LOOT result',
               detail:
                   '${proposal.moves.length} moves · ${proposal.messages.length} messages',
             ),
@@ -54,32 +56,6 @@ class SortOrderPane extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (proposal == null)
-                McAction(
-                  label: 'Preview sort',
-                  icon: Icons.sort,
-                  emphasis: McActionEmphasis.primary,
-                  onPressed: controller.canPreview
-                      ? () => unawaited(controller.preview())
-                      : null,
-                )
-              else ...[
-                McAction(
-                  label: 'Apply proposed order',
-                  icon: Icons.check_circle_outline,
-                  emphasis: McActionEmphasis.primary,
-                  onPressed: controller.canApply
-                      ? () => unawaited(controller.apply())
-                      : null,
-                ),
-                McAction(
-                  label: 'Dismiss proposal',
-                  icon: Icons.close,
-                  onPressed: controller.reading
-                      ? null
-                      : () => unawaited(controller.dismiss()),
-                ),
-              ],
               McAction(
                 label: 'Refresh metadata',
                 icon: Icons.cloud_download_outlined,
@@ -99,18 +75,18 @@ class SortOrderPane extends StatelessWidget {
           Expanded(
             child: McCollection<String, SortOrderRow>(
               model: controller.rows,
-              title: 'Proposed plugin order',
+              title: 'LOOT details',
               showTitle: false,
               showTree: false,
               compactFilter: true,
-              filterLabel: 'Filter proposed order',
+              filterLabel: 'Filter LOOT details',
               onFilterChanged: controller.rows.filter,
               countLabel: controller.reading
                   ? 'LOOT action in progress'
                   : proposal == null
                   ? 'No proposal'
                   : '${proposal.sorted.length} plugins · ${proposal.moves.length} moves',
-              empty: 'Preview a sort to review proposed changes.',
+              empty: 'Optimise plugin load order to show LOOT details.',
               filterActions: [
                 McIconAction(
                   label: 'Inspect plugin move',

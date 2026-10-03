@@ -6,10 +6,25 @@ class _CollectionNavigation<I extends Object, T extends Object> {
     required this.focus,
     required this.scroll,
     required this.extent,
+    required this.extentOf,
     required this.context,
     required this.collection,
-  });
+  }) {
+    _updateOffsets();
+  }
 
+  List<double> offsets = [];
+  int _projectionRevision = -1;
+  void _updateOffsets() {
+    if (_projectionRevision == model.projectionRevision) return;
+    _projectionRevision = model.projectionRevision;
+    offsets = [0];
+    for (final id in model.visible) {
+      offsets.add(offsets.last + extentOf(model[id]!));
+    }
+  }
+
+  final double Function(T) extentOf;
   final McCollectionModel<I, T> model;
   final FocusNode focus;
   final ScrollController scroll;
@@ -42,10 +57,11 @@ class _CollectionNavigation<I extends Object, T extends Object> {
   }
 
   void reveal(I id) {
+    _updateOffsets();
     final position = model.position(id);
     if (position == null || !scroll.hasClients) return;
-    final start = position * extent();
-    final end = start + extent();
+    final start = offsets[position];
+    final end = offsets[position + 1];
     final viewport = scroll.position.viewportDimension;
     final offset = scroll.offset;
     if (start < offset || end > offset + viewport) {

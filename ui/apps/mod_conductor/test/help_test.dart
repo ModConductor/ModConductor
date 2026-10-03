@@ -512,6 +512,8 @@ Future<void> mountApp(
 Future<void> prepareNewProfile(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
   await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('workspace-profiles-tab')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('create-profile')));
   await tester.pumpAndSettle();
   await tester.enterText(
@@ -788,6 +790,8 @@ void main() {
       steamDiscovery: FakeSteamDiscovery(),
     );
     await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workspace-profiles-tab')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-profile')));
     await tester.pumpAndSettle();

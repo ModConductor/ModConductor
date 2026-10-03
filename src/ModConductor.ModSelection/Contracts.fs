@@ -30,6 +30,8 @@ type SelectionEdit =
     | Enable of bool
     | MoveUp
     | MoveDown
+    | MoveFilesUp
+    | MoveFilesDown
 
 type SelectionDelta =
     { Revision: int64

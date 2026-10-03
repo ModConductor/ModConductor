@@ -1369,11 +1369,13 @@ class OrganizedModView extends $pb.GeneratedMessage {
     $2.ProfileModView? entry,
     $core.String? groupId,
     SeparatorGroupSize? groupSize,
+    $core.int? position,
   }) {
     final result = create();
     if (entry != null) result.entry = entry;
     if (groupId != null) result.groupId = groupId;
     if (groupSize != null) result.groupSize = groupSize;
+    if (position != null) result.position = position;
     return result;
   }
 
@@ -1396,6 +1398,7 @@ class OrganizedModView extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'groupId')
     ..aOM<SeparatorGroupSize>(3, _omitFieldNames ? '' : 'groupSize',
         subBuilder: SeparatorGroupSize.create)
+    ..aI(4, _omitFieldNames ? '' : 'position', fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1447,6 +1450,15 @@ class OrganizedModView extends $pb.GeneratedMessage {
   void clearGroupSize() => $_clearField(3);
   @$pb.TagNumber(3)
   SeparatorGroupSize ensureGroupSize() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.int get position => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set position($core.int value) => $_setUnsignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPosition() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPosition() => $_clearField(4);
 }
 
 class ModQueryPage extends $pb.GeneratedMessage {
@@ -1729,6 +1741,385 @@ class ModQueryReply extends $pb.GeneratedMessage {
   void clearFault() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.ModLibraryFault ensureFault() => $_ensure(1);
+}
+
+enum ChangeModOrganizationRequest_Edit { move, groupId, notSet }
+
+class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
+  factory ChangeModOrganizationRequest({
+    $core.String? profileId,
+    $fixnum.Int64? expectedRevision,
+    $core.Iterable<$core.String>? modIds,
+    $2.ProfileModMove? move,
+    $core.String? groupId,
+  }) {
+    final result = create();
+    if (profileId != null) result.profileId = profileId;
+    if (expectedRevision != null) result.expectedRevision = expectedRevision;
+    if (modIds != null) result.modIds.addAll(modIds);
+    if (move != null) result.move = move;
+    if (groupId != null) result.groupId = groupId;
+    return result;
+  }
+
+  ChangeModOrganizationRequest._();
+
+  factory ChangeModOrganizationRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ChangeModOrganizationRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ChangeModOrganizationRequest_Edit>
+      _ChangeModOrganizationRequest_EditByTag = {
+    4: ChangeModOrganizationRequest_Edit.move,
+    5: ChangeModOrganizationRequest_Edit.groupId,
+    0: ChangeModOrganizationRequest_Edit.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ChangeModOrganizationRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [4, 5])
+    ..aOS(1, _omitFieldNames ? '' : 'profileId')
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'expectedRevision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..pPS(3, _omitFieldNames ? '' : 'modIds')
+    ..aE<$2.ProfileModMove>(4, _omitFieldNames ? '' : 'move',
+        enumValues: $2.ProfileModMove.values)
+    ..aOS(5, _omitFieldNames ? '' : 'groupId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChangeModOrganizationRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChangeModOrganizationRequest copyWith(
+          void Function(ChangeModOrganizationRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ChangeModOrganizationRequest))
+          as ChangeModOrganizationRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ChangeModOrganizationRequest create() =>
+      ChangeModOrganizationRequest._();
+  @$core.override
+  ChangeModOrganizationRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ChangeModOrganizationRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ChangeModOrganizationRequest>(create);
+  static ChangeModOrganizationRequest? _defaultInstance;
+
+  @$pb.TagNumber(4)
+  @$pb.TagNumber(5)
+  ChangeModOrganizationRequest_Edit whichEdit() =>
+      _ChangeModOrganizationRequest_EditByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(4)
+  @$pb.TagNumber(5)
+  void clearEdit() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get profileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set profileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProfileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProfileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get expectedRevision => $_getI64(1);
+  @$pb.TagNumber(2)
+  set expectedRevision($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExpectedRevision() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExpectedRevision() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get modIds => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $2.ProfileModMove get move => $_getN(3);
+  @$pb.TagNumber(4)
+  set move($2.ProfileModMove value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMove() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMove() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get groupId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set groupId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasGroupId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearGroupId() => $_clearField(5);
+}
+
+class ReadLoadOrderLayoutRequest extends $pb.GeneratedMessage {
+  factory ReadLoadOrderLayoutRequest({
+    $core.String? profileId,
+  }) {
+    final result = create();
+    if (profileId != null) result.profileId = profileId;
+    return result;
+  }
+
+  ReadLoadOrderLayoutRequest._();
+
+  factory ReadLoadOrderLayoutRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReadLoadOrderLayoutRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReadLoadOrderLayoutRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'profileId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadLoadOrderLayoutRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadLoadOrderLayoutRequest copyWith(
+          void Function(ReadLoadOrderLayoutRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ReadLoadOrderLayoutRequest))
+          as ReadLoadOrderLayoutRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadLoadOrderLayoutRequest create() => ReadLoadOrderLayoutRequest._();
+  @$core.override
+  ReadLoadOrderLayoutRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReadLoadOrderLayoutRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReadLoadOrderLayoutRequest>(create);
+  static ReadLoadOrderLayoutRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get profileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set profileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProfileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProfileId() => $_clearField(1);
+}
+
+class LoadOrderLayout extends $pb.GeneratedMessage {
+  factory LoadOrderLayout({
+    $core.Iterable<$core.String>? entries,
+  }) {
+    final result = create();
+    if (entries != null) result.entries.addAll(entries);
+    return result;
+  }
+
+  LoadOrderLayout._();
+
+  factory LoadOrderLayout.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LoadOrderLayout.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LoadOrderLayout',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'entries')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LoadOrderLayout clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LoadOrderLayout copyWith(void Function(LoadOrderLayout) updates) =>
+      super.copyWith((message) => updates(message as LoadOrderLayout))
+          as LoadOrderLayout;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LoadOrderLayout create() => LoadOrderLayout._();
+  @$core.override
+  LoadOrderLayout createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LoadOrderLayout getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LoadOrderLayout>(create);
+  static LoadOrderLayout? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get entries => $_getList(0);
+}
+
+enum LoadOrderLayoutReply_Outcome { layout, fault, notSet }
+
+class LoadOrderLayoutReply extends $pb.GeneratedMessage {
+  factory LoadOrderLayoutReply({
+    LoadOrderLayout? layout,
+    $1.ModLibraryFault? fault,
+  }) {
+    final result = create();
+    if (layout != null) result.layout = layout;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  LoadOrderLayoutReply._();
+
+  factory LoadOrderLayoutReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LoadOrderLayoutReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, LoadOrderLayoutReply_Outcome>
+      _LoadOrderLayoutReply_OutcomeByTag = {
+    1: LoadOrderLayoutReply_Outcome.layout,
+    2: LoadOrderLayoutReply_Outcome.fault,
+    0: LoadOrderLayoutReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LoadOrderLayoutReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<LoadOrderLayout>(1, _omitFieldNames ? '' : 'layout',
+        subBuilder: LoadOrderLayout.create)
+    ..aOM<$1.ModLibraryFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: $1.ModLibraryFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LoadOrderLayoutReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LoadOrderLayoutReply copyWith(void Function(LoadOrderLayoutReply) updates) =>
+      super.copyWith((message) => updates(message as LoadOrderLayoutReply))
+          as LoadOrderLayoutReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LoadOrderLayoutReply create() => LoadOrderLayoutReply._();
+  @$core.override
+  LoadOrderLayoutReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LoadOrderLayoutReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LoadOrderLayoutReply>(create);
+  static LoadOrderLayoutReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  LoadOrderLayoutReply_Outcome whichOutcome() =>
+      _LoadOrderLayoutReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  LoadOrderLayout get layout => $_getN(0);
+  @$pb.TagNumber(1)
+  set layout(LoadOrderLayout value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLayout() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLayout() => $_clearField(1);
+  @$pb.TagNumber(1)
+  LoadOrderLayout ensureLayout() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $1.ModLibraryFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault($1.ModLibraryFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  $1.ModLibraryFault ensureFault() => $_ensure(1);
+}
+
+class SaveLoadOrderLayoutRequest extends $pb.GeneratedMessage {
+  factory SaveLoadOrderLayoutRequest({
+    $core.String? profileId,
+    $core.Iterable<$core.String>? entries,
+  }) {
+    final result = create();
+    if (profileId != null) result.profileId = profileId;
+    if (entries != null) result.entries.addAll(entries);
+    return result;
+  }
+
+  SaveLoadOrderLayoutRequest._();
+
+  factory SaveLoadOrderLayoutRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveLoadOrderLayoutRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveLoadOrderLayoutRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'profileId')
+    ..pPS(2, _omitFieldNames ? '' : 'entries')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveLoadOrderLayoutRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveLoadOrderLayoutRequest copyWith(
+          void Function(SaveLoadOrderLayoutRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as SaveLoadOrderLayoutRequest))
+          as SaveLoadOrderLayoutRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveLoadOrderLayoutRequest create() => SaveLoadOrderLayoutRequest._();
+  @$core.override
+  SaveLoadOrderLayoutRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveLoadOrderLayoutRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveLoadOrderLayoutRequest>(create);
+  static SaveLoadOrderLayoutRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get profileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set profileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProfileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProfileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<$core.String> get entries => $_getList(1);
 }
 
 const $core.bool _omitFieldNames =

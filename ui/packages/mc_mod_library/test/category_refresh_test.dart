@@ -57,6 +57,8 @@ void main() {
     addTearDown(state.dispose);
     state.attach(ProfileClient(), queries, 'workspace', 'profile');
     await settle();
+    state.setQuery(const ModQuery());
+    await settle();
     expect(state.model.visible, [(modId: 'z'), (modId: 'locked')]);
     state.model.select((modId: 'locked'));
     state.sort('Name');
@@ -111,9 +113,9 @@ void main() {
         });
         final command = Completer<ProfileModsDelta>();
         final oldProjection = Completer<ModQueryPage>();
-        client.onMove = (_, _, _) => command.future;
+        client.onEnable = () => command.future;
         queries.onQuery = (_, _, _, _) => oldProjection.future;
-        final moving = state.move(ProfileModMove.up);
+        final moving = state.enable(true);
         const delta = ProfileModsDelta(5, [
           ManagedProfileMod('a', 1, true),
           ManagedProfileMod('b', 0, false),

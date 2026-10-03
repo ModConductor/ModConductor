@@ -157,7 +157,7 @@ mixin _CapabilityConsumers on _AppStateBase, _SettingsScope, _WorkspaceScope {
       orders: bethesda ? widget.pluginOrders : null,
     );
     _sortOrder.attach(
-      _supportsSkyrim ? widget.loot : null,
+      bethesda ? widget.loot : null,
       _plugins,
       bethesda ? profile?.id : null,
     );

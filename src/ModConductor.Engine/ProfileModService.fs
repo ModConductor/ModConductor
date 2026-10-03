@@ -54,8 +54,16 @@ module internal ProfileModWire =
         | ChangeProfileModsRequest.EditOneofCase.Enabled -> SelectionEdit.Enable request.Enabled
         | ChangeProfileModsRequest.EditOneofCase.Move ->
             match request.Move with
-            | ProfileModMove.Up -> SelectionEdit.MoveUp
-            | ProfileModMove.Down -> SelectionEdit.MoveDown
+            | ProfileModMove.Up ->
+                if request.FileSourcesOnly then
+                    SelectionEdit.MoveFilesUp
+                else
+                    SelectionEdit.MoveUp
+            | ProfileModMove.Down ->
+                if request.FileSourcesOnly then
+                    SelectionEdit.MoveFilesDown
+                else
+                    SelectionEdit.MoveDown
             | _ -> ModLibraryWire.reject "Choose a move direction."
         | _ -> ModLibraryWire.reject "Choose an enable or move action."
 

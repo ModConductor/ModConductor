@@ -172,6 +172,7 @@ const ChangeProfileModsRequest$json = {
       '9': 0,
       '10': 'move'
     },
+    {'1': 'file_sources_only', '3': 6, '4': 1, '5': 8, '10': 'fileSourcesOnly'},
   ],
   '8': [
     {'1': 'edit'},
@@ -183,7 +184,8 @@ final $typed_data.Uint8List changeProfileModsRequestDescriptor = $convert.base64
     'ChhDaGFuZ2VQcm9maWxlTW9kc1JlcXVlc3QSHQoKcHJvZmlsZV9pZBgBIAEoCVIJcHJvZmlsZU'
     'lkEisKEWV4cGVjdGVkX3JldmlzaW9uGAIgASgEUhBleHBlY3RlZFJldmlzaW9uEhcKB21vZF9p'
     'ZHMYAyADKAlSBm1vZElkcxIaCgdlbmFibGVkGAQgASgISABSB2VuYWJsZWQSNQoEbW92ZRgFIA'
-    'EoDjIfLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlTW9kTW92ZUgAUgRtb3ZlQgYKBGVkaXQ=');
+    'EoDjIfLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlTW9kTW92ZUgAUgRtb3ZlEioKEWZpbGVfc291'
+    'cmNlc19vbmx5GAYgASgIUg9maWxlU291cmNlc09ubHlCBgoEZWRpdA==');
 
 @$core.Deprecated('Use profileModsDeltaDescriptor instead')
 const ProfileModsDelta$json = {

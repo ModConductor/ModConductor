@@ -158,6 +158,8 @@ void main() {
       );
       await browser.controller.open('/workspace');
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workspace-profiles-tab')));
+      await tester.pumpAndSettle();
       McPortraitCard card(String id) => tester.widget<McPortraitCard>(
         find.byKey(ValueKey('profile-card-$id')),
       );

@@ -15,7 +15,7 @@ class ProfileModsController extends ChangeNotifier {
   String? _workspace, _profile, _pendingFocus;
   ModQueryCursor? _next;
   String? queryIdentity;
-  ModQuery query = const ModQuery();
+  ModQuery query = const ModQuery(view: OrganizationView.groups);
   int _epoch = 0, _request = 0;
   Timer? _debounce;
   bool _disposed = false, _publishing = false, _catalogueRefresh = false;
@@ -30,9 +30,7 @@ class ProfileModsController extends ChangeNotifier {
   int get loaded => _cache.loaded;
   bool get connected =>
       _client != null && _organization != null && _profile != null;
-  bool get byPriority =>
-      query.view == OrganizationView.flat &&
-      query.sort == OrganizationSort.priority;
+  bool get byPriority => query.sort == OrganizationSort.priority;
   bool get canLoad => connected && (!complete || stale);
   bool get canChange =>
       connected &&
@@ -64,10 +62,7 @@ class ProfileModsController extends ChangeNotifier {
   }
 
   void showPriority() => setQuery(
-    query.copyWith(
-      view: OrganizationView.flat,
-      sort: OrganizationSort.priority,
-    ),
+    query.copyWith(view: query.view, sort: OrganizationSort.priority),
   );
   int comparePriority(OrganizedMod a, OrganizedMod b) =>
       _cache.comparePriority(a, b);
@@ -127,7 +122,7 @@ class ProfileModsController extends ChangeNotifier {
       problem = null;
       _next = null;
       _cache.clear();
-      query = const ModQuery();
+      query = const ModQuery(view: OrganizationView.groups);
     }
     if (connected) unawaited(load(refresh: true));
     _notify();
@@ -149,6 +144,7 @@ class ProfileModsController extends ChangeNotifier {
               ProfileMod(mod, old.selection),
               old.groupId,
               groupSize: old.groupSize,
+              position: old.position,
             );
           }),
     );
@@ -298,16 +294,30 @@ class ProfileModsController extends ChangeNotifier {
   }
 
   Future<void> move(ProfileModMove direction) async {
-    final client = _client, profile = _profile, expected = revision;
+    final client = _organization, profile = _profile, expected = revision;
     if (client == null || profile == null || expected == null || !canMove) {
       return;
     }
     final ids = model.selectedIds.map((id) => id.modId).toList();
-    await _change(
-      () => client.move(profile, expected, ids, direction),
-      expected,
-    );
+    await _organize(() => client.move(profile, expected, ids, direction));
   }
+
+  Future<void> group(List<String> ids, String separator) async {
+    final client = _organization, profile = _profile, expected = revision;
+    if (client == null ||
+        profile == null ||
+        expected == null ||
+        changing ||
+        stale) {
+      return;
+    }
+    await _organize(() => client.group(profile, expected, ids, separator));
+  }
+
+  Future<void> _organize(Future<int> Function() action) => _change(() async {
+    final changed = await action();
+    return ProfileModsDelta(changed, const [], enabledCount);
+  }, revision!);
 
   Future<void> _change(
     Future<ProfileModsDelta> Function() action,

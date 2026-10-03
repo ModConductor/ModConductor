@@ -77,6 +77,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.entryHelpBuilder,
     this.helpBuilder,
     this.headerActions,
+    this.workbenchActions,
     this.profileInspectorBuilder,
     this.profileCreator,
     this.onImportProfile,
@@ -102,6 +103,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final WorkspaceHelpBuilder? entryHelpBuilder;
   final WorkspaceHelpBuilder? helpBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
+  final List<Widget> Function(BuildContext, WorkspaceInfo)? workbenchActions;
   final bool compactCloseAction;
   final WorkspaceFolderOpener? openFolder;
   final ProfileInspectorBuilder? profileInspectorBuilder;
@@ -181,7 +183,9 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
       _images.clear();
       _contexts.clear();
       _profiles.clear();
-      _mode = _WorkspaceMode.profiles;
+      _mode = controller.workspace?.selectedProfile != null
+          ? _WorkspaceMode.mods
+          : _WorkspaceMode.profiles;
       _entryHelp = false;
       _inspected = false;
     }

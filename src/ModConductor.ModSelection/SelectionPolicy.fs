@@ -48,7 +48,9 @@ module SelectionPolicy =
                             Some { row with Enabled = Some enabled })
                     |> Ok
             | SelectionEdit.MoveUp
-            | SelectionEdit.MoveDown ->
+            | SelectionEdit.MoveDown
+            | SelectionEdit.MoveFilesUp
+            | SelectionEdit.MoveFilesDown ->
                 let rows = List.toArray current
 
                 let swap left right =
@@ -57,14 +59,16 @@ module SelectionPolicy =
                     rows[right] <- row
 
                 match edit with
-                | SelectionEdit.MoveUp ->
+                | SelectionEdit.MoveUp
+                | SelectionEdit.MoveFilesUp ->
                     for index in 1 .. rows.Length - 1 do
                         if
                             selected.Contains rows[index].Id
                             && not (selected.Contains rows[index - 1].Id)
                         then
                             swap index (index - 1)
-                | SelectionEdit.MoveDown ->
+                | SelectionEdit.MoveDown
+                | SelectionEdit.MoveFilesDown ->
                     for index in rows.Length - 2 .. -1 .. 0 do
                         if
                             selected.Contains rows[index].Id
@@ -73,8 +77,12 @@ module SelectionPolicy =
                             swap index (index + 1)
                 | SelectionEdit.Enable _ -> invalidOp "Expected an order edit."
 
+                let priorities = current |> List.map _.Priority |> List.toArray
+
                 rows
-                |> Array.mapi (fun priority row ->
+                |> Array.mapi (fun index row ->
+                    let priority = priorities[index]
+
                     if row.Priority = priority then
                         None
                     else

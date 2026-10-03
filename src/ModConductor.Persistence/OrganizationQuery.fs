@@ -89,6 +89,17 @@ module internal OrganizationQuery =
                     { Entry =
                         { Mod = row.Entry
                           Selection = SelectionPolicy.state row.Entry.Kind selected }
+                      Position =
+                        use command =
+                            Sqlite.command
+                                connection
+                                transaction
+                                (sql + "SELECT priority FROM base WHERE id=$id")
+                                (parameters @ [ "$id", box (string id) ])
+
+                        match command.ExecuteScalar() with
+                        | :? int64 as position -> Some(int position)
+                        | _ -> None
                       GroupId = group
                       GroupSize =
                         if

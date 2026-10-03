@@ -30,8 +30,6 @@ class PlannedFiles extends StatefulWidget {
 }
 
 class _PlannedFilesState extends State<PlannedFiles> {
-  String? _automaticRequest;
-
   @override
   void initState() {
     super.initState();
@@ -45,7 +43,6 @@ class _PlannedFilesState extends State<PlannedFiles> {
     if (!identical(oldWidget.controller, widget.controller)) {
       oldWidget.controller.removeListener(_changed);
       widget.controller.addListener(_changed);
-      _automaticRequest = null;
     }
     _scheduleAutomaticLoad();
   }
@@ -68,23 +65,7 @@ class _PlannedFilesState extends State<PlannedFiles> {
   }
 
   void _startAutomaticLoad() {
-    final controller = widget.controller;
-    final state = controller.state;
-    if (!controller.connected ||
-        controller.loading ||
-        controller.reading ||
-        controller.changing ||
-        state == null) {
-      return;
-    }
-    final needsLoad = !state.loaded || state.stale || controller.needsRead;
-    if (!needsLoad) return;
-    final request =
-        '${state.id}:${state.fingerprint}:${state.loaded}:'
-        '${state.stale}:${controller.needsRead}';
-    if (_automaticRequest == request) return;
-    _automaticRequest = request;
-    unawaited(controller.acquire(refresh: state.loaded));
+    widget.controller.ensureLoaded();
   }
 
   @override

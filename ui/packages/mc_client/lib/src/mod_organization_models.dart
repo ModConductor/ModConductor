@@ -115,7 +115,8 @@ class GroupSize {
 }
 
 class OrganizedMod {
-  const OrganizedMod(this.entry, this.groupId, {this.groupSize});
+  const OrganizedMod(this.entry, this.groupId, {this.groupSize, this.position});
+  final int? position;
   final ProfileMod entry;
   ModEntry get mod => entry.mod;
   ProfileModSelection get selection => entry.selection;

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_executables/mc_executables.dart';
@@ -91,6 +92,28 @@ class Games implements GameLaunchingClient {
 }
 
 void main() {
+  testWidgets('Play options open details without starting the game', (
+    tester,
+  ) async {
+    final runs = native.FakeExecutables(), controller = GamePlayController();
+    final games = Games(runs);
+    controller.attach(games, runs, native.workspace, available: true);
+    addTearDown(controller.dispose);
+    addTearDown(runs.changes.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: GamePlayActions(controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Game launch options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run details'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GamePlayDialog), findsOneWidget);
+    expect(games.starts, 0);
+  });
+
   test('stale FNIS requires an explicit continue before Play', () async {
     final runs = native.FakeExecutables(), controller = GamePlayController();
     final games = Games(runs)..staleFnis = true;

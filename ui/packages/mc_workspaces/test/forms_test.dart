@@ -30,14 +30,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(visible.last, false);
-
-    await tester.tap(find.byKey(const ValueKey('workspace-mods-tab')));
-    await tester.pumpAndSettle();
     expect(visible.last, true);
     await tester.tap(find.byKey(const ValueKey('workspace-profiles-tab')));
     await tester.pumpAndSettle();
     expect(visible.last, false);
+    await tester.tap(find.byKey(const ValueKey('workspace-mods-tab')));
+    await tester.pumpAndSettle();
+    expect(visible.last, true);
   });
 
   testWidgets('an unbound current profile builds only its setup gate', (

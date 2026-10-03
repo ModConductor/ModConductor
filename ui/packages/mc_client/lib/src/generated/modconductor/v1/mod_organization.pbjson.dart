@@ -613,9 +613,19 @@ const OrganizedModView$json = {
       '6': '.modconductor.v1.SeparatorGroupSize',
       '10': 'groupSize'
     },
+    {
+      '1': 'position',
+      '3': 4,
+      '4': 1,
+      '5': 13,
+      '9': 1,
+      '10': 'position',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_group_id'},
+    {'1': '_position'},
   ],
 };
 
@@ -624,7 +634,8 @@ final $typed_data.Uint8List organizedModViewDescriptor = $convert.base64Decode(
     'ChBPcmdhbml6ZWRNb2RWaWV3EjUKBWVudHJ5GAEgASgLMh8ubW9kY29uZHVjdG9yLnYxLlByb2'
     'ZpbGVNb2RWaWV3UgVlbnRyeRIeCghncm91cF9pZBgCIAEoCUgAUgdncm91cElkiAEBEkIKCmdy'
     'b3VwX3NpemUYAyABKAsyIy5tb2Rjb25kdWN0b3IudjEuU2VwYXJhdG9yR3JvdXBTaXplUglncm'
-    '91cFNpemVCCwoJX2dyb3VwX2lk');
+    '91cFNpemUSHwoIcG9zaXRpb24YBCABKA1IAVIIcG9zaXRpb26IAQFCCwoJX2dyb3VwX2lkQgsK'
+    'CV9wb3NpdGlvbg==');
 
 @$core.Deprecated('Use modQueryPageDescriptor instead')
 const ModQueryPage$json = {
@@ -738,3 +749,115 @@ final $typed_data.Uint8List modQueryReplyDescriptor = $convert.base64Decode(
     'Cg1Nb2RRdWVyeVJlcGx5EjMKBHBhZ2UYASABKAsyHS5tb2Rjb25kdWN0b3IudjEuTW9kUXVlcn'
     'lQYWdlSABSBHBhZ2USOAoFZmF1bHQYAiABKAsyIC5tb2Rjb25kdWN0b3IudjEuTW9kTGlicmFy'
     'eUZhdWx0SABSBWZhdWx0QgkKB291dGNvbWU=');
+
+@$core.Deprecated('Use changeModOrganizationRequestDescriptor instead')
+const ChangeModOrganizationRequest$json = {
+  '1': 'ChangeModOrganizationRequest',
+  '2': [
+    {'1': 'profile_id', '3': 1, '4': 1, '5': 9, '10': 'profileId'},
+    {
+      '1': 'expected_revision',
+      '3': 2,
+      '4': 1,
+      '5': 4,
+      '10': 'expectedRevision'
+    },
+    {'1': 'mod_ids', '3': 3, '4': 3, '5': 9, '10': 'modIds'},
+    {
+      '1': 'move',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileModMove',
+      '9': 0,
+      '10': 'move'
+    },
+    {'1': 'group_id', '3': 5, '4': 1, '5': 9, '9': 0, '10': 'groupId'},
+  ],
+  '8': [
+    {'1': 'edit'},
+  ],
+};
+
+/// Descriptor for `ChangeModOrganizationRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List changeModOrganizationRequestDescriptor = $convert.base64Decode(
+    'ChxDaGFuZ2VNb2RPcmdhbml6YXRpb25SZXF1ZXN0Eh0KCnByb2ZpbGVfaWQYASABKAlSCXByb2'
+    'ZpbGVJZBIrChFleHBlY3RlZF9yZXZpc2lvbhgCIAEoBFIQZXhwZWN0ZWRSZXZpc2lvbhIXCgdt'
+    'b2RfaWRzGAMgAygJUgZtb2RJZHMSNQoEbW92ZRgEIAEoDjIfLm1vZGNvbmR1Y3Rvci52MS5Qcm'
+    '9maWxlTW9kTW92ZUgAUgRtb3ZlEhsKCGdyb3VwX2lkGAUgASgJSABSB2dyb3VwSWRCBgoEZWRp'
+    'dA==');
+
+@$core.Deprecated('Use readLoadOrderLayoutRequestDescriptor instead')
+const ReadLoadOrderLayoutRequest$json = {
+  '1': 'ReadLoadOrderLayoutRequest',
+  '2': [
+    {'1': 'profile_id', '3': 1, '4': 1, '5': 9, '10': 'profileId'},
+  ],
+};
+
+/// Descriptor for `ReadLoadOrderLayoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readLoadOrderLayoutRequestDescriptor =
+    $convert.base64Decode(
+        'ChpSZWFkTG9hZE9yZGVyTGF5b3V0UmVxdWVzdBIdCgpwcm9maWxlX2lkGAEgASgJUglwcm9maW'
+        'xlSWQ=');
+
+@$core.Deprecated('Use loadOrderLayoutDescriptor instead')
+const LoadOrderLayout$json = {
+  '1': 'LoadOrderLayout',
+  '2': [
+    {'1': 'entries', '3': 1, '4': 3, '5': 9, '10': 'entries'},
+  ],
+};
+
+/// Descriptor for `LoadOrderLayout`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List loadOrderLayoutDescriptor = $convert.base64Decode(
+    'Cg9Mb2FkT3JkZXJMYXlvdXQSGAoHZW50cmllcxgBIAMoCVIHZW50cmllcw==');
+
+@$core.Deprecated('Use loadOrderLayoutReplyDescriptor instead')
+const LoadOrderLayoutReply$json = {
+  '1': 'LoadOrderLayoutReply',
+  '2': [
+    {
+      '1': 'layout',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.LoadOrderLayout',
+      '9': 0,
+      '10': 'layout'
+    },
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLibraryFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `LoadOrderLayoutReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List loadOrderLayoutReplyDescriptor = $convert.base64Decode(
+    'ChRMb2FkT3JkZXJMYXlvdXRSZXBseRI6CgZsYXlvdXQYASABKAsyIC5tb2Rjb25kdWN0b3Iudj'
+    'EuTG9hZE9yZGVyTGF5b3V0SABSBmxheW91dBI4CgVmYXVsdBgCIAEoCzIgLm1vZGNvbmR1Y3Rv'
+    'ci52MS5Nb2RMaWJyYXJ5RmF1bHRIAFIFZmF1bHRCCQoHb3V0Y29tZQ==');
+
+@$core.Deprecated('Use saveLoadOrderLayoutRequestDescriptor instead')
+const SaveLoadOrderLayoutRequest$json = {
+  '1': 'SaveLoadOrderLayoutRequest',
+  '2': [
+    {'1': 'profile_id', '3': 1, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'entries', '3': 2, '4': 3, '5': 9, '10': 'entries'},
+  ],
+};
+
+/// Descriptor for `SaveLoadOrderLayoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List saveLoadOrderLayoutRequestDescriptor =
+    $convert.base64Decode(
+        'ChpTYXZlTG9hZE9yZGVyTGF5b3V0UmVxdWVzdBIdCgpwcm9maWxlX2lkGAEgASgJUglwcm9maW'
+        'xlSWQSGAoHZW50cmllcxgCIAMoCVIHZW50cmllcw==');

@@ -163,6 +163,13 @@ class _SetupEvents extends Fake implements SkyrimSetupClient {
 
 class _SetupQuery extends Fake implements ModOrganizationClient {
   int reads = 0;
+  @override
+  Future<List<String>> loadOrderLayout(String profile) async => const [];
+  @override
+  Future<void> saveLoadOrderLayout(
+    String profile,
+    List<String> entries,
+  ) async {}
 
   @override
   Future<ModQueryPage> query(

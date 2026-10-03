@@ -68,13 +68,19 @@ module internal SelectionRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO profile_mods SELECT $profile,mod_id,priority,enabled FROM profile_mods WHERE profile_id=$source"
+                "INSERT INTO profile_mods SELECT $profile,mod_id,priority,enabled,organization_position,group_id FROM profile_mods WHERE profile_id=$source"
+                [ "$profile", box (string profile); "$source", box (string source) ]
+
+            Sqlite.execute
+                connection
+                transaction
+                "INSERT INTO profile_load_layout SELECT $profile,position,entry_id FROM profile_load_layout WHERE profile_id=$source"
                 [ "$profile", box (string profile); "$source", box (string source) ]
         | None ->
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO profile_mods SELECT $profile,id,ROW_NUMBER() OVER(ORDER BY id)-1,CASE WHEN kind=1 THEN 0 ELSE NULL END FROM mods WHERE workspace_id=$workspace AND kind IN (1,2)"
+                "INSERT INTO profile_mods SELECT $profile,id,ROW_NUMBER() OVER(ORDER BY id)-1,CASE WHEN kind=1 THEN 0 ELSE NULL END,ROW_NUMBER() OVER(ORDER BY id)-1,NULL FROM mods WHERE workspace_id=$workspace AND kind IN (1,2)"
                 [ "$profile", box (string profile); "$workspace", box (string workspace) ]
 
     let registered connection transaction workspace modId kind =
@@ -82,7 +88,7 @@ module internal SelectionRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO profile_mods SELECT p.id,$mod,(SELECT COALESCE(MAX(s.priority)+1,0) FROM profile_mods s WHERE s.profile_id=p.id),$enabled FROM profiles p WHERE p.workspace_id=$workspace"
+                "INSERT INTO profile_mods SELECT p.id,$mod,(SELECT COALESCE(MAX(s.priority)+1,0) FROM profile_mods s WHERE s.profile_id=p.id), $enabled,(SELECT COALESCE(MAX(s.organization_position)+1,0) FROM profile_mods s WHERE s.profile_id=p.id),CASE WHEN $enabled IS NULL THEN NULL ELSE (SELECT s.mod_id FROM profile_mods s JOIN mods m ON m.id=s.mod_id WHERE s.profile_id=p.id AND m.kind=2 ORDER BY s.organization_position DESC LIMIT 1) END FROM profiles p WHERE p.workspace_id=$workspace"
                 [ "$mod", box (string modId)
                   "$workspace", box (string workspace)
                   "$enabled", if kind = ModKind.Regular then box 0 else box DBNull.Value ]

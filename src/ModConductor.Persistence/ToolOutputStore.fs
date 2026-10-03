@@ -89,7 +89,7 @@ type internal ToolOutputStore
                             Sqlite.execute
                                 connection
                                 transaction
-                                "INSERT INTO profile_mods(profile_id,mod_id,priority,enabled) SELECT $profile,$mod,COALESCE(MAX(priority)+1,0),1 FROM profile_mods WHERE profile_id=$profile"
+                                "INSERT INTO profile_mods(profile_id,mod_id,priority,enabled,organization_position) SELECT $profile,$mod,COALESCE(MAX(priority)+1,0),1,COALESCE(MAX(organization_position)+1,0) FROM profile_mods WHERE profile_id=$profile"
                                 [ "$profile", box (string profile)
                                   "$mod", box (string location.Id) ]
 

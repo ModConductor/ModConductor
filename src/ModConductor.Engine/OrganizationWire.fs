@@ -159,6 +159,9 @@ module internal OrganizationWire =
                     )
             )
 
+        value.Position
+        |> Option.iter (fun position -> result.Position <- uint32 position)
+
         value.GroupId |> Option.iter (fun id -> result.GroupId <- id.ToString("N"))
 
         value.GroupSize

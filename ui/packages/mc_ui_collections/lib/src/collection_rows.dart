@@ -28,42 +28,56 @@ class _CollectionRows<I extends Object, T extends Object>
     return Focus(
       focusNode: focus,
       onKeyEvent: navigation.key,
-      child: Semantics(
-        container: true,
-        explicitChildNodes: true,
-        label: collection.title,
-        child: visible.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child:
-                      collection.emptyContent ??
-                      Text(
-                        model.query.isNotEmpty
-                            ? labels.noMatches
-                            : collection.empty ?? labels.noItems,
-                      ),
-                ),
-              )
-            : Scrollbar(
-                controller: scroll,
-                child: ListView.builder(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapUp: collection.onContextMenu == null
+            ? null
+            : (details) => collection.onContextMenu!(
+                context,
+                null,
+                details.globalPosition,
+              ),
+        child: Semantics(
+          container: true,
+          explicitChildNodes: true,
+          label: collection.title,
+          child: visible.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child:
+                        collection.emptyContent ??
+                        Text(
+                          model.query.isNotEmpty
+                              ? labels.noMatches
+                              : collection.empty ?? labels.noItems,
+                        ),
+                  ),
+                )
+              : Scrollbar(
                   controller: scroll,
-                  itemExtent: extent,
-                  itemCount: visible.length,
-                  findChildIndexCallback: (key) =>
-                      key is ValueKey<I> ? model.position(key.value) : null,
-                  itemBuilder: (context, index) => _CollectionRow(
-                    key: ValueKey<I>(visible[index]),
-                    collection: collection,
-                    navigation: navigation,
-                    focus: focus,
-                    id: visible[index],
-                    widths: widths,
-                    tree: tree,
+                  child: ListView.builder(
+                    controller: scroll,
+                    itemExtentBuilder: (index, _) =>
+                        collection.drawerLabel?.call(model[visible[index]]!) ==
+                            null
+                        ? extent
+                        : extent * 32 / 52,
+                    itemCount: visible.length,
+                    findChildIndexCallback: (key) =>
+                        key is ValueKey<I> ? model.position(key.value) : null,
+                    itemBuilder: (context, index) => _CollectionRow(
+                      key: ValueKey<I>(visible[index]),
+                      collection: collection,
+                      navigation: navigation,
+                      focus: focus,
+                      id: visible[index],
+                      widths: widths,
+                      tree: tree,
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -132,6 +146,7 @@ class _CollectionRow<I extends Object, T extends Object>
     final selected = model.selectedIds.contains(id);
     final focused = id == model.focusedId && focus.hasPrimaryFocus;
     final branch = model.branch(id);
+    final drawer = collection.drawerLabel?.call(row);
     return Semantics(
       container: true,
       selected: selected,
@@ -147,11 +162,23 @@ class _CollectionRow<I extends Object, T extends Object>
       child: Material(
         color: selected
             ? colors.primary.withValues(alpha: .14)
-            : Colors.transparent,
+            : collection.drawerLabel?.call(row) == null
+            ? Colors.transparent
+            : colors.surfaceContainerHighest,
         child: InkWell(
           canRequestFocus: false,
           excludeFromSemantics: true,
           onTap: () => navigation.select(id, pointer: true),
+          onSecondaryTapUp: collection.onContextMenu == null
+              ? null
+              : (details) {
+                  if (!selected) navigation.select(id);
+                  collection.onContextMenu!(
+                    context,
+                    row,
+                    details.globalPosition,
+                  );
+                },
           onDoubleTap: branch ? () => model.toggle(id) : null,
           child: Container(
             decoration: BoxDecoration(
@@ -167,13 +194,44 @@ class _CollectionRow<I extends Object, T extends Object>
                 ),
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
-            child: Row(
-              children: [
-                for (var index = 0; index < collection.columns.length; index++)
-                  _cell(index, row, branch),
-              ],
+            padding: EdgeInsets.symmetric(
+              horizontal: collection.drawerLabel?.call(row) == null ? 13 : 7,
+              vertical: collection.drawerLabel?.call(row) == null ? 5 : 0,
             ),
+            child: drawer != null
+                ? Row(
+                    children: [
+                      if (branch)
+                        McCollectionExpander(
+                          model: model,
+                          id: id,
+                          label: drawer,
+                        ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          drawer,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: colors.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      for (
+                        var index = 0;
+                        index < collection.columns.length;
+                        index++
+                      )
+                        _cell(index, row, branch),
+                    ],
+                  ),
           ),
         ),
       ),

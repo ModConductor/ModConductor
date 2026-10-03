@@ -329,7 +329,7 @@ type ProfileTransportStore
                     Sqlite.execute
                         database.Connection
                         transaction
-                        "INSERT INTO profile_mods(profile_id,mod_id,priority,enabled) VALUES($profile,$mod,$priority,$enabled)"
+                        "INSERT INTO profile_mods(profile_id,mod_id,priority,enabled,organization_position) VALUES($profile,$mod,$priority,$enabled,(SELECT COALESCE(MAX(organization_position)+1,0) FROM profile_mods WHERE profile_id=$profile))"
                         [ "$profile", box (string profile)
                           "$mod", box (string id)
                           "$priority", box priority

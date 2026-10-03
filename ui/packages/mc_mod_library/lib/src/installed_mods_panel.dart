@@ -17,11 +17,11 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
     final modActions = <Widget>[
       if (widget.inventoryExports != null &&
           widget.chooseExportLocation != null)
-        McAction(
+        McIconAction(
           key: const ValueKey('export-csv'),
           focusNode: _exportFocus,
           label: 'Export CSV',
-          icon: Icons.download_outlined,
+          icon: const Icon(Icons.download_outlined),
           onPressed:
               inventory.connected &&
                   !inventory.loading &&
@@ -93,11 +93,11 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
           }
         },
       ),
-      McAction(
+      McIconAction(
         key: const ValueKey('add-mod'),
         focusNode: _addFocus,
         label: 'Add mod folder',
-        icon: Icons.create_new_folder_outlined,
+        icon: const Icon(Icons.create_new_folder_outlined),
         onPressed:
             controller.canEdit &&
                 controller.activity == null &&
@@ -112,17 +112,20 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
       focusNode: _modsFocus,
       scrollController: _modsScroll,
       title: 'Installed mods',
-      showTitle: !compact,
+      showTitle: false,
       compactFilter: compact,
       showTree: false,
+      drawerLabel: (row) =>
+          row.mod.kind == ModKind.separator ? row.mod.metadata.name : null,
+      onContextMenu: _modContextMenu,
       nodeIcon: (_) => const SizedBox.shrink(),
       filterText: inventory.query.text,
       filterEnabled: inventory.connected,
       onFilterChanged: inventory.search,
-      onSort: inventory.sort,
+      onSort: (_) => inventory.sort('Name'),
       filterLabel: 'Filter mods',
       filterActions: [
-        if (compact) ...modActions,
+        ...modActions,
         TextButton(
           onPressed:
               controller.organization == null || controller.workspaceId == null
@@ -169,7 +172,7 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
               ),
             ),
       multiSelect: true,
-      selectMultiple: _selectMultiple,
+      selectMultiple: false,
       onMoveUp: editSelection && inventory.canMove
           ? () => unawaited(move(ProfileModMove.up))
           : null,
@@ -178,7 +181,7 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
           : null,
       onSelect: (row) => controller.select(row.entry),
       semanticLabel: (row) =>
-          '${row.mod.metadata.name}${row.selection.priority == null ? '' : ', priority ${row.selection.priority! + 1}'}, ${_kind(row.mod.kind)}${row.mod.metadata.version.isEmpty ? '' : ', version ${row.mod.metadata.version}'}, ${row.groupSize == null ? _status(row.mod.status) : '${row.groupSize!.matching} of ${row.groupSize!.total} mods'}',
+          '${row.mod.metadata.name}, ${_kind(row.mod.kind)}${row.mod.metadata.version.isEmpty ? '' : ', version ${row.mod.metadata.version}'}, ${row.groupSize == null ? _status(row.mod.status) : '${row.groupSize!.matching} of ${row.groupSize!.total} mods'}',
       loading: inventory.loading,
       problem: inventory.problem,
       onLoad: inventory.canLoad ? () => unawaited(inventory.load()) : null,
@@ -187,69 +190,11 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
           inventory.connected && !inventory.loading && !inventory.changing
           ? () => unawaited(inventory.load(refresh: true))
           : null,
-      toolbar: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          FilterChip(
-            label: const Text('Select multiple'),
-            selected: _selectMultiple,
-            onSelected: _setSelectMultiple,
-          ),
-          Text(
-            '${controller.mods.selectedIds.length} selected${inventory.hiddenSelected == 0 ? '' : ' · ${inventory.hiddenSelected} hidden'}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          TextButton(
-            onPressed: editSelection && inventory.canToggle
-                ? () => unawaited(inventory.enable(true))
-                : null,
-            child: const Text('Enable'),
-          ),
-          TextButton(
-            onPressed: editSelection && inventory.canToggle
-                ? () => unawaited(inventory.enable(false))
-                : null,
-            child: const Text('Disable'),
-          ),
-          if (inventory.byPriority) ...[
-            McIconAction(
-              label: 'Move selected mods up (Ctrl+Up)',
-              icon: const Icon(Icons.arrow_upward),
-              onPressed: editSelection && inventory.canMove
-                  ? () => unawaited(move(ProfileModMove.up))
-                  : null,
-            ),
-            McIconAction(
-              label: 'Move selected mods down (Ctrl+Down)',
-              icon: const Icon(Icons.arrow_downward),
-              onPressed: editSelection && inventory.canMove
-                  ? () => unawaited(move(ProfileModMove.down))
-                  : null,
-            ),
-          ],
-          McIconAction(
-            label: 'Clear selection',
-            icon: const Icon(Icons.deselect),
-            onPressed: controller.mods.selectedIds.isEmpty
-                ? null
-                : controller.mods.clearSelection,
-          ),
-          if (!inventory.byPriority)
-            TextButton(
-              onPressed: inventory.showPriority,
-              child: const Text('Show priority'),
-            ),
-          if (inventory.changing)
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-        ],
+      footer: Text(
+        '${controller.mods.selectedIds.length} selected',
+        style: Theme.of(context).textTheme.bodySmall,
       ),
-      actions: compact ? const [] : modActions,
+      actions: const [],
       columns: [
         McColumn(
           '',
@@ -286,17 +231,7 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
           interactive: true,
         ),
         McColumn(
-          'Priority',
-          (row) => Text(
-            row.selection.priority == null
-                ? '—'
-                : '${row.selection.priority! + 1}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          width: 68,
-        ),
-        McColumn(
-          'Name',
+          'Mod',
           (row) => Padding(
             padding: EdgeInsets.only(left: row.groupId == null ? 0 : 14),
             child: Column(
@@ -322,27 +257,16 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
         ),
         if (versionColumn)
           McColumn(
-            'Version',
+            'Category',
             (row) => Text(
-              row.mod.metadata.version,
+              row.mod.metadata.categories
+                  .map((category) => category.label)
+                  .join(', '),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
             ),
-            width: 65,
+            width: 130,
           ),
-        McColumn(
-          'Status',
-          (row) => Text(switch (row.groupSize) {
-            final size? =>
-              '${size.matching}${size.matching == size.total ? '' : ' of ${size.total}'} ${size.total == 1 ? 'mod' : 'mods'}',
-            null =>
-              row.selection is ManagedProfileMod
-                  ? _status(row.mod.status)
-                  : _kind(row.mod.kind),
-          }, style: Theme.of(context).textTheme.bodySmall),
-          width: 112,
-        ),
       ],
     );
   }

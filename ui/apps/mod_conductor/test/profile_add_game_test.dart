@@ -58,6 +58,10 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('workspace-workspace')));
         await tester.pumpAndSettle();
         if (create) {
+          await tester.tap(
+            find.byKey(const ValueKey('workspace-profiles-tab')),
+          );
+          await tester.pumpAndSettle();
           await tester.tap(find.byKey(const ValueKey('create-profile')));
           await tester.pumpAndSettle();
           await tester.enterText(

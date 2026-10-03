@@ -62,6 +62,8 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     this.selectMultiple = false,
     this.onMoveUp,
     this.onMoveDown,
+    this.drawerLabel,
+    this.onContextMenu,
   });
   final McCollectionModel<I, T> model;
   final String title, filterLabel, countLabel;
@@ -86,6 +88,8 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
   final Widget? footer, toolbar, emptyContent;
   final bool multiSelect, selectMultiple;
   final VoidCallback? onMoveUp, onMoveDown;
+  final String? Function(T)? drawerLabel;
+  final void Function(BuildContext, T?, Offset)? onContextMenu;
   @override
   State<McCollection<I, T>> createState() => _McCollectionState<I, T>();
 }
@@ -155,6 +159,8 @@ class _McCollectionState<I extends Object, T extends Object>
         focus: _focus,
         scroll: _scroll,
         extent: () => _extent,
+        extentOf: (row) =>
+            widget.drawerLabel?.call(row) == null ? _extent : _extent * 32 / 52,
         context: context,
         collection: widget,
       );

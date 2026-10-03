@@ -12,8 +12,11 @@ import 'filter_dialog.dart';
 import 'inventory_export_controller.dart';
 import 'inventory_export_dialog.dart';
 import 'mod_dialog.dart';
+import 'load_order_pane.dart';
+import 'workbench_view.dart';
 
 part 'installed_mods_panel.dart';
+part 'organization_menu.dart';
 part 'inventory_export_flow.dart';
 part 'mod_deletion_view.dart';
 part 'saved_mod_files_panel.dart';
@@ -46,6 +49,9 @@ class ModLibraryBrowser extends StatefulWidget {
     this.chooseExportLocation,
     this.openExportFolder,
     this.profileName,
+    this.view,
+    this.paneActions = const [],
+    this.externalPaneControls = false,
   });
   final ModLibraryController controller;
   final String workspacePath;
@@ -62,13 +68,21 @@ class ModLibraryBrowser extends StatefulWidget {
   final InventoryExportLocationChooser? chooseExportLocation;
   final InventoryExportFolderOpener? openExportFolder;
   final String? profileName;
+  final ModWorkbenchView? view;
+  final List<Widget> paneActions;
+  final bool externalPaneControls;
   @override
   State<ModLibraryBrowser> createState() => _ModLibraryBrowserState();
 }
 
 class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
-  String _pane = 'mods';
-  bool _selectMultiple = false;
+  final _ownView = ModWorkbenchView();
+  ModWorkbenchView get _view => widget.view ?? _ownView;
+  String get _pane => _view.pane;
+  void _viewChanged() {
+    if (mounted) setState(() {});
+  }
+
   final _modsFocus = FocusNode(debugLabel: 'Installed mods');
   final _filesFocus = FocusNode(debugLabel: 'Saved files');
   final _modsScroll = ScrollController();
@@ -86,6 +100,11 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
   @override
   void initState() {
     super.initState();
+    _view.addListener(_viewChanged);
+    controller.startLoadOrder();
+    if (!widget.filePanes.any((pane) => pane.id == 'load-order')) {
+      controller.loadOrder.syncPlugins(const [], const []);
+    }
     controller.addListener(attachDeletion);
     attachDeletion();
   }
@@ -98,7 +117,15 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
       oldWidget.controller.removeListener(attachDeletion);
+      controller.startLoadOrder();
+      if (!widget.filePanes.any((pane) => pane.id == 'load-order')) {
+        controller.loadOrder.syncPlugins(const [], const []);
+      }
       controller.addListener(attachDeletion);
+    }
+    if (!identical(oldWidget.view, widget.view)) {
+      (oldWidget.view ?? _ownView).removeListener(_viewChanged);
+      _view.addListener(_viewChanged);
     }
     attachDeletion();
   }
@@ -106,6 +133,8 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
   @override
   void dispose() {
     controller.removeListener(attachDeletion);
+    _view.removeListener(_viewChanged);
+    _ownView.dispose();
     deletion.dispose();
     _modsFocus.dispose();
     _filesFocus.dispose();
@@ -138,9 +167,6 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
     }
   }
 
-  void _setSelectMultiple(bool value) =>
-      setState(() => _selectMultiple = value);
-
   void _setExportResult(InventoryExportDialogResult? result) => setState(() {
     _exportResult = result;
     _folderProblem = false;
@@ -161,120 +187,75 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
         final versionColumn = constraints.maxWidth >= 1050;
         final modPanel = _installedModsPanel(context, compact, versionColumn);
         final treePanel = _savedModFilesPanel(context, narrow);
-        final extended = widget.filePanes.isNotEmpty;
-        final extra = widget.filePanes
-            .where((pane) => pane.id == _pane)
-            .firstOrNull;
-        Widget filesPanel() => extra?.builder(context, narrow) ?? treePanel;
-        String describe(String id) => switch (id) {
-          'mods' => 'Installed mods',
-          'saved' => 'Saved mod files',
-          _ => widget.filePanes.firstWhere((pane) => pane.id == id).label,
-        };
-        Widget choice(bool includeMods) {
-          final selected = includeMods && _pane == 'mods'
-              ? 'mods'
-              : extra?.id ?? 'saved';
-          if (widget.filePanes.length == 1) {
-            return SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<String>(
-                segments: [
-                  if (includeMods)
-                    const ButtonSegment(
-                      value: 'mods',
-                      label: Text('Installed mods'),
-                      icon: Icon(Icons.layers_outlined),
-                    ),
-                  ButtonSegment(
-                    value: 'saved',
-                    label: Text(
-                      includeMods ? 'Saved files' : 'Saved mod files',
-                    ),
-                    icon: const Icon(Icons.inventory_2_outlined),
-                  ),
-                  ButtonSegment(
-                    value: widget.filePanes.single.id,
-                    label: Text(widget.filePanes.single.label),
-                    icon: const Icon(Icons.folder_open),
-                  ),
-                ],
-                selected: {selected},
-                onSelectionChanged: (value) =>
-                    setState(() => _pane = value.single),
+        final panes = [
+          if (!widget.filePanes.any((pane) => pane.id == 'load-order'))
+            ModFilePane(
+              'load-order',
+              'Load order',
+              (context, narrow) => LoadOrderPane(
+                controller: controller.loadOrder,
+                narrow: narrow,
               ),
-            );
-          }
-          return McChoice<String>(
-            label: includeMods ? 'View' : widget.paneLabel,
-            value: selected,
-            choices: [
-              if (includeMods) 'mods',
-              'saved',
-              ...widget.filePanes.map((pane) => pane.id),
-            ],
-            describe: describe,
-            onChanged: (value) => setState(() => _pane = value),
-          );
-        }
-
+            ),
+          ModFilePane(
+            'saved',
+            'Saved mod files',
+            (context, narrow) => treePanel,
+          ),
+          ...widget.filePanes,
+        ];
+        final extra =
+            panes.where((pane) => pane.id == _pane).firstOrNull ?? panes.first;
+        Widget filesPanel() => extra.builder(context, narrow);
+        Widget choice() => Wrap(
+          alignment: WrapAlignment.end,
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: 190,
+              child: McChoice<String>(
+                label: 'View',
+                value: extra.id,
+                choices: panes.map((pane) => pane.id).toList(),
+                describe: (id) =>
+                    panes.firstWhere((pane) => pane.id == id).label,
+                onChanged: (value) => _view.select(value),
+              ),
+            ),
+            ...widget.paneActions,
+          ],
+        );
         return Column(
           children: [
             if (deletion.problem != null)
               McStatus(title: deletion.problem!, tone: McStatusTone.error),
 
-            if (narrow) ...[
-              if (extended)
-                choice(true)
-              else
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'mods',
-                        label: Text('Installed mods'),
-                        icon: Icon(Icons.layers_outlined),
-                      ),
-                      ButtonSegment(
-                        value: 'saved',
-                        label: Text('Saved files'),
-                        icon: Icon(Icons.account_tree_outlined),
-                      ),
-                    ],
-                    selected: {_pane == 'mods' ? 'mods' : 'saved'},
-                    onSelectionChanged: (value) =>
-                        setState(() => _pane = value.single),
-                  ),
-                ),
-              const SizedBox(height: 12),
-            ],
             Expanded(
               child: narrow
-                  ? IndexedStack(
-                      index: _pane == 'mods' ? 0 : 1,
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        ExcludeFocus(
-                          excluding: _pane != 'mods',
-                          child: modPanel,
+                        Expanded(child: modPanel),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: choice(),
                         ),
-                        ExcludeFocus(
-                          excluding: _pane == 'mods',
-                          child: filesPanel(),
-                        ),
+                        Expanded(child: filesPanel()),
                       ],
                     )
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(flex: 11, child: modPanel),
+                        Expanded(flex: 9, child: modPanel),
                         const SizedBox(width: 16),
                         Expanded(
-                          flex: 10,
+                          flex: 11,
                           child: Column(
                             children: [
-                              if (extended) ...[
-                                choice(false),
+                              if (!widget.externalPaneControls) ...[
+                                choice(),
                                 const SizedBox(height: 12),
                               ],
                               Expanded(child: filesPanel()),

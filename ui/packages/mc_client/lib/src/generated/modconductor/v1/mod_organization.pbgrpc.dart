@@ -54,6 +54,27 @@ class ModOrganizationOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$queryMods, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.LoadOrderLayoutReply> readLoadOrderLayout(
+    $0.ReadLoadOrderLayoutRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$readLoadOrderLayout, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.OrganizationChangeReply> saveLoadOrderLayout(
+    $0.SaveLoadOrderLayoutRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveLoadOrderLayout, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.OrganizationChangeReply> changeModOrganization(
+    $0.ChangeModOrganizationRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$changeModOrganization, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readCategories =
@@ -71,6 +92,21 @@ class ModOrganizationOperationsClient extends $grpc.Client {
           '/modconductor.v1.ModOrganizationOperations/QueryMods',
           ($0.QueryModsRequest value) => value.writeToBuffer(),
           $0.ModQueryReply.fromBuffer);
+  static final _$readLoadOrderLayout = $grpc.ClientMethod<
+          $0.ReadLoadOrderLayoutRequest, $0.LoadOrderLayoutReply>(
+      '/modconductor.v1.ModOrganizationOperations/ReadLoadOrderLayout',
+      ($0.ReadLoadOrderLayoutRequest value) => value.writeToBuffer(),
+      $0.LoadOrderLayoutReply.fromBuffer);
+  static final _$saveLoadOrderLayout = $grpc.ClientMethod<
+          $0.SaveLoadOrderLayoutRequest, $0.OrganizationChangeReply>(
+      '/modconductor.v1.ModOrganizationOperations/SaveLoadOrderLayout',
+      ($0.SaveLoadOrderLayoutRequest value) => value.writeToBuffer(),
+      $0.OrganizationChangeReply.fromBuffer);
+  static final _$changeModOrganization = $grpc.ClientMethod<
+          $0.ChangeModOrganizationRequest, $0.OrganizationChangeReply>(
+      '/modconductor.v1.ModOrganizationOperations/ChangeModOrganization',
+      ($0.ChangeModOrganizationRequest value) => value.writeToBuffer(),
+      $0.OrganizationChangeReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.ModOrganizationOperations')
@@ -103,6 +139,33 @@ abstract class ModOrganizationOperationsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.QueryModsRequest.fromBuffer(value),
         ($0.ModQueryReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ReadLoadOrderLayoutRequest,
+            $0.LoadOrderLayoutReply>(
+        'ReadLoadOrderLayout',
+        readLoadOrderLayout_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ReadLoadOrderLayoutRequest.fromBuffer(value),
+        ($0.LoadOrderLayoutReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SaveLoadOrderLayoutRequest,
+            $0.OrganizationChangeReply>(
+        'SaveLoadOrderLayout',
+        saveLoadOrderLayout_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SaveLoadOrderLayoutRequest.fromBuffer(value),
+        ($0.OrganizationChangeReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ChangeModOrganizationRequest,
+            $0.OrganizationChangeReply>(
+        'ChangeModOrganization',
+        changeModOrganization_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ChangeModOrganizationRequest.fromBuffer(value),
+        ($0.OrganizationChangeReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CategoriesReply> readCategories_Pre($grpc.ServiceCall $call,
@@ -129,4 +192,31 @@ abstract class ModOrganizationOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ModQueryReply> queryMods(
       $grpc.ServiceCall call, $0.QueryModsRequest request);
+
+  $async.Future<$0.LoadOrderLayoutReply> readLoadOrderLayout_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ReadLoadOrderLayoutRequest> $request) async {
+    return readLoadOrderLayout($call, await $request);
+  }
+
+  $async.Future<$0.LoadOrderLayoutReply> readLoadOrderLayout(
+      $grpc.ServiceCall call, $0.ReadLoadOrderLayoutRequest request);
+
+  $async.Future<$0.OrganizationChangeReply> saveLoadOrderLayout_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SaveLoadOrderLayoutRequest> $request) async {
+    return saveLoadOrderLayout($call, await $request);
+  }
+
+  $async.Future<$0.OrganizationChangeReply> saveLoadOrderLayout(
+      $grpc.ServiceCall call, $0.SaveLoadOrderLayoutRequest request);
+
+  $async.Future<$0.OrganizationChangeReply> changeModOrganization_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ChangeModOrganizationRequest> $request) async {
+    return changeModOrganization($call, await $request);
+  }
+
+  $async.Future<$0.OrganizationChangeReply> changeModOrganization(
+      $grpc.ServiceCall call, $0.ChangeModOrganizationRequest request);
 }

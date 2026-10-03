@@ -5,6 +5,8 @@ import 'generated/modconductor/v1/mod_organization.pbgrpc.dart' as wire;
 import 'mod_library_wire.dart' as mods;
 import 'mod_organization_wire.dart' as mapping;
 import 'mod_organization_models.dart';
+import 'profile_mod_models.dart';
+import 'generated/modconductor/v1/profile_mods.pbenum.dart' as selection;
 export 'mod_organization_models.dart';
 
 class ModOrganizationClient {
@@ -108,6 +110,63 @@ class ModOrganizationClient {
       ),
     };
   }
+
+  Future<List<String>> loadOrderLayout(String profile) async {
+    final reply = await _client.readLoadOrderLayout(
+      wire.ReadLoadOrderLayoutRequest(profileId: profile),
+    );
+    return switch (reply.whichOutcome()) {
+      wire.LoadOrderLayoutReply_Outcome.layout => List.unmodifiable(
+        reply.layout.entries,
+      ),
+      wire.LoadOrderLayoutReply_Outcome.fault => mods.reject(reply.fault),
+      wire.LoadOrderLayoutReply_Outcome.notSet => throw const FormatException(
+        'Missing load order layout.',
+      ),
+    };
+  }
+
+  Future<void> saveLoadOrderLayout(String profile, List<String> entries) async {
+    _changed(
+      await _client.saveLoadOrderLayout(
+        wire.SaveLoadOrderLayoutRequest(profileId: profile, entries: entries),
+      ),
+    );
+  }
+
+  Future<int> move(
+    String profile,
+    int revision,
+    List<String> ids,
+    ProfileModMove direction,
+  ) async => _changed(
+    await _client.changeModOrganization(
+      wire.ChangeModOrganizationRequest(
+        profileId: profile,
+        expectedRevision: Int64(revision),
+        modIds: ids,
+        move: direction == ProfileModMove.up
+            ? selection.ProfileModMove.PROFILE_MOD_MOVE_UP
+            : selection.ProfileModMove.PROFILE_MOD_MOVE_DOWN,
+      ),
+    ),
+  );
+
+  Future<int> group(
+    String profile,
+    int revision,
+    List<String> ids,
+    String group,
+  ) async => _changed(
+    await _client.changeModOrganization(
+      wire.ChangeModOrganizationRequest(
+        profileId: profile,
+        expectedRevision: Int64(revision),
+        modIds: ids,
+        groupId: group,
+      ),
+    ),
+  );
 
   int _changed(wire.OrganizationChangeReply reply) =>
       switch (reply.whichOutcome()) {
