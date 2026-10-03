@@ -11,25 +11,31 @@ String deploymentDate(DateTime value) {
 }
 
 class DeploymentAction extends StatelessWidget {
-  const DeploymentAction({super.key, required this.controller});
+  const DeploymentAction({super.key, required this.controller, this.builder});
   final DeploymentController controller;
+  final Widget Function(BuildContext, String, VoidCallback?)? builder;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
-    builder: (context, _) => McAction(
-      label: controller.busy
+    builder: (context, _) {
+      final label = controller.busy
           ? 'Deployment in progress…'
           : controller.state == null || controller.needsRead
           ? 'Deployment…'
-          : '${controller.activeName}…',
-      icon: Icons.swap_horiz,
-      onPressed: controller.connected
+          : controller.activeName;
+      final VoidCallback? open = controller.connected
           ? () => showDialog<void>(
               context: context,
               builder: (_) => DeploymentDialog(controller: controller),
             )
-          : null,
-    ),
+          : null;
+      return builder?.call(context, label, open) ??
+          McAction(
+            label: label.endsWith('…') ? label : '$label…',
+            icon: Icons.swap_horiz,
+            onPressed: open,
+          );
+    },
   );
 }
 

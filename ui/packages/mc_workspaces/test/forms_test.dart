@@ -179,7 +179,9 @@ void main() {
       expect(receivedPath, isNull);
       expect(choices, 1);
       expect(controller.workspace!.path, startsWith('/default/'));
-      await tester.tap(find.byKey(const ValueKey('open-workspace-folder')));
+      await tester.tap(find.byType(McIconMenu<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open folder'));
       await tester.pumpAndSettle();
       expect(openedPath, controller.workspace!.path);
       expect(find.byType(McActionFeedback), findsOneWidget);

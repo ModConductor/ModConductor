@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_executables/mc_executables.dart';
@@ -106,13 +107,87 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Game launch options'));
+    await tester.tap(find.byTooltip('Play options'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Run details'));
     await tester.pumpAndSettle();
     expect(find.byType(GamePlayDialog), findsOneWidget);
     expect(games.starts, 0);
   });
+
+  testWidgets(
+    'split Play launches the selected profile and reads a lost reply',
+    (tester) async {
+      final runs = native.FakeExecutables(), controller = GamePlayController();
+      final games = Games(runs)..loseResponse = true;
+      controller.attach(games, runs, native.workspace, available: true);
+      addTearDown(controller.dispose);
+      addTearDown(runs.changes.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: GamePlayActions(controller: controller)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Play · Alpha'));
+      await tester.pumpAndSettle();
+      expect(games.starts, 1);
+      expect(controller.pending!.profileId, 'a');
+      expect(controller.uncertain, isTrue);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Play options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Read result'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(controller.pending, isNull);
+      expect(controller.uncertain, isFalse);
+      expect(controller.run!.profileId, 'a');
+      expect(games.starts, 1);
+    },
+  );
+
+  testWidgets(
+    'menu remains keyboard reachable when primary Play is unavailable',
+    (tester) async {
+      final controller = GamePlayController();
+      addTearDown(controller.dispose);
+      var switches = 0;
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 240);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: GamePlayActions(
+              controller: controller,
+              additionalMenuItems: [
+                PopupMenuItem(
+                  value: () => switches++,
+                  child: const Text('Switch deployment'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(switches, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   test('stale FNIS requires an explicit continue before Play', () async {
     final runs = native.FakeExecutables(), controller = GamePlayController();

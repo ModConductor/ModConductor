@@ -22,7 +22,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workspaces => 'Workspaces';
 
   @override
-  String get preferences => 'Preferences';
+  String get preferences => 'Settings';
 
   @override
   String openRequests(int count) {
@@ -113,7 +113,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
-  String get activePreferences => 'Active preferences';
+  String get activePreferences => 'Active settings';
 
   @override
   String get close => 'Close';
@@ -123,7 +123,7 @@ class AppLocalizationsEn extends AppLocalizations {
     final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
     final String timeString = timeDateFormat.format(time);
 
-    return 'Preferences saved at $timeString';
+    return 'Settings saved at $timeString';
   }
 
   @override

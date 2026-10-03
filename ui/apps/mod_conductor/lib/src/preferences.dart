@@ -3,6 +3,7 @@ part of 'app.dart';
 class _PreferencesPage extends StatelessWidget {
   const _PreferencesPage({
     required this.labels,
+    required this.migration,
     required this.credentials,
     required this.nexus,
     required this.linkSetup,
@@ -31,6 +32,7 @@ class _PreferencesPage extends StatelessWidget {
     required this.onQuitAndUpdate,
   });
   final AppLocalizations labels;
+  final Widget migration;
   final CredentialsClient? credentials;
   final NexusClient? nexus;
   final LinkSetupClient? linkSetup;
@@ -68,6 +70,13 @@ class _PreferencesPage extends StatelessWidget {
         explicitChildNodes: true,
         child: Column(
           children: [
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              sortKey: const OrdinalSortKey(0, name: 'preferences-sections'),
+              child: migration,
+            ),
+            const SizedBox(height: McSpacing.medium),
             if (updates != null) ...[
               _UpdatePreferencesSection(
                 controller: updates!,

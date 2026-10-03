@@ -81,53 +81,49 @@ extension _WorkspaceShell on _WorkspaceBrowserState {
           ),
         ],
       ),
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          Tooltip(
-            message:
-                'Current profile: ${current?.name ?? 'none'}. Open profiles',
-            child: McAction(
-              label: current?.name ?? 'Profiles',
-              icon: Icons.person_outline,
-              onPressed: ready
-                  ? () => _change(() => _mode = _WorkspaceMode.profiles)
-                  : null,
+      SizedBox(
+        width: MediaQuery.sizeOf(context).width < 1050 ? double.infinity : null,
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            Tooltip(
+              message:
+                  'Current profile: ${current?.name ?? 'none'}. Open profiles',
+              child: McAction(
+                label: current?.name ?? 'Profiles',
+                icon: Icons.person_outline,
+                onPressed: ready
+                    ? () => _change(() => _mode = _WorkspaceMode.profiles)
+                    : null,
+              ),
             ),
-          ),
-          if (ready) ...?widget.headerActions?.call(context, workspace),
-          _workspaceOptions(context, workspace),
-          if (widget.openFolder != null)
-            McAction(
-              key: const ValueKey('open-workspace-folder'),
-              label: 'Open folder',
-              icon: Icons.folder_open,
-              onPressed: _openingFolder ? null : () => unawaited(_openFolder()),
-            ),
-          if (widget.compactCloseAction)
-            McIconAction(
-              key: const ValueKey('close-workspace'),
-              label: 'Close workspace',
-              icon: const Icon(Icons.close),
-              onPressed: controller.close,
-            )
-          else
-            McAction(
-              key: const ValueKey('close-workspace'),
-              label: 'Close workspace',
-              icon: Icons.close,
-              onPressed: controller.close,
-            ),
-          if (controller.needsCheck)
-            McAction(
-              key: const ValueKey('check-workspace'),
-              label: 'Check again',
-              onPressed: controller.connected && controller.activity == null
-                  ? () => unawaited(controller.check())
-                  : null,
-            ),
-        ],
+            if (ready) ...?widget.headerActions?.call(context, workspace),
+            _workspaceOptions(context, workspace),
+            if (widget.compactCloseAction)
+              McIconAction(
+                key: const ValueKey('close-workspace'),
+                label: 'Close workspace',
+                icon: const Icon(Icons.close),
+                onPressed: controller.close,
+              )
+            else
+              McAction(
+                key: const ValueKey('close-workspace'),
+                label: 'Close workspace',
+                icon: Icons.close,
+                onPressed: controller.close,
+              ),
+            if (controller.needsCheck)
+              McAction(
+                key: const ValueKey('check-workspace'),
+                label: 'Check again',
+                onPressed: controller.connected && controller.activity == null
+                    ? () => unawaited(controller.check())
+                    : null,
+              ),
+          ],
+        ),
       ),
     ],
   );

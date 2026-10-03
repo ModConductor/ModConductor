@@ -1,4 +1,5 @@
 export 'src/actions.dart';
+export 'src/split_action.dart';
 export 'src/app_mark.dart';
 export 'src/forms.dart';
 export 'src/surfaces.dart';

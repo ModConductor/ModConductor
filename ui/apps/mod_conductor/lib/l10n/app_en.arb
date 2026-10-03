@@ -4,7 +4,7 @@
   "changeAppearance": "Change appearance",
   "quit": "Quit",
   "workspaces": "Workspaces",
-  "preferences": "Preferences",
+  "preferences": "Settings",
   "openRequests": "{count, plural, =0{Open requests} =1{Open 1 request} other{Open {count} requests}}",
   "@openRequests": {
     "placeholders": {
@@ -38,9 +38,9 @@
   "highContrast": "High contrast",
   "apply": "Apply",
   "cancel": "Cancel",
-  "activePreferences": "Active preferences",
+  "activePreferences": "Active settings",
   "close": "Close",
-  "preferencesSaved": "Preferences saved at {time}",
+  "preferencesSaved": "Settings saved at {time}",
   "@preferencesSaved": {
     "placeholders": {
       "time": {

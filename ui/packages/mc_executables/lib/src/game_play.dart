@@ -8,8 +8,13 @@ import 'game_play_controller.dart';
 import 'run_details.dart';
 
 class GamePlayActions extends StatelessWidget {
-  const GamePlayActions({super.key, required this.controller});
+  const GamePlayActions({
+    super.key,
+    required this.controller,
+    this.additionalMenuItems = const [],
+  });
   final GamePlayController controller;
+  final List<PopupMenuEntry<VoidCallback>> additionalMenuItems;
   void details(BuildContext context) => showDialog<void>(
     context: context,
     builder: (_) => GamePlayDialog(controller: controller),
@@ -17,39 +22,48 @@ class GamePlayActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
-    builder: (context, _) => Wrap(
-      spacing: 10,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        McAction(
-          label: 'Play',
-          icon: Icons.play_arrow,
-          emphasis: McActionEmphasis.primary,
-          onPressed: controller.canPlay
-              ? () {
-                  unawaited(controller.play());
-                  details(context);
-                }
-              : null,
-        ),
-        Semantics(
-          label: 'Game launch options',
-          child: Tooltip(
-            message: 'Game launch options',
-            child: McMenuAction<String>(
-              label: '',
-              enabled: controller.connected,
-              choices: ['details', if (controller.uncertain) 'read'],
-              describe: (value) =>
-                  value == 'read' ? 'Read result' : 'Run details',
-              onSelected: (value) {
-                if (value == 'read') unawaited(controller.readResult());
-                details(context);
-              },
-            ),
+    builder: (context, _) => McSplitAction<VoidCallback>(
+      label: controller.workspace?.selectedProfile == null
+          ? 'Play'
+          : 'Play · ${controller.workspace!.selectedProfile!.name}',
+      icon: Icons.play_arrow,
+      onPressed: controller.canPlay
+          ? () {
+              unawaited(controller.play());
+              details(context);
+            }
+          : null,
+      menuLabel: 'Play options',
+      menuEnabled:
+          controller.connected ||
+          additionalMenuItems.any(
+            (item) => item is PopupMenuItem<VoidCallback> && item.enabled,
+          ),
+      itemBuilder: (_) => [
+        ...additionalMenuItems,
+        if (additionalMenuItems.isNotEmpty) const PopupMenuDivider(),
+        PopupMenuItem(
+          enabled: controller.connected,
+          value: () => details(context),
+          child: const McIconLabel(
+            icon: Icon(Icons.info_outline, size: 18),
+            label: 'Run details',
           ),
         ),
+        if (controller.uncertain)
+          PopupMenuItem(
+            enabled: controller.connected,
+            value: () {
+              unawaited(controller.readResult());
+              details(context);
+            },
+            child: const McIconLabel(
+              icon: Icon(Icons.refresh, size: 18),
+              label: 'Read result',
+            ),
+          ),
       ],
+      onSelected: (action) => action(),
     ),
   );
 }

@@ -186,8 +186,6 @@ mixin _ShellContent
                 ? null
                 : _workspaces.showGame,
           ),
-    compactCloseAction:
-        widget.gameLaunching != null && MediaQuery.sizeOf(context).width < 950,
     workbenchActions: (context, workspace) => [
       ListenableBuilder(
         listenable: _modView,
@@ -238,29 +236,29 @@ mixin _ShellContent
           ),
         ),
     ],
-    headerActions:
-        !_supportsGameMods ||
-            (widget.deployments == null && widget.migration == null)
+    headerActions: !_supportsGameMods || widget.deployments == null
         ? null
         : (context, workspace) => [
-            if (widget.migration != null)
-              MigrationAction(
-                client: widget.migration!,
-                workspaceId: workspace.id,
-                chooseDirectory: widget.chooseDirectory,
-                onComplete: _workspaces.refresh,
-              ),
-            if (widget.deployments != null)
-              SizedBox(
-                width:
-                    widget.gameLaunching != null &&
-                        MediaQuery.sizeOf(context).width < 950
-                    ? 250
-                    : null,
-                child: DeploymentAction(controller: _deployments),
-              ),
-            if (widget.gameLaunching != null && widget.deployments != null)
-              GamePlayActions(controller: _play),
+            DeploymentAction(
+              controller: _deployments,
+              builder: widget.gameLaunching == null
+                  ? null
+                  : (context, label, open) => GamePlayActions(
+                      controller: _play,
+                      additionalMenuItems: [
+                        PopupMenuItem(
+                          value: open,
+                          enabled: open != null,
+                          child: McIconLabel(
+                            icon: const Icon(Icons.swap_horiz, size: 18),
+                            label: label,
+                            flexible: true,
+                            maxLines: null,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ],
     gameContextBuilder: !_supportsInstallation
         ? null
@@ -468,6 +466,15 @@ mixin _ShellContent
 
   Widget _buildPreferencesPage(BuildContext context) => _PreferencesPage(
     labels: AppLocalizations.of(context),
+    migration: ListenableBuilder(
+      listenable: _workspaces,
+      builder: (context, _) => _MigrationSettingsSection(
+        workspace: _workspaces.confirmedWorkspace,
+        client: widget.migration,
+        chooseDirectory: widget.chooseDirectory,
+        onComplete: _workspaces.refresh,
+      ),
+    ),
     credentials: widget.credentials,
     nexus: widget.nexus,
     linkSetup: widget.linkSetup,

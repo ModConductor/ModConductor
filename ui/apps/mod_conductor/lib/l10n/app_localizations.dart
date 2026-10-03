@@ -121,7 +121,7 @@ abstract class AppLocalizations {
   /// No description provided for @preferences.
   ///
   /// In en, this message translates to:
-  /// **'Preferences'**
+  /// **'Settings'**
   String get preferences;
 
   /// No description provided for @openRequests.
@@ -283,7 +283,7 @@ abstract class AppLocalizations {
   /// No description provided for @activePreferences.
   ///
   /// In en, this message translates to:
-  /// **'Active preferences'**
+  /// **'Active settings'**
   String get activePreferences;
 
   /// No description provided for @close.
@@ -295,7 +295,7 @@ abstract class AppLocalizations {
   /// No description provided for @preferencesSaved.
   ///
   /// In en, this message translates to:
-  /// **'Preferences saved at {time}'**
+  /// **'Settings saved at {time}'**
   String preferencesSaved(DateTime time);
 
   /// No description provided for @settingsLoadFailed.

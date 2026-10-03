@@ -7,6 +7,8 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mc_skse/mc_skse.dart';
+import 'package:mc_executables/mc_executables.dart';
+import 'package:mc_generated_outputs/mc_generated_outputs.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 import 'package:mod_conductor/src/app.dart';
 
@@ -27,6 +29,11 @@ Future<void> mount(
   ProfileModsClient? profileMods,
   ModOrganizationClient? modOrganization,
   ModLibraryClient? modLibrary,
+  MigrationClient? migration,
+  DeploymentsClient? deployments,
+  GameLaunchingClient? gameLaunching,
+  ExecutablesClient? executables,
+  DirectoryChooser? chooseDirectory,
   AppUpdatesController? updates,
   Future<void> Function(AppUpdateManager)? onQuitAndUpdate,
 }) async {
@@ -51,6 +58,11 @@ Future<void> mount(
       profileMods: profileMods,
       modOrganization: modOrganization,
       modLibrary: modLibrary,
+      migration: migration,
+      deployments: deployments,
+      gameLaunching: gameLaunching,
+      executables: executables,
+      chooseDirectory: chooseDirectory ?? chooseWorkspaceDirectory,
     ),
   );
   if (settle) await tester.pumpAndSettle();
@@ -448,6 +460,114 @@ class _FailingSettingsFake extends _SettingsFake {
 
 class _NoDiagnostics extends Fake implements DiagnosticsClient {}
 
+class _MigrationWorkspaces extends _WorkspacesFake {
+  final refreshed = <String>[];
+
+  @override
+  Future<WorkspacePage> read(String id, {String? after}) async {
+    refreshed.add(id);
+    final selected = workspace(id);
+    return WorkspacePage(
+      WorkspaceInfo(
+        id: selected.id,
+        name: 'Imported $id',
+        path: selected.path,
+        revision: selected.revision + 1,
+        selectedProfile: selected.selectedProfile,
+      ),
+      [selected.selectedProfile!],
+      null,
+    );
+  }
+}
+
+class _Migration extends Fake implements MigrationClient {
+  final targets = <String>[];
+  StreamController<MigrationEvent>? events;
+
+  @override
+  Stream<MigrationEvent> migrate(
+    String workspaceId,
+    MigrationManager manager,
+    String sourcePath, {
+    String profileId = '',
+    String stagingRoot = '',
+    String downloadRoot = '',
+  }) {
+    targets.add(workspaceId);
+    events = StreamController<MigrationEvent>();
+    return events!.stream;
+  }
+}
+
+class _HeaderDeployments extends Fake implements DeploymentsClient {
+  final removals = <(String, String)>[];
+  bool active = true;
+
+  @override
+  Future<DeploymentState> read(String profileId) async => DeploymentState(
+    'one',
+    1,
+    active
+        ? SavedDeployment(
+            'deployed-generation',
+            DateTime.utc(2026),
+            const DeploymentProfile('other', 'Previously deployed', 1, 1),
+            true,
+            true,
+            'fingerprint',
+            true,
+          )
+        : null,
+    null,
+    'sources',
+  );
+
+  @override
+  Stream<DeploymentEvent> deactivate(
+    String profileId,
+    String generationId,
+  ) async* {
+    removals.add((profileId, generationId));
+    active = false;
+    yield DeploymentDeactivated(await read(profileId));
+  }
+}
+
+class _HeaderGames extends Fake implements GameLaunchingClient {
+  int starts = 0;
+
+  @override
+  Future<GameLaunchState> read(String workspaceId, String profileId) async =>
+      GameLaunchState(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        contextRevision: 1,
+        sourceToken: 'sources',
+        name: 'Game',
+        runtime: 'Runtime',
+        problem: null,
+        latest: null,
+      );
+
+  @override
+  Future<ExecutableRun> play(
+    GameRunRequest request, {
+    bool continueStaleFnis = false,
+  }) async {
+    starts++;
+    throw StateError('This journey must not start a game');
+  }
+}
+
+class _HeaderExecutables extends Fake implements ExecutablesClient {
+  @override
+  Future<ExecutablePresetPage> list(
+    String workspaceId, {
+    String? after,
+  }) async => const ExecutablePresetPage([], null, []);
+}
+
 class _DelayedSkse extends Fake implements SkseClient {
   final result = Completer<SkseStatus>();
   int checks = 0;
@@ -527,6 +647,93 @@ Brightness brightness(WidgetTester tester) =>
     Theme.of(tester.element(keyed('quit'))).brightness;
 
 void main() {
+  testWidgets(
+    'Settings migration uses the open workspace and refreshes completion',
+    (tester) async {
+      ignoreKnownWorkspaceListTileWarning();
+      final workspaces = _MigrationWorkspaces(), migration = _Migration();
+      await mount(
+        tester,
+        workspaces: workspaces,
+        migration: migration,
+        chooseDirectory: (_) async => '/source',
+      );
+      for (final id in ['one', 'two']) {
+        await openWorkspace(tester, id);
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.comma);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+        await tester.pumpAndSettle();
+        await activate(tester, 'migrate-from-manager');
+        await activate(tester, 'source-manager');
+        await tester.tap(find.text('Mod Organizer').last);
+        await tester.pumpAndSettle();
+        await activate(tester, 'choose-source-folder');
+        await tester.tap(keyed('submit'));
+        await tester.pump();
+        migration.events!.add(MigrationResult(id));
+        await migration.events!.close();
+        await tester.pumpAndSettle();
+        await activate(tester, 'close-migration');
+        expect(migration.targets.last, id);
+        expect(workspaces.refreshed.last, id);
+        expect(find.textContaining('Imported $id'), findsOneWidget);
+        await activate(tester, 'nav-workspaces');
+        await tester.tap(find.widgetWithText(McAction, 'Close workspace'));
+        await tester.pumpAndSettle();
+      }
+      expect(migration.targets, ['one', 'two']);
+      expect(workspaces.refreshed, ['one', 'two']);
+    },
+  );
+
+  for (final launchAvailable in [true, false]) {
+    testWidgets(
+      'Play menu switches actual deployment with launch available: $launchAvailable',
+      (tester) async {
+        ignoreKnownWorkspaceListTileWarning();
+        final deployments = _HeaderDeployments(), games = _HeaderGames();
+        await mount(
+          tester,
+          workspaces: _WorkspacesFake(),
+          gameContexts: _CapabilityGameContexts(skyrim: true),
+          deployments: deployments,
+          gameLaunching: games,
+          executables: launchAvailable ? _HeaderExecutables() : null,
+        );
+        await openWorkspace(tester, 'one');
+        await tester.tap(find.byTooltip('Play options'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.textContaining('Previously deployed'));
+        await tester.pumpAndSettle();
+        final dialog = tester.widget<DeploymentDialog>(
+          find.byType(DeploymentDialog),
+        );
+        expect(dialog.controller.profileId, 'profile');
+        expect(dialog.controller.state!.active!.profile!.id, 'other');
+        await tester.ensureVisible(
+          find.widgetWithText(McAction, 'Deactivate…'),
+        );
+        await tester.tap(find.widgetWithText(McAction, 'Deactivate…'));
+        await tester.pumpAndSettle();
+        await tester.tap(keyed('submit'));
+        await tester.pumpAndSettle();
+        expect(deployments.removals, [('profile', 'deployed-generation')]);
+        expect(dialog.controller.state!.active, isNull);
+        await tester.tap(find.widgetWithText(McAction, 'Close'));
+        await tester.pumpAndSettle();
+        if (launchAvailable) {
+          await tester.tap(find.byTooltip('Play options'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Run details'));
+          await tester.pumpAndSettle();
+          expect(find.byType(GamePlayDialog), findsOneWidget);
+        }
+        expect(games.starts, 0);
+      },
+    );
+  }
+
   testWidgets(
     'disabled startup check persists and manual check offers the manager',
     (tester) async {
@@ -1579,7 +1786,7 @@ void main() {
         status: const DesktopFailure('No workspace is available.'),
         onQuit: () => quits++,
       );
-      await tester.tap(find.widgetWithText(McAction, 'Preferences'));
+      await tester.tap(find.widgetWithText(McAction, 'Settings'));
       await tester.pumpAndSettle();
       await choose(tester, 'preferences-theme', 'Dark');
       await activate(tester, 'apply-preferences');
