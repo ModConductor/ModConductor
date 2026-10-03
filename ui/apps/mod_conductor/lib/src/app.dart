@@ -9,7 +9,7 @@ import 'package:mc_migration/mc_migration.dart';
 import 'dart:async';
 import 'dart:io';
 
-import 'dart:ui' show AppExitType, AppExitResponse;
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -60,10 +60,6 @@ part 'app_profile_commit.dart';
 part 'app_profile_transport.dart';
 part 'app_state.dart';
 part 'app_shell_content.dart';
-
-void _quitDesktop() {
-  ServicesBinding.instance.exitApplication(AppExitType.cancelable);
-}
 
 void startDesktop() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -250,9 +246,20 @@ class _ModConductorAppState extends _AppStateBase
         _ProfileTransportFlow,
         _DesktopRequests,
         _ShellContent {
+  late final _standaloneExit = DesktopExit(close: () async => true);
   late final _RequestRouteObserver _requestRoutes = _RequestRouteObserver(
     _requestRouteClosed,
   );
+
+  void _quitDesktop() {
+    final quit = widget.onQuit;
+    if (quit != null) {
+      quit();
+      return;
+    }
+    unawaited(_standaloneExit.request());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -422,7 +429,7 @@ class _ModConductorAppState extends _AppStateBase
             const SingleActivator(LogicalKeyboardKey.digit2, alt: true): () =>
                 _navigate(_Destination.preferences),
             const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
-                widget.onQuit ?? _quitDesktop,
+                _quitDesktop,
           },
           child: _DesktopShell(
             key: _requestShellKey,
@@ -432,7 +439,7 @@ class _ModConductorAppState extends _AppStateBase
             destination: _destination,
             updateAvailable: widget.updates?.updateAvailable ?? false,
             onNavigate: _navigate,
-            onQuit: widget.onQuit ?? _quitDesktop,
+            onQuit: _quitDesktop,
             workspacesFocus: _workspacesFocus,
             preferencesFocus: _preferencesFocus,
             gamesFocus: _gamesFocus,

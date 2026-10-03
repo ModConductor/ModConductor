@@ -11,6 +11,7 @@ class DesktopHost extends StatefulWidget {
 
 class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
   late final EngineOwner _owner;
+  late final DesktopExit _exit;
   late final DesktopRequests _requests;
   late final AppUpdatesController _updates;
   late final AppUpdateHandoff _updateHandoff;
@@ -37,6 +38,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
         ],
       ]),
     );
+    _exit = DesktopExit(close: _owner.close);
     _requests = DesktopRequests();
     _updates = AppUpdatesController(
       DesktopAppUpdateSource(),
@@ -48,11 +50,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
           await _owner.desktop?.updateHandoffProblem() ??
           'Could not check active work. Try again.',
       launchWaiter: launchAppUpdateWaiter,
-      requestQuit: () async =>
-          await ServicesBinding.instance.exitApplication(
-            AppExitType.cancelable,
-          ) ==
-          AppExitResponse.exit,
+      requestQuit: () async => await _exit.request() == AppExitResponse.exit,
     );
     unawaited(_updates.loadVersion());
     _changes = _owner.changes.listen((_) {
@@ -63,8 +61,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
   }
 
   @override
-  Future<AppExitResponse> didRequestAppExit() async =>
-      await _owner.close() ? AppExitResponse.exit : AppExitResponse.cancel;
+  Future<AppExitResponse> didRequestAppExit() => _exit.requestedByPlatform();
 
   Future<void> _quitAndUpdate(AppUpdateManager manager) async {
     final release = _updates.release;
@@ -93,6 +90,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => ModConductorApp(
+    onQuit: () => unawaited(_exit.request()),
     desktopRequests: _requests,
     workspaces: _owner.workspaces,
     migration: _owner.migration,
