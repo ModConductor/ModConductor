@@ -20,73 +20,65 @@ extension _WorkspaceWorkbench on _WorkspaceBrowserState {
         spacing: 12,
         runSpacing: 12,
         children: [
-          SizedBox(
-            width: MediaQuery.sizeOf(context).width < 1050
-                ? MediaQuery.sizeOf(context).width - 40
-                : 650,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SegmentedButton<_WorkspaceMode>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: _WorkspaceMode.profiles,
-                    label: Text(
-                      'Profiles',
-                      key: ValueKey('workspace-profiles-tab'),
-                    ),
-                    icon: Icon(Icons.people_outline),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SegmentedButton<_WorkspaceMode>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: _WorkspaceMode.profiles,
+                  label: Text(
+                    'Profiles',
+                    key: ValueKey('workspace-profiles-tab'),
                   ),
-                  if (widget.discoveryBuilder != null)
-                    const ButtonSegment(
-                      value: _WorkspaceMode.discover,
-                      label: Text(
-                        'Discover',
-                        key: ValueKey('workspace-discover-tab'),
-                      ),
-                      icon: Icon(Icons.search),
+                  icon: Icon(Icons.people_outline),
+                ),
+                if (widget.discoveryBuilder != null)
+                  const ButtonSegment(
+                    value: _WorkspaceMode.discover,
+                    label: Text(
+                      'Discover',
+                      key: ValueKey('workspace-discover-tab'),
                     ),
-                  if (ready && widget.modLibraryBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.mods,
-                      label: Text('Mods', key: ValueKey('workspace-mods-tab')),
-                      icon: Icon(Icons.layers_outlined),
+                    icon: Icon(Icons.search),
+                  ),
+                if (ready && widget.modLibraryBuilder != null)
+                  ButtonSegment(
+                    value: _WorkspaceMode.mods,
+                    label: Text('Mods', key: ValueKey('workspace-mods-tab')),
+                    icon: Icon(Icons.layers_outlined),
+                  ),
+                if (ready && widget.gameContextBuilder != null)
+                  ButtonSegment(
+                    value: _WorkspaceMode.game,
+                    label: Text('Game', key: ValueKey('workspace-game-tab')),
+                    icon: Icon(Icons.videogame_asset_outlined),
+                  ),
+                if (ready && widget.executableBuilder != null)
+                  ButtonSegment(
+                    value: _WorkspaceMode.tools,
+                    label: Text('Tools', key: ValueKey('workspace-tools-tab')),
+                    icon: Icon(Icons.terminal),
+                  ),
+                if (ready && widget.artifactBuilder != null)
+                  ButtonSegment(
+                    value: _WorkspaceMode.archives,
+                    label: Text(
+                      'Archives',
+                      key: ValueKey('workspace-archives-tab'),
                     ),
-                  if (ready && widget.gameContextBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.game,
-                      label: Text('Game', key: ValueKey('workspace-game-tab')),
-                      icon: Icon(Icons.videogame_asset_outlined),
-                    ),
-                  if (ready && widget.executableBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.tools,
-                      label: Text(
-                        'Tools',
-                        key: ValueKey('workspace-tools-tab'),
-                      ),
-                      icon: Icon(Icons.terminal),
-                    ),
-                  if (ready && widget.artifactBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.archives,
-                      label: Text(
-                        'Archives',
-                        key: ValueKey('workspace-archives-tab'),
-                      ),
-                      icon: Icon(Icons.inventory_2_outlined),
-                    ),
-                  if (widget.helpBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.help,
-                      label: Text('Help', key: ValueKey('workspace-help-tab')),
-                      icon: Icon(Icons.help_center_outlined),
-                    ),
-                ],
-                selected: {mode},
-                onSelectionChanged: (value) =>
-                    _change(() => _mode = value.single),
-              ),
+                    icon: Icon(Icons.inventory_2_outlined),
+                  ),
+                if (widget.helpBuilder != null)
+                  ButtonSegment(
+                    value: _WorkspaceMode.help,
+                    label: Text('Help', key: ValueKey('workspace-help-tab')),
+                    icon: Icon(Icons.help_center_outlined),
+                  ),
+              ],
+              selected: {mode},
+              onSelectionChanged: (value) =>
+                  _change(() => _mode = value.single),
             ),
           ),
           if (mode == _WorkspaceMode.mods &&

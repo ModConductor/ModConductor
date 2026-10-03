@@ -80,7 +80,7 @@ class McPortraitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
+    return Ink(
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border.all(

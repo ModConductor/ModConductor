@@ -229,18 +229,22 @@ class McCardGridState<I extends Object, T extends Object>
                     onKeyEvent: (_, event) => _key(event, index, columns),
                     child: ListenableBuilder(
                       listenable: node,
-                      builder: (context, _) => InkWell(
-                        onTap: () {
-                          if (widget.onSelect case final select?) {
-                            select(item);
-                          } else {
-                            widget.model.select(id);
-                          }
-                          widget.onActivate?.call(item);
-                        },
-                        child:
-                            widget.cardWithFocus?.call(item, node.hasFocus) ??
-                            widget.card(item),
+                      builder: (context, _) => Material(
+                        type: MaterialType.transparency,
+                        clipBehavior: Clip.hardEdge,
+                        child: InkWell(
+                          onTap: () {
+                            if (widget.onSelect case final select?) {
+                              select(item);
+                            } else {
+                              widget.model.select(id);
+                            }
+                            widget.onActivate?.call(item);
+                          },
+                          child:
+                              widget.cardWithFocus?.call(item, node.hasFocus) ??
+                              widget.card(item),
+                        ),
                       ),
                     ),
                   );
