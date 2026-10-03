@@ -72,10 +72,17 @@ type OrganizationItem =
       IsSeparator: bool }
 
 [<RequireQualifiedAccess>]
+type OrganizationPlacement =
+    | Before
+    | After
+    | Inside
+
+[<RequireQualifiedAccess>]
 type OrganizationEdit =
     | MoveUp
     | MoveDown
     | Group of Guid
+    | Place of target: Guid * placement: OrganizationPlacement
 
 type OrganizedMod =
     { Entry: ProfileMod

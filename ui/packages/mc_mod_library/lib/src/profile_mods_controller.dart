@@ -7,6 +7,8 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'mod_query_cache.dart';
 export 'mod_query_cache.dart' show ModRowId;
 
+part 'profile_mods_organization.dart';
+
 class ProfileModsController extends ChangeNotifier {
   final _cache = ModQueryCache();
   McCollectionModel<ModRowId, OrganizedMod> get model => _cache.model;
@@ -292,32 +294,6 @@ class ProfileModsController extends ChangeNotifier {
         : [onlyModId];
     await _change(() => client.enable(profile, expected, ids, value), expected);
   }
-
-  Future<void> move(ProfileModMove direction) async {
-    final client = _organization, profile = _profile, expected = revision;
-    if (client == null || profile == null || expected == null || !canMove) {
-      return;
-    }
-    final ids = model.selectedIds.map((id) => id.modId).toList();
-    await _organize(() => client.move(profile, expected, ids, direction));
-  }
-
-  Future<void> group(List<String> ids, String separator) async {
-    final client = _organization, profile = _profile, expected = revision;
-    if (client == null ||
-        profile == null ||
-        expected == null ||
-        changing ||
-        stale) {
-      return;
-    }
-    await _organize(() => client.group(profile, expected, ids, separator));
-  }
-
-  Future<void> _organize(Future<int> Function() action) => _change(() async {
-    final changed = await action();
-    return ProfileModsDelta(changed, const [], enabledCount);
-  }, revision!);
 
   Future<void> _change(
     Future<ProfileModsDelta> Function() action,

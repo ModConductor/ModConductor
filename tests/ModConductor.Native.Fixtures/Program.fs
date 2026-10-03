@@ -50,6 +50,8 @@ let private run (args: string array) =
     | [| "--native-tool-child"; path |] -> NativeToolFixtures.child path
     | [| "--native-tool"; path |] ->
         writeJson true (fun writer -> NativeToolFixtures.observe writer path)
+    | [| "--loot-fresh"; area; helper |] ->
+        writeJson true (fun writer -> LootFreshProfileFixtures.observe writer area helper)
     | [| "--loot-projection-contexts"; area |] ->
         writeJson true (fun writer -> LootProjectionFixtures.observe writer area)
     | [| "--loot-response-validation" |] -> writeJson true LootFixtures.validateMoves

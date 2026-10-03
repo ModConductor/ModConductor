@@ -1743,7 +1743,7 @@ class ModQueryReply extends $pb.GeneratedMessage {
   $1.ModLibraryFault ensureFault() => $_ensure(1);
 }
 
-enum ChangeModOrganizationRequest_Edit { move, groupId, notSet }
+enum ChangeModOrganizationRequest_Edit { move, groupId, drop, notSet }
 
 class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
   factory ChangeModOrganizationRequest({
@@ -1752,6 +1752,7 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? modIds,
     $2.ProfileModMove? move,
     $core.String? groupId,
+    OrganizationDrop? drop,
   }) {
     final result = create();
     if (profileId != null) result.profileId = profileId;
@@ -1759,6 +1760,7 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
     if (modIds != null) result.modIds.addAll(modIds);
     if (move != null) result.move = move;
     if (groupId != null) result.groupId = groupId;
+    if (drop != null) result.drop = drop;
     return result;
   }
 
@@ -1775,6 +1777,7 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
       _ChangeModOrganizationRequest_EditByTag = {
     4: ChangeModOrganizationRequest_Edit.move,
     5: ChangeModOrganizationRequest_Edit.groupId,
+    6: ChangeModOrganizationRequest_Edit.drop,
     0: ChangeModOrganizationRequest_Edit.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
@@ -1782,7 +1785,7 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
-    ..oo(0, [4, 5])
+    ..oo(0, [4, 5, 6])
     ..aOS(1, _omitFieldNames ? '' : 'profileId')
     ..a<$fixnum.Int64>(
         2, _omitFieldNames ? '' : 'expectedRevision', $pb.PbFieldType.OU6,
@@ -1791,6 +1794,8 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
     ..aE<$2.ProfileModMove>(4, _omitFieldNames ? '' : 'move',
         enumValues: $2.ProfileModMove.values)
     ..aOS(5, _omitFieldNames ? '' : 'groupId')
+    ..aOM<OrganizationDrop>(6, _omitFieldNames ? '' : 'drop',
+        subBuilder: OrganizationDrop.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1817,10 +1822,12 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
+  @$pb.TagNumber(6)
   ChangeModOrganizationRequest_Edit whichEdit() =>
       _ChangeModOrganizationRequest_EditByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
+  @$pb.TagNumber(6)
   void clearEdit() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -1861,6 +1868,17 @@ class ChangeModOrganizationRequest extends $pb.GeneratedMessage {
   $core.bool hasGroupId() => $_has(4);
   @$pb.TagNumber(5)
   void clearGroupId() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  OrganizationDrop get drop => $_getN(5);
+  @$pb.TagNumber(6)
+  set drop(OrganizationDrop value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasDrop() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDrop() => $_clearField(6);
+  @$pb.TagNumber(6)
+  OrganizationDrop ensureDrop() => $_ensure(5);
 }
 
 class ReadLoadOrderLayoutRequest extends $pb.GeneratedMessage {
@@ -2120,6 +2138,74 @@ class SaveLoadOrderLayoutRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<$core.String> get entries => $_getList(1);
+}
+
+class OrganizationDrop extends $pb.GeneratedMessage {
+  factory OrganizationDrop({
+    $core.String? targetId,
+    OrganizationPlacement? placement,
+  }) {
+    final result = create();
+    if (targetId != null) result.targetId = targetId;
+    if (placement != null) result.placement = placement;
+    return result;
+  }
+
+  OrganizationDrop._();
+
+  factory OrganizationDrop.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory OrganizationDrop.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'OrganizationDrop',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'targetId')
+    ..aE<OrganizationPlacement>(2, _omitFieldNames ? '' : 'placement',
+        enumValues: OrganizationPlacement.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OrganizationDrop clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OrganizationDrop copyWith(void Function(OrganizationDrop) updates) =>
+      super.copyWith((message) => updates(message as OrganizationDrop))
+          as OrganizationDrop;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static OrganizationDrop create() => OrganizationDrop._();
+  @$core.override
+  OrganizationDrop createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static OrganizationDrop getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<OrganizationDrop>(create);
+  static OrganizationDrop? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get targetId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set targetId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTargetId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTargetId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  OrganizationPlacement get placement => $_getN(1);
+  @$pb.TagNumber(2)
+  set placement(OrganizationPlacement value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPlacement() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPlacement() => $_clearField(2);
 }
 
 const $core.bool _omitFieldNames =

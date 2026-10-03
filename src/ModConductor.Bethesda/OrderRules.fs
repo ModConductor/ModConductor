@@ -308,7 +308,10 @@ module OrderRules =
             | _ -> None
 
         if
-            selected.Count = 0
+            (selected.Count = 0
+             && (match change with
+                 | PluginOrderChange.Replace [] when order.Entries.IsEmpty -> false
+                 | _ -> true))
             || selected |> Seq.exists (known.Contains >> not)
             || (match change with
                 | PluginOrderChange.Replace names ->

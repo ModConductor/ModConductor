@@ -51,6 +51,7 @@
     <Compile Include="NativeToolFixtures.fs" />
     <Compile Include="LootFixtures.fs" />
     <Compile Include="LootProjectionFixtures.fs" />
+    <Compile Include="LootFreshProfileFixtures.fs" />
     <Compile Include="ArchivePolicyFixtures.fs" />
     <Compile Include="NonSteamContextFixtures.fs" />
     <Compile Include="NonSteamWineRuntimeFixtures.fs" />

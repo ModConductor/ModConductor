@@ -150,3 +150,5 @@ class ModQueryPage {
       totalMods,
       enabledCount;
 }
+
+enum OrganizationPlacement { before, after, inside }

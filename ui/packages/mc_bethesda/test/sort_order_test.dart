@@ -73,12 +73,12 @@ class _Loot implements LootClient {
   _Loot(this.order);
   final ProfilePluginOrder order;
   int applies = 0, refreshes = 0, previews = 0;
-  bool available = true;
+  bool available = true, metadataAvailable = true;
   LootStateView get empty => LootStateView(
     'skyrim-se-steam',
     available,
     available ? '' : 'LOOT sorting is unavailable.',
-    available
+    available && metadataAvailable
         ? LootMetadataView('m:p', 'm', 'p', 'm', 'p', DateTime.utc(2026))
         : null,
     null,
@@ -146,6 +146,7 @@ class _Loot implements LootClient {
   @override
   Future<LootStateView> refreshMetadata() async {
     refreshes++;
+    metadataAvailable = true;
     return empty;
   }
 }
@@ -154,7 +155,11 @@ class _PendingLoot extends _Loot {
   _PendingLoot(super.order);
   Completer<LootStateView>? pendingPreview, pendingRead;
   Completer<ProfilePluginOrder>? pendingApply;
+  Completer<LootStateView>? pendingMetadata;
   final applyProfiles = <String>[];
+  @override
+  Future<LootStateView> refreshMetadata() =>
+      pendingMetadata?.future ?? super.refreshMetadata();
   @override
   Future<LootStateView> read() => pendingRead?.future ?? super.read();
   @override
@@ -175,6 +180,84 @@ class _PendingLoot extends _Loot {
 }
 
 void main() {
+  testWidgets('optimise obtains missing metadata and saves in one action', (
+    tester,
+  ) async {
+    final source = _Bethesda(), orders = _Orders(_Bethesda().snapshot);
+    final plugins = PluginsController()
+      ..attach(source, 'profile', orders: orders);
+    addTearDown(plugins.dispose);
+    await plugins.scan();
+    final client = _Loot(orders.value)..metadataAvailable = false;
+    final controller = SortOrderController()
+      ..attach(client, plugins, 'profile');
+    addTearDown(controller.dispose);
+    await tester.pump();
+    expect(controller.canPreview, isTrue);
+    await controller.optimise();
+    expect(client.refreshes, 1);
+    expect(client.previews, 1);
+    expect(client.applies, 1);
+    expect(controller.problem, isNull);
+  });
+
+  testWidgets(
+    'a profile switch during metadata download cannot preview or apply the old scope',
+    (tester) async {
+      final source = _Bethesda(), orders = _Orders(_Bethesda().snapshot);
+      final plugins = PluginsController()
+        ..attach(source, 'profile', orders: orders);
+      addTearDown(plugins.dispose);
+      await plugins.scan();
+      final client = _PendingLoot(orders.value)..metadataAvailable = false;
+      final controller = SortOrderController()
+        ..attach(client, plugins, 'profile');
+      addTearDown(controller.dispose);
+      await tester.pump();
+      client.pendingMetadata = Completer<LootStateView>();
+      final running = controller.optimise();
+      await tester.pump();
+      controller.attach(null, plugins, null);
+      client.pendingMetadata!.complete(client.empty);
+      await running;
+      expect(client.previews, 0);
+      expect(client.applies, 0);
+      expect(controller.state, isNull);
+      expect(controller.reading, isFalse);
+    },
+  );
+
+  for (final kind in [
+    ProfileDataProblemKind.busy,
+    ProfileDataProblemKind.stale,
+    ProfileDataProblemKind.invalid,
+  ]) {
+    testWidgets('apply preserves a server $kind refusal and does not retry', (
+      tester,
+    ) async {
+      final source = _Bethesda(), orders = _Orders(_Bethesda().snapshot);
+      final plugins = PluginsController()
+        ..attach(source, 'profile', orders: orders);
+      addTearDown(plugins.dispose);
+      await plugins.scan();
+      final client = _PendingLoot(orders.value);
+      final controller = SortOrderController()
+        ..attach(client, plugins, 'profile');
+      addTearDown(controller.dispose);
+      await tester.pump();
+      client.pendingApply = Completer<ProfilePluginOrder>();
+      final running = controller.optimise();
+      await tester.pump();
+      const detail = 'server-owned refusal';
+      client.pendingApply!.completeError(ProfileDataProblem(kind, detail));
+      await running;
+      expect(controller.problem, detail);
+      expect(controller.stale, kind == ProfileDataProblemKind.stale);
+      expect(client.applyProfiles, ['profile']);
+      expect(controller.writing, isFalse);
+    });
+  }
+
   for (final applying in [false, true]) {
     for (final helperRead in [false, true]) {
       testWidgets(

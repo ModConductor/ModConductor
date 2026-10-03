@@ -91,45 +91,52 @@ namespace ModConductor.Protocol.V1 {
             "dXBzGAwgASgNInwKDU1vZFF1ZXJ5UmVwbHkSLQoEcGFnZRgBIAEoCzIdLm1v",
             "ZGNvbmR1Y3Rvci52MS5Nb2RRdWVyeVBhZ2VIABIxCgVmYXVsdBgCIAEoCzIg",
             "Lm1vZGNvbmR1Y3Rvci52MS5Nb2RMaWJyYXJ5RmF1bHRIAEIJCgdvdXRjb21l",
-            "IqsBChxDaGFuZ2VNb2RPcmdhbml6YXRpb25SZXF1ZXN0EhIKCnByb2ZpbGVf",
+            "It4BChxDaGFuZ2VNb2RPcmdhbml6YXRpb25SZXF1ZXN0EhIKCnByb2ZpbGVf",
             "aWQYASABKAkSGQoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKAQSDwoHbW9kX2lk",
             "cxgDIAMoCRIvCgRtb3ZlGAQgASgOMh8ubW9kY29uZHVjdG9yLnYxLlByb2Zp",
-            "bGVNb2RNb3ZlSAASEgoIZ3JvdXBfaWQYBSABKAlIAEIGCgRlZGl0IjAKGlJl",
-            "YWRMb2FkT3JkZXJMYXlvdXRSZXF1ZXN0EhIKCnByb2ZpbGVfaWQYASABKAki",
-            "IgoPTG9hZE9yZGVyTGF5b3V0Eg8KB2VudHJpZXMYASADKAkiiAEKFExvYWRP",
-            "cmRlckxheW91dFJlcGx5EjIKBmxheW91dBgBIAEoCzIgLm1vZGNvbmR1Y3Rv",
-            "ci52MS5Mb2FkT3JkZXJMYXlvdXRIABIxCgVmYXVsdBgCIAEoCzIgLm1vZGNv",
-            "bmR1Y3Rvci52MS5Nb2RMaWJyYXJ5RmF1bHRIAEIJCgdvdXRjb21lIkEKGlNh",
-            "dmVMb2FkT3JkZXJMYXlvdXRSZXF1ZXN0EhIKCnByb2ZpbGVfaWQYASABKAkS",
-            "DwoHZW50cmllcxgCIAMoCSpiCg1Nb2RGaWx0ZXJNb2RlEh8KG01PRF9GSUxU",
-            "RVJfTU9ERV9VTlNQRUNJRklFRBAAEhcKE01PRF9GSUxURVJfTU9ERV9BTEwQ",
-            "ARIXChNNT0RfRklMVEVSX01PREVfQU5ZEAIqYgoMTW9kUXVlcnlWaWV3Eh4K",
-            "Gk1PRF9RVUVSWV9WSUVXX1VOU1BFQ0lGSUVEEAASFwoTTU9EX1FVRVJZX1ZJ",
-            "RVdfRkxBVBABEhkKFU1PRF9RVUVSWV9WSUVXX0dST1VQUxACKmQKDE1vZFF1",
-            "ZXJ5U29ydBIeChpNT0RfUVVFUllfU09SVF9VTlNQRUNJRklFRBAAEhsKF01P",
-            "RF9RVUVSWV9TT1JUX1BSSU9SSVRZEAESFwoTTU9EX1FVRVJZX1NPUlRfTkFN",
-            "RRACKpQBChBNb2RFbmFibGVkRmlsdGVyEiIKHk1PRF9FTkFCTEVEX0ZJTFRF",
-            "Ul9VTlNQRUNJRklFRBAAEhoKFk1PRF9FTkFCTEVEX0ZJTFRFUl9ZRVMQARIZ",
-            "ChVNT0RfRU5BQkxFRF9GSUxURVJfTk8QAhIlCiFNT0RfRU5BQkxFRF9GSUxU",
-            "RVJfTk9UX0FQUExJQ0FCTEUQAzLyBAoZTW9kT3JnYW5pemF0aW9uT3BlcmF0",
-            "aW9ucxJaCg5SZWFkQ2F0ZWdvcmllcxImLm1vZGNvbmR1Y3Rvci52MS5SZWFk",
-            "Q2F0ZWdvcmllc1JlcXVlc3QaIC5tb2Rjb25kdWN0b3IudjEuQ2F0ZWdvcmll",
-            "c1JlcGx5El4KDEVkaXRDYXRlZ29yeRIkLm1vZGNvbmR1Y3Rvci52MS5FZGl0",
-            "Q2F0ZWdvcnlSZXF1ZXN0GigubW9kY29uZHVjdG9yLnYxLk9yZ2FuaXphdGlv",
-            "bkNoYW5nZVJlcGx5Ek4KCVF1ZXJ5TW9kcxIhLm1vZGNvbmR1Y3Rvci52MS5R",
-            "dWVyeU1vZHNSZXF1ZXN0Gh4ubW9kY29uZHVjdG9yLnYxLk1vZFF1ZXJ5UmVw",
-            "bHkSaQoTUmVhZExvYWRPcmRlckxheW91dBIrLm1vZGNvbmR1Y3Rvci52MS5S",
-            "ZWFkTG9hZE9yZGVyTGF5b3V0UmVxdWVzdBolLm1vZGNvbmR1Y3Rvci52MS5M",
-            "b2FkT3JkZXJMYXlvdXRSZXBseRJsChNTYXZlTG9hZE9yZGVyTGF5b3V0Eisu",
-            "bW9kY29uZHVjdG9yLnYxLlNhdmVMb2FkT3JkZXJMYXlvdXRSZXF1ZXN0Gigu",
-            "bW9kY29uZHVjdG9yLnYxLk9yZ2FuaXphdGlvbkNoYW5nZVJlcGx5EnAKFUNo",
-            "YW5nZU1vZE9yZ2FuaXphdGlvbhItLm1vZGNvbmR1Y3Rvci52MS5DaGFuZ2VN",
-            "b2RPcmdhbml6YXRpb25SZXF1ZXN0GigubW9kY29uZHVjdG9yLnYxLk9yZ2Fu",
-            "aXphdGlvbkNoYW5nZVJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJvdG9jb2wu",
-            "VjFiBnByb3RvMw=="));
+            "bGVNb2RNb3ZlSAASEgoIZ3JvdXBfaWQYBSABKAlIABIxCgRkcm9wGAYgASgL",
+            "MiEubW9kY29uZHVjdG9yLnYxLk9yZ2FuaXphdGlvbkRyb3BIAEIGCgRlZGl0",
+            "IjAKGlJlYWRMb2FkT3JkZXJMYXlvdXRSZXF1ZXN0EhIKCnByb2ZpbGVfaWQY",
+            "ASABKAkiIgoPTG9hZE9yZGVyTGF5b3V0Eg8KB2VudHJpZXMYASADKAkiiAEK",
+            "FExvYWRPcmRlckxheW91dFJlcGx5EjIKBmxheW91dBgBIAEoCzIgLm1vZGNv",
+            "bmR1Y3Rvci52MS5Mb2FkT3JkZXJMYXlvdXRIABIxCgVmYXVsdBgCIAEoCzIg",
+            "Lm1vZGNvbmR1Y3Rvci52MS5Nb2RMaWJyYXJ5RmF1bHRIAEIJCgdvdXRjb21l",
+            "IkEKGlNhdmVMb2FkT3JkZXJMYXlvdXRSZXF1ZXN0EhIKCnByb2ZpbGVfaWQY",
+            "ASABKAkSDwoHZW50cmllcxgCIAMoCSJgChBPcmdhbml6YXRpb25Ecm9wEhEK",
+            "CXRhcmdldF9pZBgBIAEoCRI5CglwbGFjZW1lbnQYAiABKA4yJi5tb2Rjb25k",
+            "dWN0b3IudjEuT3JnYW5pemF0aW9uUGxhY2VtZW50KmIKDU1vZEZpbHRlck1v",
+            "ZGUSHwobTU9EX0ZJTFRFUl9NT0RFX1VOU1BFQ0lGSUVEEAASFwoTTU9EX0ZJ",
+            "TFRFUl9NT0RFX0FMTBABEhcKE01PRF9GSUxURVJfTU9ERV9BTlkQAipiCgxN",
+            "b2RRdWVyeVZpZXcSHgoaTU9EX1FVRVJZX1ZJRVdfVU5TUEVDSUZJRUQQABIX",
+            "ChNNT0RfUVVFUllfVklFV19GTEFUEAESGQoVTU9EX1FVRVJZX1ZJRVdfR1JP",
+            "VVBTEAIqZAoMTW9kUXVlcnlTb3J0Eh4KGk1PRF9RVUVSWV9TT1JUX1VOU1BF",
+            "Q0lGSUVEEAASGwoXTU9EX1FVRVJZX1NPUlRfUFJJT1JJVFkQARIXChNNT0Rf",
+            "UVVFUllfU09SVF9OQU1FEAIqlAEKEE1vZEVuYWJsZWRGaWx0ZXISIgoeTU9E",
+            "X0VOQUJMRURfRklMVEVSX1VOU1BFQ0lGSUVEEAASGgoWTU9EX0VOQUJMRURf",
+            "RklMVEVSX1lFUxABEhkKFU1PRF9FTkFCTEVEX0ZJTFRFUl9OTxACEiUKIU1P",
+            "RF9FTkFCTEVEX0ZJTFRFUl9OT1RfQVBQTElDQUJMRRADKqcBChVPcmdhbml6",
+            "YXRpb25QbGFjZW1lbnQSJgoiT1JHQU5JWkFUSU9OX1BMQUNFTUVOVF9VTlNQ",
+            "RUNJRklFRBAAEiEKHU9SR0FOSVpBVElPTl9QTEFDRU1FTlRfQkVGT1JFEAES",
+            "IAocT1JHQU5JWkFUSU9OX1BMQUNFTUVOVF9BRlRFUhACEiEKHU9SR0FOSVpB",
+            "VElPTl9QTEFDRU1FTlRfSU5TSURFEAMy8gQKGU1vZE9yZ2FuaXphdGlvbk9w",
+            "ZXJhdGlvbnMSWgoOUmVhZENhdGVnb3JpZXMSJi5tb2Rjb25kdWN0b3IudjEu",
+            "UmVhZENhdGVnb3JpZXNSZXF1ZXN0GiAubW9kY29uZHVjdG9yLnYxLkNhdGVn",
+            "b3JpZXNSZXBseRJeCgxFZGl0Q2F0ZWdvcnkSJC5tb2Rjb25kdWN0b3IudjEu",
+            "RWRpdENhdGVnb3J5UmVxdWVzdBooLm1vZGNvbmR1Y3Rvci52MS5Pcmdhbml6",
+            "YXRpb25DaGFuZ2VSZXBseRJOCglRdWVyeU1vZHMSIS5tb2Rjb25kdWN0b3Iu",
+            "djEuUXVlcnlNb2RzUmVxdWVzdBoeLm1vZGNvbmR1Y3Rvci52MS5Nb2RRdWVy",
+            "eVJlcGx5EmkKE1JlYWRMb2FkT3JkZXJMYXlvdXQSKy5tb2Rjb25kdWN0b3Iu",
+            "djEuUmVhZExvYWRPcmRlckxheW91dFJlcXVlc3QaJS5tb2Rjb25kdWN0b3Iu",
+            "djEuTG9hZE9yZGVyTGF5b3V0UmVwbHkSbAoTU2F2ZUxvYWRPcmRlckxheW91",
+            "dBIrLm1vZGNvbmR1Y3Rvci52MS5TYXZlTG9hZE9yZGVyTGF5b3V0UmVxdWVz",
+            "dBooLm1vZGNvbmR1Y3Rvci52MS5Pcmdhbml6YXRpb25DaGFuZ2VSZXBseRJw",
+            "ChVDaGFuZ2VNb2RPcmdhbml6YXRpb24SLS5tb2Rjb25kdWN0b3IudjEuQ2hh",
+            "bmdlTW9kT3JnYW5pemF0aW9uUmVxdWVzdBooLm1vZGNvbmR1Y3Rvci52MS5P",
+            "cmdhbml6YXRpb25DaGFuZ2VSZXBseUIbqgIYTW9kQ29uZHVjdG9yLlByb3Rv",
+            "Y29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ModLibraryReflection.Descriptor, global::ModConductor.Protocol.V1.ProfileModsReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.ModFilterMode), typeof(global::ModConductor.Protocol.V1.ModQueryView), typeof(global::ModConductor.Protocol.V1.ModQuerySort), typeof(global::ModConductor.Protocol.V1.ModEnabledFilter), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.ModFilterMode), typeof(global::ModConductor.Protocol.V1.ModQueryView), typeof(global::ModConductor.Protocol.V1.ModQuerySort), typeof(global::ModConductor.Protocol.V1.ModEnabledFilter), typeof(global::ModConductor.Protocol.V1.OrganizationPlacement), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModCategory), global::ModConductor.Protocol.V1.ModCategory.Parser, new[]{ "CategoryId", "WorkspaceId", "ParentId", "Label", "Missing", "AssignedCount", "HasChildren" }, new[]{ "ParentId" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadCategoriesRequest), global::ModConductor.Protocol.V1.ReadCategoriesRequest.Parser, new[]{ "WorkspaceId", "ParentId", "AfterId", "ExpectedRevision" }, new[]{ "ParentId", "AfterId", "ExpectedRevision" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.CategoriesPage), global::ModConductor.Protocol.V1.CategoriesPage.Parser, new[]{ "Revision", "Entries", "Ancestors", "NextId" }, new[]{ "NextId" }, null, null, null),
@@ -147,11 +154,12 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.OrganizedModView), global::ModConductor.Protocol.V1.OrganizedModView.Parser, new[]{ "Entry", "GroupId", "GroupSize", "Position" }, new[]{ "GroupId", "Position" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModQueryPage), global::ModConductor.Protocol.V1.ModQueryPage.Parser, new[]{ "CatalogueRevision", "SelectionRevision", "QueryIdentity", "Entries", "Context", "Inspected", "Next", "MatchingMods", "MatchingSeparators", "TotalMods", "EnabledCount", "MatchingGroups" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModQueryReply), global::ModConductor.Protocol.V1.ModQueryReply.Parser, new[]{ "Page", "Fault" }, new[]{ "Outcome" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest), global::ModConductor.Protocol.V1.ChangeModOrganizationRequest.Parser, new[]{ "ProfileId", "ExpectedRevision", "ModIds", "Move", "GroupId" }, new[]{ "Edit" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ChangeModOrganizationRequest), global::ModConductor.Protocol.V1.ChangeModOrganizationRequest.Parser, new[]{ "ProfileId", "ExpectedRevision", "ModIds", "Move", "GroupId", "Drop" }, new[]{ "Edit" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest), global::ModConductor.Protocol.V1.ReadLoadOrderLayoutRequest.Parser, new[]{ "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.LoadOrderLayout), global::ModConductor.Protocol.V1.LoadOrderLayout.Parser, new[]{ "Entries" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.LoadOrderLayoutReply), global::ModConductor.Protocol.V1.LoadOrderLayoutReply.Parser, new[]{ "Layout", "Fault" }, new[]{ "Outcome" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest), global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest.Parser, new[]{ "ProfileId", "Entries" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest), global::ModConductor.Protocol.V1.SaveLoadOrderLayoutRequest.Parser, new[]{ "ProfileId", "Entries" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.OrganizationDrop), global::ModConductor.Protocol.V1.OrganizationDrop.Parser, new[]{ "TargetId", "Placement" }, null, null, null, null)
           }));
     }
     #endregion
@@ -181,6 +189,13 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("MOD_ENABLED_FILTER_YES")] Yes = 1,
     [pbr::OriginalName("MOD_ENABLED_FILTER_NO")] No = 2,
     [pbr::OriginalName("MOD_ENABLED_FILTER_NOT_APPLICABLE")] NotApplicable = 3,
+  }
+
+  public enum OrganizationPlacement {
+    [pbr::OriginalName("ORGANIZATION_PLACEMENT_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("ORGANIZATION_PLACEMENT_BEFORE")] Before = 1,
+    [pbr::OriginalName("ORGANIZATION_PLACEMENT_AFTER")] After = 2,
+    [pbr::OriginalName("ORGANIZATION_PLACEMENT_INSIDE")] Inside = 3,
   }
 
   #endregion
@@ -6048,6 +6063,9 @@ namespace ModConductor.Protocol.V1 {
         case EditOneofCase.GroupId:
           GroupId = other.GroupId;
           break;
+        case EditOneofCase.Drop:
+          Drop = other.Drop.Clone();
+          break;
       }
 
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -6146,12 +6164,25 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "drop" field.</summary>
+    public const int DropFieldNumber = 6;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.OrganizationDrop Drop {
+      get { return editCase_ == EditOneofCase.Drop ? (global::ModConductor.Protocol.V1.OrganizationDrop) edit_ : null; }
+      set {
+        edit_ = value;
+        editCase_ = value == null ? EditOneofCase.None : EditOneofCase.Drop;
+      }
+    }
+
     private object edit_;
     /// <summary>Enum of possible cases for the "edit" oneof.</summary>
     public enum EditOneofCase {
       None = 0,
       Move = 4,
       GroupId = 5,
+      Drop = 6,
     }
     private EditOneofCase editCase_ = EditOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6187,6 +6218,7 @@ namespace ModConductor.Protocol.V1 {
       if(!modIds_.Equals(other.modIds_)) return false;
       if (Move != other.Move) return false;
       if (GroupId != other.GroupId) return false;
+      if (!object.Equals(Drop, other.Drop)) return false;
       if (EditCase != other.EditCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -6200,6 +6232,7 @@ namespace ModConductor.Protocol.V1 {
       hash ^= modIds_.GetHashCode();
       if (HasMove) hash ^= Move.GetHashCode();
       if (HasGroupId) hash ^= GroupId.GetHashCode();
+      if (editCase_ == EditOneofCase.Drop) hash ^= Drop.GetHashCode();
       hash ^= (int) editCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -6236,6 +6269,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(42);
         output.WriteString(GroupId);
       }
+      if (editCase_ == EditOneofCase.Drop) {
+        output.WriteRawTag(50);
+        output.WriteMessage(Drop);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -6263,6 +6300,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(42);
         output.WriteString(GroupId);
       }
+      if (editCase_ == EditOneofCase.Drop) {
+        output.WriteRawTag(50);
+        output.WriteMessage(Drop);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -6285,6 +6326,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (HasGroupId) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(GroupId);
+      }
+      if (editCase_ == EditOneofCase.Drop) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Drop);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -6311,6 +6355,12 @@ namespace ModConductor.Protocol.V1 {
           break;
         case EditOneofCase.GroupId:
           GroupId = other.GroupId;
+          break;
+        case EditOneofCase.Drop:
+          if (Drop == null) {
+            Drop = new global::ModConductor.Protocol.V1.OrganizationDrop();
+          }
+          Drop.MergeFrom(other.Drop);
           break;
       }
 
@@ -6354,6 +6404,15 @@ namespace ModConductor.Protocol.V1 {
             GroupId = input.ReadString();
             break;
           }
+          case 50: {
+            global::ModConductor.Protocol.V1.OrganizationDrop subBuilder = new global::ModConductor.Protocol.V1.OrganizationDrop();
+            if (editCase_ == EditOneofCase.Drop) {
+              subBuilder.MergeFrom(Drop);
+            }
+            input.ReadMessage(subBuilder);
+            Drop = subBuilder;
+            break;
+          }
         }
       }
     #endif
@@ -6392,6 +6451,15 @@ namespace ModConductor.Protocol.V1 {
           }
           case 42: {
             GroupId = input.ReadString();
+            break;
+          }
+          case 50: {
+            global::ModConductor.Protocol.V1.OrganizationDrop subBuilder = new global::ModConductor.Protocol.V1.OrganizationDrop();
+            if (editCase_ == EditOneofCase.Drop) {
+              subBuilder.MergeFrom(Drop);
+            }
+            input.ReadMessage(subBuilder);
+            Drop = subBuilder;
             break;
           }
         }
@@ -7295,6 +7363,241 @@ namespace ModConductor.Protocol.V1 {
           }
           case 18: {
             entries_.AddEntriesFrom(ref input, _repeated_entries_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class OrganizationDrop : pb::IMessage<OrganizationDrop>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<OrganizationDrop> _parser = new pb::MessageParser<OrganizationDrop>(() => new OrganizationDrop());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<OrganizationDrop> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.ModOrganizationReflection.Descriptor.MessageTypes[22]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public OrganizationDrop() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public OrganizationDrop(OrganizationDrop other) : this() {
+      targetId_ = other.targetId_;
+      placement_ = other.placement_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public OrganizationDrop Clone() {
+      return new OrganizationDrop(this);
+    }
+
+    /// <summary>Field number for the "target_id" field.</summary>
+    public const int TargetIdFieldNumber = 1;
+    private string targetId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string TargetId {
+      get { return targetId_; }
+      set {
+        targetId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "placement" field.</summary>
+    public const int PlacementFieldNumber = 2;
+    private global::ModConductor.Protocol.V1.OrganizationPlacement placement_ = global::ModConductor.Protocol.V1.OrganizationPlacement.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.OrganizationPlacement Placement {
+      get { return placement_; }
+      set {
+        placement_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as OrganizationDrop);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(OrganizationDrop other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (TargetId != other.TargetId) return false;
+      if (Placement != other.Placement) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (TargetId.Length != 0) hash ^= TargetId.GetHashCode();
+      if (Placement != global::ModConductor.Protocol.V1.OrganizationPlacement.Unspecified) hash ^= Placement.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (TargetId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(TargetId);
+      }
+      if (Placement != global::ModConductor.Protocol.V1.OrganizationPlacement.Unspecified) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) Placement);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (TargetId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(TargetId);
+      }
+      if (Placement != global::ModConductor.Protocol.V1.OrganizationPlacement.Unspecified) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) Placement);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (TargetId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(TargetId);
+      }
+      if (Placement != global::ModConductor.Protocol.V1.OrganizationPlacement.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Placement);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(OrganizationDrop other) {
+      if (other == null) {
+        return;
+      }
+      if (other.TargetId.Length != 0) {
+        TargetId = other.TargetId;
+      }
+      if (other.Placement != global::ModConductor.Protocol.V1.OrganizationPlacement.Unspecified) {
+        Placement = other.Placement;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            TargetId = input.ReadString();
+            break;
+          }
+          case 16: {
+            Placement = (global::ModConductor.Protocol.V1.OrganizationPlacement) input.ReadEnum();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            TargetId = input.ReadString();
+            break;
+          }
+          case 16: {
+            Placement = (global::ModConductor.Protocol.V1.OrganizationPlacement) input.ReadEnum();
             break;
           }
         }

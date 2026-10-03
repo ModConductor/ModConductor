@@ -92,7 +92,13 @@ type WorkbenchTests() =
         Directory.CreateDirectory area |> ignore
 
         try
-            use store = new OperationStore(Path.Combine(area, "state"))
+            let state = Path.Combine(area, "state")
+            let mutable store = new OperationStore(state)
+
+            use lifetime =
+                { new IDisposable with
+                    member _.Dispose() = (store :> IDisposable).Dispose() }
+
             let workspaces = store.Workspaces :> IWorkspaceState
             let library = store.ModLibrary :> IModLibrary
             let organization = store.ModOrganization :> IModOrganization
@@ -158,7 +164,7 @@ type WorkbenchTests() =
             let high = Guid.NewGuid()
             addFiles high "High"
 
-            let read () =
+            let readFrom (organization: IModOrganization) =
                 let rec page cursor =
                     let result = organization.Query(profile, query, cursor, None) |> wait |> value
 
@@ -166,6 +172,8 @@ type WorkbenchTests() =
                     @ (result.Next |> Option.map (Some >> page) |> Option.defaultValue [])
 
                 page None
+
+            let read () = readFrom organization
 
             let revision () =
                 (organization.Query(profile, query, None, None) |> wait |> value).SelectionRevision
@@ -218,7 +226,12 @@ type WorkbenchTests() =
 
             winner () |> should equal high
             // Only the header is supplied, as when its members are collapsed or filtered out.
-            organization.Change(profile, revision (), [ second ], OrganizationEdit.MoveUp)
+            organization.Change(
+                profile,
+                revision (),
+                [ second ],
+                OrganizationEdit.Place(first, OrganizationPlacement.Before)
+            )
             |> wait
             |> value
             |> ignore
@@ -241,7 +254,12 @@ type WorkbenchTests() =
 
             winner () |> should equal high
 
-            organization.Change(profile, revision (), [ low; hidden[0] ], OrganizationEdit.MoveDown)
+            organization.Change(
+                profile,
+                revision (),
+                [ low; hidden[0] ],
+                OrganizationEdit.Place(hidden[1], OrganizationPlacement.After)
+            )
             |> wait
             |> value
             |> ignore
@@ -271,7 +289,7 @@ type WorkbenchTests() =
                 profile,
                 revision (),
                 [ high; List.last hidden ],
-                OrganizationEdit.Group first
+                OrganizationEdit.Place(first, OrganizationPlacement.Inside)
             )
             |> wait
             |> value
@@ -299,6 +317,10 @@ type WorkbenchTests() =
             |> should equal (Error LibraryError.StaleRevision: Result<int64, LibraryError>)
 
             revision () |> should equal current
+            let saved = read ()
+            (store :> IDisposable).Dispose()
+            store <- new OperationStore(state)
+            readFrom (store.ModOrganization :> IModOrganization) |> should equal saved
         finally
             Directory.Delete(area, true)
 
@@ -416,3 +438,70 @@ type WorkbenchTests() =
             |> should equal (List.rev layout)
         finally
             Directory.Delete(area, true)
+
+    [<Test>]
+    member _.``drag placement should preserve whole group membership and reject cross parent reorders``
+        ()
+        =
+        let first, second, a, b, c, d =
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid()
+
+        let item id position group separator : OrganizationItem =
+            { Id = id
+              Position = position
+              GroupId = group
+              IsSeparator = separator }
+
+        let current =
+            [ item first 0 None true
+              item a 1 (Some first) false
+              item b 2 (Some first) false
+              item second 3 None true
+              item c 4 (Some second) false
+              item d 5 (Some second) false ]
+
+        let changed =
+            GroupPolicy.change
+                [ first; a ]
+                (OrganizationEdit.Place(c, OrganizationPlacement.After))
+                current
+            |> value
+
+        changed |> List.map _.Id |> should equal [ second; c; d; first; a; b ]
+
+        changed
+        |> List.map (fun row -> row.Id, row.GroupId)
+        |> Map.ofList
+        |> should equal (current |> List.map (fun row -> row.Id, row.GroupId) |> Map.ofList)
+
+        GroupPolicy.change [ a ] (OrganizationEdit.Place(c, OrganizationPlacement.Before)) current
+        |> should
+            equal
+            (Error LibraryError.UnsupportedAction: Result<OrganizationItem list, LibraryError>)
+
+        GroupPolicy.change
+            [ first ]
+            (OrganizationEdit.Place(b, OrganizationPlacement.Before))
+            current
+        |> should
+            equal
+            (Error LibraryError.UnsupportedAction: Result<OrganizationItem list, LibraryError>)
+
+        let grouped =
+            GroupPolicy.change
+                [ d; a ]
+                (OrganizationEdit.Place(second, OrganizationPlacement.Inside))
+                current
+            |> value
+
+        grouped |> List.map _.Id |> should equal [ first; b; second; c; a; d ]
+
+        grouped
+        |> List.filter (fun row -> row.GroupId = Some second)
+        |> List.map _.Id
+        |> should equal [ c; a; d ]

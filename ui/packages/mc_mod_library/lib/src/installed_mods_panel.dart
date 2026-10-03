@@ -13,6 +13,12 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
       if (mounted) _modsFocus.requestFocus();
     }
 
+    OrganizationPlacement placement(McCollectionDropPosition position) =>
+        switch (position) {
+          McCollectionDropPosition.before => OrganizationPlacement.before,
+          McCollectionDropPosition.after => OrganizationPlacement.after,
+          McCollectionDropPosition.inside => OrganizationPlacement.inside,
+        };
     final editSelection = controller.canEdit && controller.activity == null;
     final modActions = <Widget>[
       if (widget.inventoryExports != null &&
@@ -118,6 +124,18 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
       drawerLabel: (row) =>
           row.mod.kind == ModKind.separator ? row.mod.metadata.name : null,
       onContextMenu: _modContextMenu,
+      dragScope:
+          editSelection &&
+              !inventory.changing &&
+              !inventory.stale &&
+              inventory.byPriority
+          ? (controller.workspaceId, controller.profileId, inventory.revision)
+          : null,
+      canDrag: (row) => row.selection is! LockedProfileMod,
+      canDrop: (ids, target, position) =>
+          inventory.canPlace(ids, target, placement(position)),
+      onDrop: (ids, target, position) =>
+          unawaited(inventory.place(ids, target, placement(position))),
       nodeIcon: (_) => const SizedBox.shrink(),
       filterText: inventory.query.text,
       filterEnabled: inventory.connected,

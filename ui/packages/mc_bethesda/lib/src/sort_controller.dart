@@ -44,11 +44,12 @@ class SortOrderController extends ChangeNotifier {
   bool get canPreview =>
       _client != null &&
       state?.available == true &&
-      state?.metadata != null &&
       _plugins?.order != null &&
       !reading &&
       !writing &&
       !_plugins!.stale &&
+      !_plugins!.reading &&
+      !_plugins!.writing &&
       _plugins!.order!.issues.isEmpty;
   bool get canApply =>
       proposal != null &&
@@ -97,14 +98,18 @@ class SortOrderController extends ChangeNotifier {
   Future<void> read() async => _run(() => _client!.read(), requireClient: true);
   Future<void> preview() async {
     if (!canPreview) return;
-    final order = _plugins!.order!;
-    await _run(
-      () => _client!.preview(
+    final order = _plugins!.order!, client = _client!, epoch = _epoch;
+    await _run(() async {
+      if (state?.metadata == null) {
+        final refreshed = await client.refreshMetadata();
+        if (_disposed || epoch != _epoch) return refreshed;
+      }
+      return client.preview(
         order.reference.workspaceId,
         order.reference.profileId,
         order.headers.id,
-      ),
-    );
+      );
+    });
   }
 
   Future<void> optimise() async {
@@ -163,9 +168,14 @@ class SortOrderController extends ChangeNotifier {
           stale = error.kind == LootFailureKind.stale;
         }
       }
+    } on ProfileDataProblem catch (error) {
+      if (!_disposed && epoch == _epoch) {
+        problem = error.detail;
+        stale = error.kind == ProfileDataProblemKind.stale;
+      }
     } on Exception {
       if (!_disposed && epoch == _epoch) {
-        problem = 'The proposed order could not be saved. Refresh plugins and try again.';
+        problem = 'The proposed plugin order could not be saved.';
       }
     } finally {
       if (!_disposed && epoch == _epoch) {

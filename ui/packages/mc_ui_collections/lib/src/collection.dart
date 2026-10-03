@@ -7,6 +7,7 @@ import 'model.dart';
 part 'collection_navigation.dart';
 part 'collection_viewport.dart';
 part 'collection_rows.dart';
+part 'collection_drag.dart';
 part 'collection_chrome.dart';
 
 class McColumn<T> {
@@ -64,6 +65,10 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     this.onMoveDown,
     this.drawerLabel,
     this.onContextMenu,
+    this.dragScope,
+    this.canDrag,
+    this.canDrop,
+    this.onDrop,
   });
   final McCollectionModel<I, T> model;
   final String title, filterLabel, countLabel;
@@ -90,6 +95,10 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
   final VoidCallback? onMoveUp, onMoveDown;
   final String? Function(T)? drawerLabel;
   final void Function(BuildContext, T?, Offset)? onContextMenu;
+  final Object? dragScope;
+  final bool Function(T)? canDrag;
+  final bool Function(List<I>, I, McCollectionDropPosition)? canDrop;
+  final void Function(List<I>, I, McCollectionDropPosition)? onDrop;
   @override
   State<McCollection<I, T>> createState() => _McCollectionState<I, T>();
 }

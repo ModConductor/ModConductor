@@ -41,6 +41,18 @@ type ModOrganizationService(organization: IModOrganization) =
                     | _ -> ModLibraryWire.reject "Choose a move direction."
                 | ChangeModOrganizationRequest.EditOneofCase.GroupId ->
                     OrganizationEdit.Group(ModLibraryWire.id request.GroupId)
+                | ChangeModOrganizationRequest.EditOneofCase.Drop ->
+                    let placement =
+                        match request.Drop.Placement with
+                        | ModConductor.Protocol.V1.OrganizationPlacement.Before ->
+                            ModConductor.ModOrganization.OrganizationPlacement.Before
+                        | ModConductor.Protocol.V1.OrganizationPlacement.After ->
+                            ModConductor.ModOrganization.OrganizationPlacement.After
+                        | ModConductor.Protocol.V1.OrganizationPlacement.Inside ->
+                            ModConductor.ModOrganization.OrganizationPlacement.Inside
+                        | _ -> ModLibraryWire.reject "Choose a drop position."
+
+                    OrganizationEdit.Place(ModLibraryWire.id request.Drop.TargetId, placement)
                 | _ -> ModLibraryWire.reject "Choose an organization action."
 
             let! result =

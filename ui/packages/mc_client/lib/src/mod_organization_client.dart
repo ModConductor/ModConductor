@@ -168,6 +168,33 @@ class ModOrganizationClient {
     ),
   );
 
+  Future<int> place(
+    String profile,
+    int revision,
+    List<String> ids,
+    String target,
+    OrganizationPlacement placement,
+  ) async => _changed(
+    await _client.changeModOrganization(
+      wire.ChangeModOrganizationRequest(
+        profileId: profile,
+        expectedRevision: Int64(revision),
+        modIds: ids,
+        drop: wire.OrganizationDrop(
+          targetId: target,
+          placement: switch (placement) {
+            OrganizationPlacement.before =>
+              wire.OrganizationPlacement.ORGANIZATION_PLACEMENT_BEFORE,
+            OrganizationPlacement.after =>
+              wire.OrganizationPlacement.ORGANIZATION_PLACEMENT_AFTER,
+            OrganizationPlacement.inside =>
+              wire.OrganizationPlacement.ORGANIZATION_PLACEMENT_INSIDE,
+          },
+        ),
+      ),
+    ),
+  );
+
   int _changed(wire.OrganizationChangeReply reply) =>
       switch (reply.whichOutcome()) {
         wire.OrganizationChangeReply_Outcome.changed =>

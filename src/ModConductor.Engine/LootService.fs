@@ -143,7 +143,24 @@ type LootService(loot: ILootSorting, orders: IProfilePluginOrders) =
             let headers = ModLibraryWire.id request.HeadersId
 
             match loot.ValidateApply(id, expected, headers) with
-            | Error _ -> return PluginOrderWire.reply (Error ProfileDataError.Stale)
+            | Error error ->
+                let problem =
+                    match error with
+                    | LootError.Busy -> ProfileDataError.Busy
+                    | LootError.Stale -> ProfileDataError.Stale
+                    | LootError.Cancelled -> ProfileDataError.Cancelled
+                    | LootError.InvalidResponse detail -> ProfileDataError.Invalid detail
+                    | LootError.Unsupported detail
+                    | LootError.MetadataUnavailable detail
+                    | LootError.HelperUnavailable detail -> ProfileDataError.Unavailable detail
+
+                let reply = PluginOrderWire.reply (Error problem)
+
+                if error = LootError.Stale then
+                    reply.Problem.Detail <-
+                        "This LOOT result no longer matches the selected plugin order."
+
+                return reply
             | Ok names ->
                 let! result = orders.ApplyExactOrder(expected, headers, names)
 
@@ -151,5 +168,11 @@ type LootService(loot: ILootSorting, orders: IProfilePluginOrders) =
                 | Ok _ -> loot.Applied id
                 | Error _ -> ()
 
-                return PluginOrderWire.reply result
+                let reply = PluginOrderWire.reply result
+
+                if result = Error ProfileDataError.Stale then
+                    reply.Problem.Detail <-
+                        "The plugin inputs or saved order changed while LOOT was running."
+
+                return reply
         }

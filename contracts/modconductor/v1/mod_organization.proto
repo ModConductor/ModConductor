@@ -64,10 +64,13 @@ message ModQueryReply { oneof outcome { ModQueryPage page = 1; ModLibraryFault f
 
 message ChangeModOrganizationRequest {
   string profile_id = 1; uint64 expected_revision = 2; repeated string mod_ids = 3;
-  oneof edit { ProfileModMove move = 4; string group_id = 5; }
+  oneof edit { ProfileModMove move = 4; string group_id = 5; OrganizationDrop drop = 6; }
 }
 
 message ReadLoadOrderLayoutRequest { string profile_id = 1; }
 message LoadOrderLayout { repeated string entries = 1; }
 message LoadOrderLayoutReply { oneof outcome { LoadOrderLayout layout = 1; ModLibraryFault fault = 2; } }
 message SaveLoadOrderLayoutRequest { string profile_id = 1; repeated string entries = 2; }
+
+enum OrganizationPlacement { ORGANIZATION_PLACEMENT_UNSPECIFIED = 0; ORGANIZATION_PLACEMENT_BEFORE = 1; ORGANIZATION_PLACEMENT_AFTER = 2; ORGANIZATION_PLACEMENT_INSIDE = 3; }
+message OrganizationDrop { string target_id = 1; OrganizationPlacement placement = 2; }

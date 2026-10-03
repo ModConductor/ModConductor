@@ -31,8 +31,6 @@ type LootSession
           Reason =
             if not helper then
                 Some "LOOT sorting is unavailable."
-            elif metadata.IsNone then
-                Some "Refresh LOOT metadata before previewing a sort."
             else
                 None
           Metadata = metadata

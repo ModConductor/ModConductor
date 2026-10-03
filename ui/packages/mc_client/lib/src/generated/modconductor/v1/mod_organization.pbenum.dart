@@ -107,5 +107,35 @@ class ModEnabledFilter extends $pb.ProtobufEnum {
   const ModEnabledFilter._(super.value, super.name);
 }
 
+class OrganizationPlacement extends $pb.ProtobufEnum {
+  static const OrganizationPlacement ORGANIZATION_PLACEMENT_UNSPECIFIED =
+      OrganizationPlacement._(
+          0, _omitEnumNames ? '' : 'ORGANIZATION_PLACEMENT_UNSPECIFIED');
+  static const OrganizationPlacement ORGANIZATION_PLACEMENT_BEFORE =
+      OrganizationPlacement._(
+          1, _omitEnumNames ? '' : 'ORGANIZATION_PLACEMENT_BEFORE');
+  static const OrganizationPlacement ORGANIZATION_PLACEMENT_AFTER =
+      OrganizationPlacement._(
+          2, _omitEnumNames ? '' : 'ORGANIZATION_PLACEMENT_AFTER');
+  static const OrganizationPlacement ORGANIZATION_PLACEMENT_INSIDE =
+      OrganizationPlacement._(
+          3, _omitEnumNames ? '' : 'ORGANIZATION_PLACEMENT_INSIDE');
+
+  static const $core.List<OrganizationPlacement> values =
+      <OrganizationPlacement>[
+    ORGANIZATION_PLACEMENT_UNSPECIFIED,
+    ORGANIZATION_PLACEMENT_BEFORE,
+    ORGANIZATION_PLACEMENT_AFTER,
+    ORGANIZATION_PLACEMENT_INSIDE,
+  ];
+
+  static final $core.List<OrganizationPlacement?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static OrganizationPlacement? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const OrganizationPlacement._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

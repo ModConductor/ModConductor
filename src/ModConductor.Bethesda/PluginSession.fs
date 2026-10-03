@@ -276,12 +276,24 @@ type PluginSession(repository: IFileCandidateRepository) =
                                 linked.Token
                             )
 
-                        match result with
-                        | Ok value when retain -> lock gate (fun () -> saved <- Some value)
-                        | Ok _ -> ()
-                        | Error _ -> ()
+                        return
+                            match result with
+                            | Ok value when retain ->
+                                lock gate (fun () ->
+                                    let next =
+                                        match saved with
+                                        | Some previous when
+                                            previous.Stamp = value.Stamp
+                                            && previous.Entries = value.Entries
+                                            && previous.Problems = value.Problems
+                                            && previous.Stale = value.Stale
+                                            ->
+                                            { value with Id = previous.Id }
+                                        | _ -> value
 
-                        return result
+                                    saved <- Some next
+                                    Ok next)
+                            | result -> result
                     with
                     | :? OperationCanceledException -> return Error FilePlanError.Cancelled
                     | :? IOException as error ->

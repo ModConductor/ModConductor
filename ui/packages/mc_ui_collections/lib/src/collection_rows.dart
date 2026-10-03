@@ -147,7 +147,7 @@ class _CollectionRow<I extends Object, T extends Object>
     final focused = id == model.focusedId && focus.hasPrimaryFocus;
     final branch = model.branch(id);
     final drawer = collection.drawerLabel?.call(row);
-    return Semantics(
+    final contents = Semantics(
       container: true,
       selected: selected,
       focusable: true,
@@ -235,6 +235,13 @@ class _CollectionRow<I extends Object, T extends Object>
           ),
         ),
       ),
+    );
+    if (collection.onDrop == null) return contents;
+    return _CollectionDragRow<I, T>(
+      collection: collection,
+      navigation: navigation,
+      id: id,
+      child: contents,
     );
   }
 }

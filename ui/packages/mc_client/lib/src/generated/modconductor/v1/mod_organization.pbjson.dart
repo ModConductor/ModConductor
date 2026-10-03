@@ -77,6 +77,24 @@ final $typed_data.Uint8List modEnabledFilterDescriptor = $convert.base64Decode(
     'oKFk1PRF9FTkFCTEVEX0ZJTFRFUl9ZRVMQARIZChVNT0RfRU5BQkxFRF9GSUxURVJfTk8QAhIl'
     'CiFNT0RfRU5BQkxFRF9GSUxURVJfTk9UX0FQUExJQ0FCTEUQAw==');
 
+@$core.Deprecated('Use organizationPlacementDescriptor instead')
+const OrganizationPlacement$json = {
+  '1': 'OrganizationPlacement',
+  '2': [
+    {'1': 'ORGANIZATION_PLACEMENT_UNSPECIFIED', '2': 0},
+    {'1': 'ORGANIZATION_PLACEMENT_BEFORE', '2': 1},
+    {'1': 'ORGANIZATION_PLACEMENT_AFTER', '2': 2},
+    {'1': 'ORGANIZATION_PLACEMENT_INSIDE', '2': 3},
+  ],
+};
+
+/// Descriptor for `OrganizationPlacement`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List organizationPlacementDescriptor = $convert.base64Decode(
+    'ChVPcmdhbml6YXRpb25QbGFjZW1lbnQSJgoiT1JHQU5JWkFUSU9OX1BMQUNFTUVOVF9VTlNQRU'
+    'NJRklFRBAAEiEKHU9SR0FOSVpBVElPTl9QTEFDRU1FTlRfQkVGT1JFEAESIAocT1JHQU5JWkFU'
+    'SU9OX1BMQUNFTUVOVF9BRlRFUhACEiEKHU9SR0FOSVpBVElPTl9QTEFDRU1FTlRfSU5TSURFEA'
+    'M=');
+
 @$core.Deprecated('Use modCategoryDescriptor instead')
 const ModCategory$json = {
   '1': 'ModCategory',
@@ -773,6 +791,15 @@ const ChangeModOrganizationRequest$json = {
       '10': 'move'
     },
     {'1': 'group_id', '3': 5, '4': 1, '5': 9, '9': 0, '10': 'groupId'},
+    {
+      '1': 'drop',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.OrganizationDrop',
+      '9': 0,
+      '10': 'drop'
+    },
   ],
   '8': [
     {'1': 'edit'},
@@ -784,8 +811,9 @@ final $typed_data.Uint8List changeModOrganizationRequestDescriptor = $convert.ba
     'ChxDaGFuZ2VNb2RPcmdhbml6YXRpb25SZXF1ZXN0Eh0KCnByb2ZpbGVfaWQYASABKAlSCXByb2'
     'ZpbGVJZBIrChFleHBlY3RlZF9yZXZpc2lvbhgCIAEoBFIQZXhwZWN0ZWRSZXZpc2lvbhIXCgdt'
     'b2RfaWRzGAMgAygJUgZtb2RJZHMSNQoEbW92ZRgEIAEoDjIfLm1vZGNvbmR1Y3Rvci52MS5Qcm'
-    '9maWxlTW9kTW92ZUgAUgRtb3ZlEhsKCGdyb3VwX2lkGAUgASgJSABSB2dyb3VwSWRCBgoEZWRp'
-    'dA==');
+    '9maWxlTW9kTW92ZUgAUgRtb3ZlEhsKCGdyb3VwX2lkGAUgASgJSABSB2dyb3VwSWQSNwoEZHJv'
+    'cBgGIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5Pcmdhbml6YXRpb25Ecm9wSABSBGRyb3BCBgoEZW'
+    'RpdA==');
 
 @$core.Deprecated('Use readLoadOrderLayoutRequestDescriptor instead')
 const ReadLoadOrderLayoutRequest$json = {
@@ -861,3 +889,25 @@ final $typed_data.Uint8List saveLoadOrderLayoutRequestDescriptor =
     $convert.base64Decode(
         'ChpTYXZlTG9hZE9yZGVyTGF5b3V0UmVxdWVzdBIdCgpwcm9maWxlX2lkGAEgASgJUglwcm9maW'
         'xlSWQSGAoHZW50cmllcxgCIAMoCVIHZW50cmllcw==');
+
+@$core.Deprecated('Use organizationDropDescriptor instead')
+const OrganizationDrop$json = {
+  '1': 'OrganizationDrop',
+  '2': [
+    {'1': 'target_id', '3': 1, '4': 1, '5': 9, '10': 'targetId'},
+    {
+      '1': 'placement',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.OrganizationPlacement',
+      '10': 'placement'
+    },
+  ],
+};
+
+/// Descriptor for `OrganizationDrop`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List organizationDropDescriptor = $convert.base64Decode(
+    'ChBPcmdhbml6YXRpb25Ecm9wEhsKCXRhcmdldF9pZBgBIAEoCVIIdGFyZ2V0SWQSRAoJcGxhY2'
+    'VtZW50GAIgASgOMiYubW9kY29uZHVjdG9yLnYxLk9yZ2FuaXphdGlvblBsYWNlbWVudFIJcGxh'
+    'Y2VtZW50');
