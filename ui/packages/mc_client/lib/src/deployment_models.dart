@@ -36,8 +36,9 @@ class SavedDeployment {
     this.known,
     this.active,
     this.fingerprint,
-    this.canRestore, {this.unavailable}
-  );
+    this.canRestore, {
+    this.unavailable,
+  });
   final String id, fingerprint;
   final String? unavailable;
   final DateTime? preparedAt;
@@ -125,4 +126,9 @@ class DeploymentPrepared extends DeploymentEvent {
 class DeploymentFinished extends DeploymentEvent {
   const DeploymentFinished(this.receipt);
   final DeploymentReceipt receipt;
+}
+
+class DeploymentDeactivated extends DeploymentEvent {
+  const DeploymentDeactivated(this.state);
+  final DeploymentState state;
 }

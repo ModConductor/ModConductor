@@ -9,7 +9,6 @@ open ModConductor.Workspaces
 type internal ProfileMutationServices =
     { Database: StateDatabase
       Access: LibraryAccess
-      Recovery: ModConductor.DeploymentRecovery.Recovery
       Repository: IProfileDataRepository }
 
 type internal ProfileMutationRequest =

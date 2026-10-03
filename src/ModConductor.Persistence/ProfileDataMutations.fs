@@ -12,7 +12,6 @@ type internal ProfileDataMutations
     (
         database: StateDatabase,
         access: LibraryAccess,
-        recovery: ModConductor.DeploymentRecovery.Recovery,
         enter: Guid -> IDisposable option,
         images: ProfileImageStore
     ) =
@@ -22,7 +21,6 @@ type internal ProfileDataMutations
     let services =
         { Database = database
           Access = access
-          Recovery = recovery
           Repository = repository }
 
     let completed workspace command (action: ProfileDataActionRecord) =
@@ -131,6 +129,15 @@ type internal ProfileDataMutations
                                     | Error error -> Error error
                                 | _ -> result
                 with
+                | ModConductor.DeploymentRecovery.RecoveryException error ->
+                    let detail =
+                        match error with
+                        | ModConductor.DeploymentRecovery.RecoveryError.Mismatch detail
+                        | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail
+                        | ModConductor.DeploymentRecovery.RecoveryError.Corrupt detail -> detail
+                        | error -> string error
+
+                    return Error(WorkspaceError.ProfileData detail)
                 | ProfileDataException ProfileDataError.Busy -> return Error WorkspaceError.Busy
                 | ProfileDataException error ->
                     let detail =

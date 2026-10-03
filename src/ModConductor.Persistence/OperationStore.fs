@@ -122,7 +122,6 @@ type OperationStore
         ProfileDataMutations(
             database,
             modLibrary.Access,
-            deployment,
             deploymentBackend.TryAcquireWorkspace,
             profileImages
         )

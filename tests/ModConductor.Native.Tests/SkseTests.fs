@@ -93,3 +93,9 @@ type SkseTests() =
     member _.``saved generation restore should rebuild its loader after restart``() =
         coordinatorFlag "savedGenerationRestoreRebuildsLoaderAfterRestart"
         |> should equal true
+
+    [<Test>]
+    member _.``deleting shared SKSE after a store restart should undeploy only its dependent profiles``
+        ()
+        =
+        flag "sharedDeletionAfterStoreRestart" |> should equal true

@@ -97,6 +97,10 @@ type IDeploymentBackend =
     abstract Saved:
         profile: Guid * before: int64 option -> Task<Result<SavedDeploymentPage, DeploymentError>>
 
+    abstract Deactivate:
+        profile: Guid * generation: Guid * cancellation: CancellationToken ->
+            Task<Result<unit, DeploymentError>>
+
     abstract Prepare:
         id: Guid *
         expected: SourceStamp *
@@ -162,6 +166,7 @@ module internal PreparedState =
 
 type internal IDeploymentRepository =
     abstract Read: Guid -> Task<Result<PlanSources * Context option, RecoveryError>>
+    abstract Deactivate: Guid * Guid * Guid * CancellationToken -> Task<Result<unit, RecoveryError>>
     abstract RunnableRoot: Guid * Guid -> Task<Result<string, RecoveryError>>
     abstract Saved: Guid * Guid option * int64 option -> Task<SavedDeploymentPage>
     abstract SavedOne: Guid * Guid -> Task<SavedDeployment option>

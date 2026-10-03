@@ -33,6 +33,7 @@ class DeploymentController extends ChangeNotifier {
       !needsRead &&
       state != null &&
       state!.pendingReceipt == null;
+  bool get canDeactivate => canPrepare && state!.active != null;
   bool get canDeploy => canPrepare && prepared != null && !stale;
   String get activeName {
     final active = state?.active;
@@ -174,6 +175,14 @@ class DeploymentController extends ChangeNotifier {
     );
   }
 
+  Future<void> deactivate() async {
+    if (!canDeactivate) return;
+    await _run(
+      client!.deactivate(profileId!, state!.active!.id),
+      isPreparation: false,
+    );
+  }
+
   Future<void> recover({required bool restore}) async {
     final value = receipt, api = client;
     if (value == null || api == null || busy) return;
@@ -205,6 +214,13 @@ class DeploymentController extends ChangeNotifier {
           case DeploymentPrepared():
             prepared = event.prepared;
             finished = true;
+          case DeploymentDeactivated():
+            state = event.state;
+            receipt = null;
+            prepared = null;
+            needsRead = false;
+            finished = true;
+            onChanged?.call();
           case DeploymentFinished():
             receipt = event.receipt;
             prepared = null;
@@ -236,7 +252,7 @@ class DeploymentController extends ChangeNotifier {
       _operation = null;
       _done = null;
       _notify();
-      if (!isPreparation && finished) await read();
+      if (!isPreparation && finished && needsRead) await read();
     }
   }
 

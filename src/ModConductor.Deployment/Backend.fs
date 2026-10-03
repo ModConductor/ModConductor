@@ -155,6 +155,29 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                             return Ok page
                 })
 
+        member _.Deactivate(profile, generation, token) =
+            protect (fun () ->
+                task {
+                    let! read = repository.Read profile
+
+                    match read with
+                    | Error error -> return Error(DeploymentReports.error error)
+                    | Ok(sources, _) ->
+                        return!
+                            run sources.Stamp.WorkspaceId (fun () ->
+                                task {
+                                    let! removed =
+                                        repository.Deactivate(
+                                            sources.Stamp.WorkspaceId,
+                                            profile,
+                                            generation,
+                                            token
+                                        )
+
+                                    return removed |> Result.mapError DeploymentReports.error
+                                })
+                })
+
         member _.Prepare(id, expected, progress, token) =
             run expected.WorkspaceId (fun () ->
                 task {

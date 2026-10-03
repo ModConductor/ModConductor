@@ -78,10 +78,7 @@ class _DeploymentDialogState extends State<DeploymentDialog> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await controller.prepare(retained: true);
-    if (controller.canDeploy && controller.prepared?.profile == null) {
-      await controller.activate();
-    }
+    await controller.deactivate();
   }
 
   @override
@@ -240,7 +237,7 @@ class _DeploymentDialogState extends State<DeploymentDialog> {
                 ),
                 McAction(
                   label: 'Deactivate…',
-                  onPressed: inactive || !controller.canPrepare
+                  onPressed: inactive || !controller.canDeactivate
                       ? null
                       : _deactivate,
                 ),

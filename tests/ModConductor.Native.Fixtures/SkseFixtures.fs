@@ -78,7 +78,8 @@ type private ReuseEvidence =
       SecondProfileUsesAvailableSkseVersion: bool
       DifferentSkseReleaseStaysDistinct: bool
       DeletingOldSkseModRemovesOnlyItsLoaderHistory: bool
-      NewSkseReleaseImportsAfterDeletingOlderMod: bool }
+      NewSkseReleaseImportsAfterDeletingOlderMod: bool
+      SharedDeletionAfterStoreRestart: bool }
 
 module SkseFixtures =
     let private wait = StorageWorker.wait
@@ -824,6 +825,7 @@ module SkseFixtures =
           NxmWaitingAndFailureAreDurable = durableWaiting && durableFailure }
 
     let private reuseAndDeleteReleases
+        closeStore
         (scenario: SkseScenario)
         (installed: InstalledEvidence)
         (updated: UpdatedEvidence)
@@ -1024,11 +1026,133 @@ module SkseFixtures =
             |> wait
             |> Option.exists (fun value -> value.ModId <> firstMod && value.ModId <> imported.ModId)
 
+        let thirdProfile = Guid.NewGuid()
+
+        let revision =
+            (workspaces.Read(workspace, None) |> wait |> result).Workspace.Revision
+
+        workspaces.Edit(
+            workspace,
+            revision,
+            ProfileEdit.Create
+                { Id = thirdProfile
+                  Name = "Shared SKSE" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        (store.GameContexts :> IGameContexts)
+            .Save(
+                workspace,
+                thirdProfile,
+                0L,
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
+                  Wine = None
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+        |> wait
+        |> result
+        |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(scenario.Area, "state"))
+            scenario.Area
+            workspace
+            thirdProfile
+
+        store.InstallSkse(
+            workspace,
+            thirdProfile,
+            updateRelease,
+            updateArtifact,
+            DateTimeOffset.UtcNow,
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let dependentRoots =
+            [ otherProfile; thirdProfile ]
+            |> List.map (fun id ->
+                (store.Deployments.Read id |> wait |> required "shared profile read").RunnableRoot)
+
+        let unaffected =
+            store.Deployments.Read profile |> wait |> required "unaffected profile read"
+
+        let unaffectedLoader =
+            File.ReadAllText(Path.Combine(unaffected.RunnableRoot, "skse64_loader.exe"))
+
+        let entry =
+            (library.Scan(workspace, 100) |> wait |> result).Entries
+            |> List.find (fun entry -> entry.Id = imported.ModId)
+
+        let statePath = Path.Combine(scenario.Area, "state")
+
+        let sequence () =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(statePath, "state.db")
+                )
+
+            connection.Open()
+            use query = connection.CreateCommand()
+
+            query.CommandText <-
+                "SELECT coalesce(max(seq),0) FROM sqlite_sequence WHERE name='deployment_receipts'"
+
+            query.ExecuteScalar() :?> int64
+
+        let before = sequence ()
+        closeStore ()
+        use reopened = new OperationStore(statePath)
+
+        let needsCheck =
+            [ otherProfile; thirdProfile ]
+            |> List.forall (fun id ->
+                ((reopened.GameContexts :> IGameContexts).Read(workspace, id) |> wait |> result)
+                    .Binding.Value.NeedsCheck)
+
+        ModConductor.Engine
+            .DeletionService(reopened.Deletions, reopened.Deployments)
+            .DeleteMod(
+                ModConductor.Protocol.V1.DeleteModRequest(
+                    WorkspaceId = workspace.ToString("N"),
+                    ModId = imported.ModId.ToString("N"),
+                    Revision = uint64 entry.Revision
+                ),
+                WatchCountFixtures.StreamContext(CancellationToken.None)
+            )
+        |> wait
+        |> ignore
+
+        let sharedDeletion =
+            needsCheck
+            && ([ otherProfile; thirdProfile ]
+                |> List.forall (fun id ->
+                    (reopened.Deployments.Read id |> wait |> required "deleted shared profile")
+                        .ActiveGeneration.IsNone))
+            && (dependentRoots
+                |> List.forall (fun root ->
+                    not (File.Exists(Path.Combine(root, "skse64_loader.exe")))))
+            && (reopened.Deployments.Read profile |> wait |> required "unchanged shared profile")
+                .ActiveGeneration = unaffected.ActiveGeneration
+            && File.ReadAllText(Path.Combine(unaffected.RunnableRoot, "skse64_loader.exe")) = unaffectedLoader
+            && File.ReadAllText(Path.Combine(game, "skse64_loader.exe")) = "fixture loader"
+            && sequence () = before
+            && (((reopened.ModLibrary :> IModLibrary).Scan(workspace, 100) |> wait |> result)
+                   .Entries
+                |> List.forall (fun value -> value.Id <> imported.ModId))
+
         { SameSkseSourceReusesImportedVersionAfterRemoval = sameReleaseReused
           SecondProfileUsesAvailableSkseVersion = otherFirstInstall
           DifferentSkseReleaseStaysDistinct = firstMod <> imported.ModId
           DeletingOldSkseModRemovesOnlyItsLoaderHistory = deletedSkseReferences
-          NewSkseReleaseImportsAfterDeletingOlderMod = importAfterDeletion }
+          NewSkseReleaseImportsAfterDeletingOlderMod = importAfterDeletion
+          SharedDeletionAfterStoreRestart = sharedDeletion }
 
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "skse")).FullName
@@ -1056,7 +1180,7 @@ module SkseFixtures =
 
         let mutable interruptReplacement = false
 
-        use store =
+        let store =
             new OperationStore(
                 Path.Combine(area, "state"),
                 skseCheckpoint =
@@ -1064,6 +1188,17 @@ module SkseFixtures =
                         if interruptReplacement && name = "install-intent" then
                             raise (OperationCanceledException()))
             )
+
+        let mutable closed = false
+
+        let closeStore () =
+            if not closed then
+                (store :> IDisposable).Dispose()
+                closed <- true
+
+        use close =
+            { new IDisposable with
+                member _.Dispose() = closeStore () }
 
         let workspaces = store.Workspaces :> IWorkspaceState
 
@@ -1132,9 +1267,15 @@ module SkseFixtures =
 
         let durable = persistedLoaderAndStatus scenario releases installed updated
 
-        let reused = reuseAndDeleteReleases scenario installed updated
+        let reused = reuseAndDeleteReleases closeStore scenario installed updated
 
         writer.WriteStartObject("skse")
+
+        writer.WriteBoolean(
+            "sharedDeletionAfterStoreRestart",
+            reused.SharedDeletionAfterStoreRestart
+        )
+
         writer.WriteBoolean("exactRuntimeWins", releases.ExactRuntimeWins)
         writer.WriteBoolean("newerIncompatibleRejected", releases.NewerIncompatibleRejected)
         writer.WriteBoolean("labelWithoutRuntimeRejected", releases.LabelWithoutRuntimeRejected)

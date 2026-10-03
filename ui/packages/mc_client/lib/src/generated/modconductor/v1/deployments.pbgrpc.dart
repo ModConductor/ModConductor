@@ -65,6 +65,15 @@ class DeploymentOperationsClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseStream<$0.DeploymentRunEvent> deactivateDeployment(
+    $0.DeactivateDeploymentRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$deactivateDeployment, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseStream<$0.DeploymentRunEvent> recoverDeployment(
     $0.RecoverDeploymentRequest request, {
     $grpc.CallOptions? options,
@@ -102,6 +111,11 @@ class DeploymentOperationsClient extends $grpc.Client {
       $grpc.ClientMethod<$0.ActivateDeploymentRequest, $0.DeploymentRunEvent>(
           '/modconductor.v1.DeploymentOperations/ActivateDeployment',
           ($0.ActivateDeploymentRequest value) => value.writeToBuffer(),
+          $0.DeploymentRunEvent.fromBuffer);
+  static final _$deactivateDeployment =
+      $grpc.ClientMethod<$0.DeactivateDeploymentRequest, $0.DeploymentRunEvent>(
+          '/modconductor.v1.DeploymentOperations/DeactivateDeployment',
+          ($0.DeactivateDeploymentRequest value) => value.writeToBuffer(),
           $0.DeploymentRunEvent.fromBuffer);
   static final _$recoverDeployment =
       $grpc.ClientMethod<$0.RecoverDeploymentRequest, $0.DeploymentRunEvent>(
@@ -155,6 +169,15 @@ abstract class DeploymentOperationsServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) =>
             $0.ActivateDeploymentRequest.fromBuffer(value),
+        ($0.DeploymentRunEvent value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeactivateDeploymentRequest,
+            $0.DeploymentRunEvent>(
+        'DeactivateDeployment',
+        deactivateDeployment_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) =>
+            $0.DeactivateDeploymentRequest.fromBuffer(value),
         ($0.DeploymentRunEvent value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.RecoverDeploymentRequest, $0.DeploymentRunEvent>(
@@ -211,6 +234,15 @@ abstract class DeploymentOperationsServiceBase extends $grpc.Service {
 
   $async.Stream<$0.DeploymentRunEvent> activateDeployment(
       $grpc.ServiceCall call, $0.ActivateDeploymentRequest request);
+
+  $async.Stream<$0.DeploymentRunEvent> deactivateDeployment_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.DeactivateDeploymentRequest> $request) async* {
+    yield* deactivateDeployment($call, await $request);
+  }
+
+  $async.Stream<$0.DeploymentRunEvent> deactivateDeployment(
+      $grpc.ServiceCall call, $0.DeactivateDeploymentRequest request);
 
   $async.Stream<$0.DeploymentRunEvent> recoverDeployment_Pre(
       $grpc.ServiceCall $call,

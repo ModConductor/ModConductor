@@ -22,7 +22,8 @@ type DeploymentBackendTests() =
             [ "profileViewContainsManagedWinner"
               "sourceInventoryUnaffected"
               "retainedBaselineUsesOriginalSource"
-              "retainedGenerationReactivated" ] do
+              "retainedGenerationReactivated"
+              "ordinaryDeploymentRebuildsViewAfterRemoval" ] do
             flag "deploymentBackend" name |> should equal true
 
     [<Test>]
@@ -38,3 +39,13 @@ type DeploymentBackendTests() =
               "unrelatedSameNameAllowed"
               "stoppedNativeProcessAllowed" ] do
             flag "deploymentProcesses" name |> should equal true
+
+    [<Test>]
+    member _.``removal actions after a store restart should restore originals without another deployment``
+        ()
+        =
+        for name in
+            [ "deactivateAfterStoreRestart"
+              "modAfterStoreRestart"
+              "profileAfterStoreRestart" ] do
+            flag "deploymentRemoval" name |> should equal true

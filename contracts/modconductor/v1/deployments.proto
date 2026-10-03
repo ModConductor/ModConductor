@@ -7,6 +7,7 @@ service DeploymentOperations {
   rpc ReadSavedDeployments(SavedDeploymentsRequest) returns (SavedDeploymentsReply);
   rpc PrepareDeployment(PrepareDeploymentRequest) returns (stream DeploymentPrepareEvent);
   rpc ActivateDeployment(ActivateDeploymentRequest) returns (stream DeploymentRunEvent);
+  rpc DeactivateDeployment(DeactivateDeploymentRequest) returns (stream DeploymentRunEvent);
   rpc RecoverDeployment(RecoverDeploymentRequest) returns (stream DeploymentRunEvent);
   rpc ReadDeploymentReceipt(DeploymentReceiptRequest) returns (DeploymentReceiptReply);
 }
@@ -19,6 +20,7 @@ message SavedDeploymentsPage { repeated SavedDeployment entries = 1; optional ui
 message PrepareDeploymentRequest { string id = 1; string profile_id = 2; string source_token = 3; bool retained = 4; optional string generation_id = 5; }
 message PreparedDeployment { string id = 1; string workspace_id = 2; string fingerprint = 3; string source_token = 4; DeploymentProfile profile = 5; uint32 writable_files = 6; uint32 changed_paths = 7; uint32 preserved_originals = 8; uint32 managed_links = 9; uint64 copied_bytes = 10; uint64 required_bytes = 11; }
 message ActivateDeploymentRequest { string prepared_id = 1; string profile_id = 2; string source_token = 3; }
+message DeactivateDeploymentRequest { string profile_id = 1; string generation_id = 2; }
 message RecoverDeploymentRequest { string receipt_id = 1; uint64 revision = 2; bool restore = 3; }
 message DeploymentReceiptRequest { string receipt_id = 1; }
 enum DeploymentPhase { DEPLOYMENT_PHASE_UNSPECIFIED = 0; DEPLOYMENT_PHASE_PREPARING = 1; DEPLOYMENT_PHASE_APPLYING = 2; DEPLOYMENT_PHASE_RESTORING = 3; DEPLOYMENT_PHASE_COMPLETE = 4; DEPLOYMENT_PHASE_RESTORED = 5; DEPLOYMENT_PHASE_BLOCKED = 6; }
@@ -31,4 +33,4 @@ message SavedDeploymentsReply { oneof outcome { SavedDeploymentsPage page = 1; D
 message PreparedDeploymentReply { oneof outcome { PreparedDeployment prepared = 1; DeploymentFault fault = 2; } }
 message DeploymentReceiptReply { oneof outcome { DeploymentReceipt receipt = 1; DeploymentFault fault = 2; } }
 message DeploymentPrepareEvent { oneof event { DeploymentProgress progress = 1; PreparedDeploymentReply finished = 2; } }
-message DeploymentRunEvent { oneof event { DeploymentProgress progress = 1; DeploymentReceiptReply finished = 2; } }
+message DeploymentRunEvent { oneof event { DeploymentProgress progress = 1; DeploymentReceiptReply finished = 2; DeploymentStateReply deactivated = 3; } }

@@ -277,6 +277,9 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot
     member _.SetStatusProfile(value) = statusProfile <- value
 
     interface IDeploymentBackend with
+        member _.Deactivate(_, _, _) =
+            Task.FromResult(Error DeploymentError.NotFound)
+
         member _.Read profile =
             if profile <> profileId then
                 Task.FromResult(Error DeploymentError.NotFound)

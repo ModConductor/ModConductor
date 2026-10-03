@@ -27,16 +27,6 @@ module internal DeploymentPreparation =
     let ownedLinkCovers policy owned target =
         DeploymentTargetProjection.ownedLinkCovers policy owned target
 
-    let retireProfile database recovery workspace workspaceId profileId evidence token =
-        DeploymentRetirement.retireProfile
-            database
-            recovery
-            workspace
-            workspaceId
-            profileId
-            evidence
-            token
-
     let private prepareWith
         componentMode
         recordProfile

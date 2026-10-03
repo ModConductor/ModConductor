@@ -925,6 +925,76 @@ class ActivateDeploymentRequest extends $pb.GeneratedMessage {
   void clearSourceToken() => $_clearField(3);
 }
 
+class DeactivateDeploymentRequest extends $pb.GeneratedMessage {
+  factory DeactivateDeploymentRequest({
+    $core.String? profileId,
+    $core.String? generationId,
+  }) {
+    final result = create();
+    if (profileId != null) result.profileId = profileId;
+    if (generationId != null) result.generationId = generationId;
+    return result;
+  }
+
+  DeactivateDeploymentRequest._();
+
+  factory DeactivateDeploymentRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeactivateDeploymentRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeactivateDeploymentRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'profileId')
+    ..aOS(2, _omitFieldNames ? '' : 'generationId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeactivateDeploymentRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeactivateDeploymentRequest copyWith(
+          void Function(DeactivateDeploymentRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as DeactivateDeploymentRequest))
+          as DeactivateDeploymentRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeactivateDeploymentRequest create() =>
+      DeactivateDeploymentRequest._();
+  @$core.override
+  DeactivateDeploymentRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeactivateDeploymentRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeactivateDeploymentRequest>(create);
+  static DeactivateDeploymentRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get profileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set profileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProfileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProfileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get generationId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set generationId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasGenerationId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGenerationId() => $_clearField(2);
+}
+
 class RecoverDeploymentRequest extends $pb.GeneratedMessage {
   factory RecoverDeploymentRequest({
     $core.String? receiptId,
@@ -1832,16 +1902,18 @@ class DeploymentPrepareEvent extends $pb.GeneratedMessage {
   PreparedDeploymentReply ensureFinished() => $_ensure(1);
 }
 
-enum DeploymentRunEvent_Event { progress, finished, notSet }
+enum DeploymentRunEvent_Event { progress, finished, deactivated, notSet }
 
 class DeploymentRunEvent extends $pb.GeneratedMessage {
   factory DeploymentRunEvent({
     DeploymentProgress? progress,
     DeploymentReceiptReply? finished,
+    DeploymentStateReply? deactivated,
   }) {
     final result = create();
     if (progress != null) result.progress = progress;
     if (finished != null) result.finished = finished;
+    if (deactivated != null) result.deactivated = deactivated;
     return result;
   }
 
@@ -1858,6 +1930,7 @@ class DeploymentRunEvent extends $pb.GeneratedMessage {
       _DeploymentRunEvent_EventByTag = {
     1: DeploymentRunEvent_Event.progress,
     2: DeploymentRunEvent_Event.finished,
+    3: DeploymentRunEvent_Event.deactivated,
     0: DeploymentRunEvent_Event.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
@@ -1865,11 +1938,13 @@ class DeploymentRunEvent extends $pb.GeneratedMessage {
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2])
+    ..oo(0, [1, 2, 3])
     ..aOM<DeploymentProgress>(1, _omitFieldNames ? '' : 'progress',
         subBuilder: DeploymentProgress.create)
     ..aOM<DeploymentReceiptReply>(2, _omitFieldNames ? '' : 'finished',
         subBuilder: DeploymentReceiptReply.create)
+    ..aOM<DeploymentStateReply>(3, _omitFieldNames ? '' : 'deactivated',
+        subBuilder: DeploymentStateReply.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1893,10 +1968,12 @@ class DeploymentRunEvent extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
   DeploymentRunEvent_Event whichEvent() =>
       _DeploymentRunEvent_EventByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
   void clearEvent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -1920,6 +1997,17 @@ class DeploymentRunEvent extends $pb.GeneratedMessage {
   void clearFinished() => $_clearField(2);
   @$pb.TagNumber(2)
   DeploymentReceiptReply ensureFinished() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  DeploymentStateReply get deactivated => $_getN(2);
+  @$pb.TagNumber(3)
+  set deactivated(DeploymentStateReply value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasDeactivated() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDeactivated() => $_clearField(3);
+  @$pb.TagNumber(3)
+  DeploymentStateReply ensureDeactivated() => $_ensure(2);
 }
 
 const $core.bool _omitFieldNames =

@@ -11,32 +11,14 @@ open ModConductor.DeploymentGenerations
 open ModConductor.Workspaces
 
 module internal ProfileDeleteMutation =
-    let private ownedContexts (database: StateDatabase) workspace profile =
-        let connection = database.Connection
-
-        database.Enqueue(fun () ->
-            use query = Sqlite.command connection null "SELECT id FROM deployment_contexts" []
-            use reader = query.ExecuteReader()
-
-            let ids =
-                [ while reader.Read() do
-                      yield Guid.Parse(reader.GetString 0) ]
-
-            reader.Close()
-
-            ids
-            |> List.choose (fun id ->
-                DeploymentRows.context connection null id
-                |> Option.filter (fun value ->
-                    DeploymentContextId.create workspace profile value.Fingerprint = id)
-                |> Option.map (fun value -> id, value)))
-
     let private generations (database: StateDatabase) owned =
         let connection = database.Connection
 
         database.Enqueue(fun () ->
             owned
-            |> List.collect (fun (id, _) ->
+            |> List.collect (fun (context: Context) ->
+                let id = context.Id
+
                 use query =
                     Sqlite.command
                         connection
@@ -55,62 +37,53 @@ module internal ProfileDeleteMutation =
 
     let private retireGameView (services: ProfileMutationServices) workspace profile token =
         let database = services.Database
-        let access = services.Access
-        let recovery = services.Recovery
-        let connection = database.Connection
 
         task {
-            let! root = access.Root workspace
+            let! root = services.Access.Root workspace
 
-            let workspaceLocation: Location =
-                root
-                |> Result.map (fun value ->
-                    { Path = value.Path
-                      Identity = value.Identity })
-                |> Result.defaultWith (fun _ ->
-                    raise (IOException "The workspace folder is unavailable."))
-
-            let! context =
+            let! game =
                 database.Enqueue(fun () ->
-                    GameContextRows.read connection null database.OwnerId workspace profile)
+                    GameContextRows.read
+                        database.Connection
+                        null
+                        database.OwnerId
+                        workspace
+                        profile)
 
-            let! owned = ownedContexts database workspace profile
+            let! owned = DeploymentRemoval.ownedContexts database workspace profile
+            let! ready = DeploymentRemoval.idle database workspace owned
 
-            if owned |> List.exists (fun (_, value) -> value.Pending.IsSome) then
-                raise (IOException "Complete the pending profile deployment before deletion.")
+            match ready, root with
+            | Error RecoveryError.Busy, _ -> return Error WorkspaceError.Busy
+            | Error error, _ -> return Error(WorkspaceError.ProfileData(string error))
+            | _, Error _ ->
+                return Error(WorkspaceError.ProfileData "The workspace folder is unavailable.")
+            | Ok(), Ok root ->
+                let workspaceLocation: Location =
+                    { Path = root.Path
+                      Identity = root.Identity }
 
-            let! retired =
-                task {
-                    match context |> Result.toOption |> Option.bind _.Binding with
-                    | Some binding ->
-                        try
-                            return!
-                                DeploymentPreparation.retireProfile
-                                    database
-                                    recovery
-                                    workspaceLocation
-                                    workspace
-                                    profile
-                                    binding.Evidence
-                                    token
-                        with RecoveryException error ->
-                            return
-                                raise (
-                                    IOException(
-                                        "The profile game folder could not be retired: "
-                                        + string error
-                                    )
-                                )
-                    | None ->
-                        GameViews.removeOwned workspaceLocation profile
-                        return Ok()
-                }
+                let! stopped =
+                    match game with
+                    | Error _ when owned.IsEmpty -> System.Threading.Tasks.Task.FromResult(Ok())
+                    | Error _ ->
+                        System.Threading.Tasks.Task.FromResult(
+                            Error "The deployed game's installation is unavailable."
+                        )
+                    | Ok game ->
+                        System.Threading.Tasks.Task.Run(fun () ->
+                            DeploymentRemoval.stopped
+                                game
+                                (GameViews.rootPath root.Path profile)
+                                owned)
 
-            match retired with
-            | Error detail -> return Error(WorkspaceError.ProfileData detail)
-            | Ok() ->
-                let! saved = generations database owned
-                return Ok(owned |> List.map fst, saved)
+                match stopped with
+                | Error detail -> return Error(WorkspaceError.ProfileData detail)
+                | Ok() ->
+                    do! DeploymentRemoval.removeContexts database owned token
+                    GameViews.removeOwned workspaceLocation profile
+                    let! saved = generations database owned
+                    return Ok(owned |> List.map _.Id, saved)
         }
 
     let private prepareDeletion

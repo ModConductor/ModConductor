@@ -51,6 +51,9 @@ type internal DeploymentBackendRepository
                     transaction.Commit()
                     Ok(sources, context))
 
+        member _.Deactivate(workspace, profile, generation, token) =
+            DeploymentRemoval.deactivate database access workspace profile generation token
+
         member _.Prepare(id, sources, existing, progress, token) =
             task {
                 let! captured = toolOutputs.Capture(sources, token)

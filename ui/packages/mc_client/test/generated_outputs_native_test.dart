@@ -196,25 +196,19 @@ void main() {
         );
         final active = await deployments.read(profile);
         expect(active.active?.profile?.id, profile);
-        final base =
-            (await deployments
-                    .prepare(
-                      newOperationId(),
-                      profile,
-                      active.sourceToken,
-                      retained: true,
-                    )
-                    .where((e) => e is DeploymentPrepared)
-                    .cast<DeploymentPrepared>()
-                    .single)
-                .prepared;
-        await deployments.activate(base.id, profile, base.sourceToken).toList();
+        await child.close();
+        child = await NativeChild.start(engine, state);
+        final deactivated = await child
+            .deployments()
+            .deactivate(profile, active.active!.id)
+            .where((event) => event is DeploymentDeactivated)
+            .cast<DeploymentDeactivated>()
+            .single;
+        expect(deactivated.state.active, isNull);
         expect(
           await File('$game/Data/${selected.first.path.single}').exists(),
           isFalse,
         );
-        await child.close();
-        child = await NativeChild.start(engine, state);
         final restoredAction = await child.outputs().action(operation);
         expect(restoredAction.versionId, moved.versionId);
         expect(

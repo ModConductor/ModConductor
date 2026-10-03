@@ -343,16 +343,27 @@ module DeploymentBackendFixtures =
 
         let affectedProfileUndeployed =
             affected |> List.exists (fun (id, _) -> id = profile)
-            && (afterDeletion.Active
-                |> Option.exists (fun value -> value.Known && value.Profile.IsNone))
-            && File.ReadAllText(
-                Path.Combine(afterDeletion.RunnableRoot, "Data", "Mixed", "Original.TXT")
-            ) = "replacement game bytes"
+            && afterDeletion.ActiveGeneration.IsNone
+            && not (
+                File.Exists(
+                    Path.Combine(afterDeletion.RunnableRoot, "Data", "Mixed", "Original.TXT")
+                )
+            )
             && File.ReadAllText replacementOriginal = "replacement game bytes"
             && ((library.Scan(workspace, 100) |> wait |> result).Entries
                 |> List.forall (fun entry -> entry.Id <> modId))
 
+        let redeployed = deploy ()
+
+        let redeploymentRebuildsView =
+            redeployed.Phase = DeploymentPhase.Complete
+            && File.ReadAllText(
+                Path.Combine(afterDeletion.RunnableRoot, "Data", "Mixed", "Original.TXT")
+            ) = "replacement game bytes"
+            && File.Exists(Path.Combine(afterDeletion.RunnableRoot, "SkyrimSE.exe"))
+
         writer.WriteStartObject("deploymentBackend")
+        writer.WriteBoolean("ordinaryDeploymentRebuildsViewAfterRemoval", redeploymentRebuildsView)
         writer.WriteBoolean("cancelledPreparationNoReceipt", cancelledSafe)
         writer.WriteBoolean("stalePreparationNoEffects", staleSafe)
         writer.WriteBoolean("abandonedLinkTreeReclaimed", staleSafe)

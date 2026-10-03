@@ -224,10 +224,15 @@ let private run (args: string array) =
         0
     | [| "--workspace-deletion"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> WorkspaceDeletionFixtures.observe writer path)
+    | [| "--deployment-removal"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer ->
+            DeploymentBackendFixtures.observe writer path
+            DeploymentRemovalFixtures.observe writer path)
     | [| "--deployment-backend"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer ->
             DeploymentBackendFixtures.observe writer path
-            DeploymentProcessFixtures.observe writer path)
+            DeploymentProcessFixtures.observe writer path
+            DeploymentRemovalFixtures.observe writer path)
     | [| "--generations"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer ->
             GenerationFixtures.observe writer path

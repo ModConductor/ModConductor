@@ -317,6 +317,21 @@ final $typed_data.Uint8List activateDeploymentRequestDescriptor = $convert.base6
     'JlZElkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBIhCgxzb3VyY2VfdG9rZW4YAyAB'
     'KAlSC3NvdXJjZVRva2Vu');
 
+@$core.Deprecated('Use deactivateDeploymentRequestDescriptor instead')
+const DeactivateDeploymentRequest$json = {
+  '1': 'DeactivateDeploymentRequest',
+  '2': [
+    {'1': 'profile_id', '3': 1, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'generation_id', '3': 2, '4': 1, '5': 9, '10': 'generationId'},
+  ],
+};
+
+/// Descriptor for `DeactivateDeploymentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deactivateDeploymentRequestDescriptor =
+    $convert.base64Decode(
+        'ChtEZWFjdGl2YXRlRGVwbG95bWVudFJlcXVlc3QSHQoKcHJvZmlsZV9pZBgBIAEoCVIJcHJvZm'
+        'lsZUlkEiMKDWdlbmVyYXRpb25faWQYAiABKAlSDGdlbmVyYXRpb25JZA==');
+
 @$core.Deprecated('Use recoverDeploymentRequestDescriptor instead')
 const RecoverDeploymentRequest$json = {
   '1': 'RecoverDeploymentRequest',
@@ -627,6 +642,15 @@ const DeploymentRunEvent$json = {
       '9': 0,
       '10': 'finished'
     },
+    {
+      '1': 'deactivated',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.DeploymentStateReply',
+      '9': 0,
+      '10': 'deactivated'
+    },
   ],
   '8': [
     {'1': 'event'},
@@ -637,5 +661,6 @@ const DeploymentRunEvent$json = {
 final $typed_data.Uint8List deploymentRunEventDescriptor = $convert.base64Decode(
     'ChJEZXBsb3ltZW50UnVuRXZlbnQSQQoIcHJvZ3Jlc3MYASABKAsyIy5tb2Rjb25kdWN0b3Iudj'
     'EuRGVwbG95bWVudFByb2dyZXNzSABSCHByb2dyZXNzEkUKCGZpbmlzaGVkGAIgASgLMicubW9k'
-    'Y29uZHVjdG9yLnYxLkRlcGxveW1lbnRSZWNlaXB0UmVwbHlIAFIIZmluaXNoZWRCBwoFZXZlbn'
-    'Q=');
+    'Y29uZHVjdG9yLnYxLkRlcGxveW1lbnRSZWNlaXB0UmVwbHlIAFIIZmluaXNoZWQSSQoLZGVhY3'
+    'RpdmF0ZWQYAyABKAsyJS5tb2Rjb25kdWN0b3IudjEuRGVwbG95bWVudFN0YXRlUmVwbHlIAFIL'
+    'ZGVhY3RpdmF0ZWRCBwoFZXZlbnQ=');

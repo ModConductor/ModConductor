@@ -156,6 +156,29 @@ type DeploymentService(deployments: IDeploymentBackend) =
                             )
                 })
 
+    override _.DeactivateDeployment(request, output, context) =
+        DeploymentStream.send
+            context
+            output
+            (fun value -> Protocol.V1.DeploymentRunEvent(Progress = DeploymentWire.progress value))
+            (fun result ->
+                Protocol.V1.DeploymentRunEvent(Deactivated = DeploymentWire.stateReply result))
+            (fun _ ->
+                task {
+                    let profile = ModLibraryWire.id request.ProfileId
+
+                    let! removed =
+                        deployments.Deactivate(
+                            profile,
+                            ModLibraryWire.id request.GenerationId,
+                            context.CancellationToken
+                        )
+
+                    match removed with
+                    | Error error -> return Error error
+                    | Ok() -> return! deployments.Read profile
+                })
+
     override _.RecoverDeployment(request, output, context) =
         DeploymentStream.send
             context

@@ -22,6 +22,7 @@ abstract interface class DeploymentsClient {
     String profileId,
     String sourceToken,
   );
+  Stream<DeploymentEvent> deactivate(String profileId, String generationId);
   Stream<DeploymentEvent> recover(
     String receiptId,
     int revision, {
@@ -96,6 +97,9 @@ class GrpcDeploymentsClient implements DeploymentsClient {
     wire.DeploymentRunEvent_Event.finished => DeploymentFinished(
       mapping.receiptReply(event.finished),
     ),
+    wire.DeploymentRunEvent_Event.deactivated => DeploymentDeactivated(
+      mapping.stateReply(event.deactivated),
+    ),
     wire.DeploymentRunEvent_Event.notSet => throw const FormatException(
       'Missing deployment event.',
     ),
@@ -116,6 +120,18 @@ class GrpcDeploymentsClient implements DeploymentsClient {
     (event) => event.hasFinished(),
     _event,
   );
+  @override
+  Stream<DeploymentEvent> deactivate(String profileId, String generationId) =>
+      completedEvents(
+        _client.deactivateDeployment(
+          wire.DeactivateDeploymentRequest(
+            profileId: profileId,
+            generationId: generationId,
+          ),
+        ),
+        (event) => event.hasDeactivated(),
+        _event,
+      );
   @override
   Stream<DeploymentEvent> recover(
     String receiptId,

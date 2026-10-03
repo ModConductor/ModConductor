@@ -10,44 +10,6 @@ open ModConductor.ProfileGameData
 open ModConductor.Workspaces
 
 module internal WorkspaceDeploymentRemoval =
-    let private removeLink (context: Context) (link: ActiveLink) =
-        match RecoveryFiles.observe context link.Target with
-        | None -> ()
-        | Some entry when entry = link.Entry -> RecoveryFiles.remove context link.Target link.Entry
-        | Some entry when
-            context.Originals
-            |> List.exists (fun original -> original.Target = link.Target && original.Entry = entry)
-            ->
-            ()
-        | Some _ -> RecoveryFiles.fail "A recorded game link changed. It was not removed."
-
-    let private removeDirectory (context: Context) (directory: OwnedDirectory) =
-        match RecoveryFiles.observe context directory.Target with
-        | None -> ()
-        | Some entry when entry.Kind = EntryKind.Directory && entry.Identity = directory.Identity ->
-            let root = RecoveryFiles.binding context directory.Target
-
-            RecoveryFiles.withParent root.Directory directory.Target.Path (fun parent name ->
-                use child = parent.Directory(name, Some directory.Identity)
-
-                if Seq.isEmpty child.Names then
-                    parent.RemoveDirectory(name, directory.Identity))
-        | Some _ -> RecoveryFiles.fail "A recorded game folder changed. It was not removed."
-
-    let private remove (context: Context) (token: CancellationToken) =
-        for link in context.Links do
-            token.ThrowIfCancellationRequested()
-            removeLink context link
-
-        for original in context.Originals do
-            token.ThrowIfCancellationRequested()
-            RecoveryFiles.restoreOriginal token context original
-
-        context.Directories
-        |> List.sortByDescending (fun directory ->
-            LogicalPath.components directory.Target.Path |> List.length)
-        |> List.iter (removeDirectory context)
-
     let private roots (state: WorkspaceDeletionState) profile =
         GameViews.rootPath state.Receipt.Workspace.Path profile
         :: (state.DeploymentContexts
@@ -135,24 +97,6 @@ module internal WorkspaceDeploymentRemoval =
                 return idle |> Result.map (fun () -> state)
         }
 
-    let private removeContexts (database: StateDatabase) (state: WorkspaceDeletionState) token =
-        task {
-            for context in state.DeploymentContexts do
-                do! Task.Run(fun () -> remove context token)
-
-                do!
-                    database.Enqueue(fun () ->
-                        DeploymentRows.writeContext
-                            database.Connection
-                            null
-                            { context with
-                                Revision = context.Revision + 1L
-                                Active = None
-                                Links = []
-                                Directories = []
-                                Originals = [] })
-        }
-
     let deactivate
         (database: StateDatabase)
         (enter: System.Guid -> System.IDisposable option)
@@ -174,6 +118,6 @@ module internal WorkspaceDeploymentRemoval =
                     match stoppedResult with
                     | Error error -> return Error error
                     | Ok() ->
-                        do! removeContexts database state token
+                        do! DeploymentRemoval.removeContexts database state.DeploymentContexts token
                         return Ok()
         }

@@ -62,6 +62,8 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DeploymentRunEvent> __Marshaller_modconductor_v1_DeploymentRunEvent = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DeploymentRunEvent.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DeactivateDeploymentRequest> __Marshaller_modconductor_v1_DeactivateDeploymentRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DeactivateDeploymentRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.RecoverDeploymentRequest> __Marshaller_modconductor_v1_RecoverDeploymentRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.RecoverDeploymentRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DeploymentReceiptRequest> __Marshaller_modconductor_v1_DeploymentReceiptRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DeploymentReceiptRequest.Parser));
@@ -98,6 +100,14 @@ namespace ModConductor.Protocol.V1 {
         __ServiceName,
         "ActivateDeployment",
         __Marshaller_modconductor_v1_ActivateDeploymentRequest,
+        __Marshaller_modconductor_v1_DeploymentRunEvent);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.DeactivateDeploymentRequest, global::ModConductor.Protocol.V1.DeploymentRunEvent> __Method_DeactivateDeployment = new grpc::Method<global::ModConductor.Protocol.V1.DeactivateDeploymentRequest, global::ModConductor.Protocol.V1.DeploymentRunEvent>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "DeactivateDeployment",
+        __Marshaller_modconductor_v1_DeactivateDeploymentRequest,
         __Marshaller_modconductor_v1_DeploymentRunEvent);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -146,6 +156,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task ActivateDeployment(global::ModConductor.Protocol.V1.ActivateDeploymentRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.DeploymentRunEvent> responseStream, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task DeactivateDeployment(global::ModConductor.Protocol.V1.DeactivateDeploymentRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.DeploymentRunEvent> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -252,6 +268,16 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncServerStreamingCall(__Method_ActivateDeployment, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.DeploymentRunEvent> DeactivateDeployment(global::ModConductor.Protocol.V1.DeactivateDeploymentRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return DeactivateDeployment(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.DeploymentRunEvent> DeactivateDeployment(global::ModConductor.Protocol.V1.DeactivateDeploymentRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_DeactivateDeployment, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.DeploymentRunEvent> RecoverDeployment(global::ModConductor.Protocol.V1.RecoverDeploymentRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return RecoverDeployment(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -299,6 +325,7 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_ReadSavedDeployments, serviceImpl.ReadSavedDeployments)
           .AddMethod(__Method_PrepareDeployment, serviceImpl.PrepareDeployment)
           .AddMethod(__Method_ActivateDeployment, serviceImpl.ActivateDeployment)
+          .AddMethod(__Method_DeactivateDeployment, serviceImpl.DeactivateDeployment)
           .AddMethod(__Method_RecoverDeployment, serviceImpl.RecoverDeployment)
           .AddMethod(__Method_ReadDeploymentReceipt, serviceImpl.ReadDeploymentReceipt).Build();
     }
@@ -314,6 +341,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_ReadSavedDeployments, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SavedDeploymentsRequest, global::ModConductor.Protocol.V1.SavedDeploymentsReply>(serviceImpl.ReadSavedDeployments));
       serviceBinder.AddMethod(__Method_PrepareDeployment, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.PrepareDeploymentRequest, global::ModConductor.Protocol.V1.DeploymentPrepareEvent>(serviceImpl.PrepareDeployment));
       serviceBinder.AddMethod(__Method_ActivateDeployment, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ActivateDeploymentRequest, global::ModConductor.Protocol.V1.DeploymentRunEvent>(serviceImpl.ActivateDeployment));
+      serviceBinder.AddMethod(__Method_DeactivateDeployment, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.DeactivateDeploymentRequest, global::ModConductor.Protocol.V1.DeploymentRunEvent>(serviceImpl.DeactivateDeployment));
       serviceBinder.AddMethod(__Method_RecoverDeployment, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.RecoverDeploymentRequest, global::ModConductor.Protocol.V1.DeploymentRunEvent>(serviceImpl.RecoverDeployment));
       serviceBinder.AddMethod(__Method_ReadDeploymentReceipt, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.DeploymentReceiptRequest, global::ModConductor.Protocol.V1.DeploymentReceiptReply>(serviceImpl.ReadDeploymentReceipt));
     }

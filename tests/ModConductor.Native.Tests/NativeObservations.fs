@@ -54,6 +54,7 @@ type NativeObservationSetup() =
         | "library" -> info.ArgumentList.Add "--library"
         | "executables" -> info.ArgumentList.Add "--executables"
         | "generated-outputs" -> info.ArgumentList.Add "--generated-outputs"
+        | "deployment-removal" -> info.ArgumentList.Add "--deployment-removal"
         | "deployment-backend" -> info.ArgumentList.Add "--deployment-backend"
         | "components" -> info.ArgumentList.Add "--components"
         | "skse" -> info.ArgumentList.Add "--skse"
