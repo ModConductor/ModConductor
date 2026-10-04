@@ -31,10 +31,16 @@ The engine stores `ModConductor/state/state.db` under local application data.
 `--state-directory <absolute-path>` selects another state directory. Workspace
 folders do not contain separate databases.
 
-The first-release schema is created directly in one SQLite transaction. Incompatible
-pre-release databases are refused with a reset instruction; they are not upgraded.
-Forward schema upgrades begin only after the first public release. Database schema
-versions, protocol majors, metadata revisions, and feed cursors have separate meanings.
+New databases are created directly in one SQLite transaction. Version 0.2.0 requires
+database schema 3 and refuses earlier schemas, including schema 1 from version 0.1.1,
+without upgrading them. Preserve the existing state directory and use a compatible
+Mod Conductor version to access it; do not delete it. Database schema versions,
+protocol majors, metadata revisions, and feed cursors have separate meanings.
+
+Version 0.2.0 profile bundles use FastRsync 2.5.0 instead of xdelta3 VCDIFF. All
+`.mcprof` bundles exported by version 0.1.1 are refused, including those with no
+patches, because their declared patch encoding is incompatible. No bundle conversion
+or legacy codec fallback is provided.
 
 Each engine holds an owner lease. Recovery claims abandoned work, not work owned
 by another live engine. The shared queue bounds database work. File operations run

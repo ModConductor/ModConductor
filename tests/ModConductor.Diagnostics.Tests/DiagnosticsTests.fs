@@ -219,7 +219,8 @@ type private FixtureLaunch
           Scope = None
           RootExitCode = None
           ActiveProcesses = None
-          Problem = Some "Injected native path /home/example and token=secret-value" }
+          Problem = Some "Injected native path /home/example and token=secret-value"
+          OutputDirectory = None }
 
     interface IGameLaunching with
         member _.Read(workspace, profile) =
@@ -361,6 +362,7 @@ type private FixtureGameContexts
               Saves = Location.Located(root, true)
               LocalAppData = Location.Located(root, true) }
           Proton = None
+          Wine = None
           Problems = []
           CheckedAt = DateTimeOffset.UtcNow
           Fingerprint = "fixture-context" }

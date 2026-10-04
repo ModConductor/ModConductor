@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="DiagnosticsTests.fs" />
     <ProjectReference Include="../../src/ModConductor.Diagnostics/ModConductor.Diagnostics.fsproj" />
+    <ProjectReference Include="../../src/ModConductor.GameCatalogue/ModConductor.GameCatalogue.fsproj" />
     <ProjectReference Include="../../src/ModConductor.Persistence/ModConductor.Persistence.fsproj" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="NUnit" />

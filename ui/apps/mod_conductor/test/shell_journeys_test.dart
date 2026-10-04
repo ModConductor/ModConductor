@@ -24,6 +24,7 @@ Future<void> mount(
   DiagnosticsClient? diagnostics,
   WorkspacesClient? workspaces,
   GameContextsClient? gameContexts,
+  GameCatalogueClient? gameCatalogue,
   SkseClient? skse,
   SkyrimSetupClient? skyrimSetup,
   ProfileModsClient? profileMods,
@@ -53,6 +54,7 @@ Future<void> mount(
       diagnostics: diagnostics,
       workspaces: workspaces,
       gameContexts: gameContexts,
+      gameCatalogue: gameCatalogue,
       skse: skse,
       skyrimSetup: skyrimSetup,
       profileMods: profileMods,
@@ -296,6 +298,13 @@ class _CapabilityGameContexts extends Fake implements GameContextsClient {
           ),
         ),
       );
+}
+
+class _FixtureGameCatalogue extends Fake implements GameCatalogueClient {
+  @override
+  Future<List<GameDefinitionInfo>> read() async => [
+    _CapabilityGameContexts.definition,
+  ];
 }
 
 class _UnboundGameContexts extends Fake implements GameContextsClient {
@@ -569,12 +578,15 @@ class _HeaderExecutables extends Fake implements ExecutablesClient {
 }
 
 class _DelayedSkse extends Fake implements SkseClient {
-  final result = Completer<SkseStatus>();
-  int checks = 0;
+  final requests =
+      <({String workspace, String profile, Completer<SkseStatus> result})>[];
+
+  int get checks => requests.length;
 
   @override
   Future<SkseStatus> checkUpdate(String workspace, String profile) {
-    checks++;
+    final result = Completer<SkseStatus>();
+    requests.add((workspace: workspace, profile: profile, result: result));
     return result.future;
   }
 }
@@ -975,9 +987,12 @@ void main() {
     await tester.tap(keyed('close-workspace'));
     await tester.pumpAndSettle();
     await openWorkspace(tester, 'two');
-    expect(skse.checks, 1);
+    expect(
+      skse.requests.map((request) => (request.workspace, request.profile)),
+      [('one', 'profile'), ('two', 'profile')],
+    );
 
-    skse.result.complete(
+    skse.requests.first.result.complete(
       const SkseStatus(
         SkseStatusPhase.ready,
         '1.6.1170.0',
@@ -986,10 +1001,17 @@ void main() {
         '',
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(skse.checks, 2);
+    expect(skse.requests.last.result.isCompleted, isFalse);
+    skse.requests.last.result.complete(
+      const SkseStatus(SkseStatusPhase.ready, '1.6.1170.0', '2.2.0', '', ''),
+    );
+    await tester.pumpAndSettle();
+    expect(skse.checks, 2);
   });
 
-  testWidgets('launch check skips absent SKSE and checks the next profile', (
+  testWidgets('launch check rechecks absent SKSE after context reactivation', (
     tester,
   ) async {
     final skse = _ProfileSkse();
@@ -1005,14 +1027,16 @@ void main() {
     );
     await openWorkspace(tester, 'one');
     expect(skse.checked, ['one']);
-    await tester.tap(keyed('close-workspace'));
     await tester.pumpAndSettle();
-    await openWorkspace(tester, 'one');
     expect(skse.checked, ['one']);
     await tester.tap(keyed('close-workspace'));
     await tester.pumpAndSettle();
+    await openWorkspace(tester, 'one');
+    expect(skse.checked, ['one', 'one']);
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
     await openWorkspace(tester, 'two');
-    expect(skse.checked, ['one', 'two']);
+    expect(skse.checked, ['one', 'one', 'two']);
   });
 
   testWidgets('launch check waits for the selected game context', (
@@ -1061,7 +1085,7 @@ void main() {
     expect(skse.checks, 2);
   });
 
-  testWidgets('unavailable check follows a profile change made while pending', (
+  testWidgets('an old unavailable check does not restart the active context', (
     tester,
   ) async {
     final skse = _DelayedSkse();
@@ -1079,9 +1103,18 @@ void main() {
     await tester.tap(keyed('close-workspace'));
     await tester.pumpAndSettle();
     await openWorkspace(tester, 'two');
-    expect(skse.checks, 1);
-    skse.result.complete(
+    expect(
+      skse.requests.map((request) => (request.workspace, request.profile)),
+      [('one', 'profile'), ('two', 'profile')],
+    );
+    skse.requests.first.result.complete(
       const SkseStatus(SkseStatusPhase.unavailable, '', '', '', ''),
+    );
+    await tester.pumpAndSettle();
+    expect(skse.checks, 2);
+    expect(skse.requests.last.result.isCompleted, isFalse);
+    skse.requests.last.result.complete(
+      const SkseStatus(SkseStatusPhase.ready, '1.6.1170.0', '2.2.0', '', ''),
     );
     await tester.pumpAndSettle();
     expect(skse.checks, 2);
@@ -1094,6 +1127,7 @@ void main() {
       tester,
       workspaces: _WorkspacesFake(),
       gameContexts: _UnboundGameContexts(),
+      gameCatalogue: _FixtureGameCatalogue(),
     );
 
     await openWorkspace(tester, 'one');
