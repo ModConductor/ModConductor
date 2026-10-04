@@ -380,6 +380,13 @@ module private DirectDeletion =
         let retainedView = targets |> List.forall (DeletionAdmission.retainsView connection transaction workspace)
 
         for context, generation in affectedGenerations do
+            let reason =
+                if retainedView then
+                    MaintenanceClaims.unavailable connection transaction context.Id generation.Id
+                    |> Option.defaultValue FnisRunRows.dirtyViewDetail
+                else
+                    "Unavailable after mod deletion"
+
             let files =
                 generation.Files
                 |> List.filter (fun file ->
@@ -445,7 +452,7 @@ module private DirectDeletion =
                 "UPDATE deployment_generations SET body=$body,digest=$digest,unavailable=$reason WHERE context_id=$context AND id=$generation"
                 [ "$body", box body
                   "$digest", box (DeploymentEncoding.hash body)
-                  "$reason", box (if retainedView then FnisRunRows.dirtyViewDetail else "Unavailable after mod deletion")
+                  "$reason", box reason
                   "$context", box (string context.Id)
                   "$generation", box (string generation.Id) ]
 

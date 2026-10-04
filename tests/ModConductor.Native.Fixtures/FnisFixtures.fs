@@ -1676,7 +1676,9 @@ module FnisFixtures =
             (InventoryObservations.read store profile).Entries
             |> List.map _.Entry.Mod
             |> List.find (fun entry -> entry.Id = unusedModId)
-        store.Deletions.Delete(workspace, unused.Id, unused.Revision) |> wait |> result |> ignore
+        deleting.DeleteMod(
+            DeleteModRequest(WorkspaceId = workspace.ToString("N"), ModId = unused.Id.ToString("N"),
+                Revision = uint64 unused.Revision), StreamContext()) |> wait |> ignore
         let invalidated = store.Deployments.Read profile |> wait |> result
         let disabled = service.ReadFnis(request, StreamContext()) |> wait
         let refused = execution.Run(
@@ -1687,7 +1689,23 @@ module FnisFixtures =
              && disabled.OutputStatus <> "" && not disabled.CanRun
              && disabled.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Unavailable
              && Result.isError refused)
-        let prepared = store.Deployments.Prepare(Guid.NewGuid(), invalidated.Sources, ignore, token) |> wait |> result
+        let output = outputEntry () |> Option.get
+        let receiptsInvalidated = sequence ()
+        deleting.DeleteMod(
+            DeleteModRequest(WorkspaceId = workspace.ToString("N"), ModId = output.Id.ToString("N"),
+                Revision = uint64 output.Revision), StreamContext()) |> wait |> ignore
+        let stillInvalidated = store.Deployments.Read profile |> wait |> result
+        let disabledAfterDeletion = service.ReadFnis(request, StreamContext()) |> wait
+        let refusedAfterDeletion = execution.Run(
+            { Id = Guid.NewGuid(); WorkspaceId = workspace; ProfileId = profile }, token) |> wait
+        check writer "outputDeletionPreservesUnrelatedInvalidationAndRefusesFnisRun"
+            ((outputEntry () |> Option.isNone)
+             && stillInvalidated.ActiveGeneration = invalidated.ActiveGeneration
+             && (stillInvalidated.Active |> Option.bind _.Unavailable) = (invalidated.Active |> Option.bind _.Unavailable)
+             && disabledAfterDeletion.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Unavailable
+             && not disabledAfterDeletion.CanRun && Result.isError refusedAfterDeletion
+             && sequence () = receiptsInvalidated)
+        let prepared = store.Deployments.Prepare(Guid.NewGuid(), stillInvalidated.Sources, ignore, token) |> wait |> result
         store.Deployments.Activate(prepared.Id, prepared.Sources, ignore, token) |> wait |> result |> ignore
         let finalRun = Guid.NewGuid()
         execution.Run({ Id = finalRun; WorkspaceId = workspace; ProfileId = profile }, token) |> wait |> result |> ignore

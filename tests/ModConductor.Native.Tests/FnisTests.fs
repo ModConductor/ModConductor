@@ -56,6 +56,7 @@ type FnisTests() =
         flag "retainedDirtyViewEnablesFnisWithoutChangingOtherModLinks" |> should equal true
         flag "rerunAfterDeletionRecreatesOnlyTheOwningProfilesOutput" |> should equal true
         flag "invalidatedActiveGenerationDoesNotEnableFnisRun" |> should equal true
+        flag "outputDeletionPreservesUnrelatedInvalidationAndRefusesFnisRun" |> should equal true
 
     [<Test>]
     member _.``cancel retry failure and recovery should preserve the active setup``() =
