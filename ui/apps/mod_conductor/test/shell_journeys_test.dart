@@ -1124,29 +1124,83 @@ void main() {
     expect(keyed('profile-setup-name'), findsNothing);
   });
 
-  testWidgets('keyboard navigation opens preferences and reaches its form', (
+  testWidgets(
+    'workspace navigation survives global pages and resets on close',
+    (tester) async {
+      await mount(
+        tester,
+        status: const DesktopConnected((
+          runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+          heartbeats: 1,
+        )),
+        workspaces: _WorkspacesFake(),
+        gameContexts: _CapabilityGameContexts(),
+        diagnostics: _NoDiagnostics(),
+      );
+      await openWorkspace(tester, 'one');
+      await activate(tester, 'workspace-help-tab');
+      await activate(tester, 'help-guides-section');
+      final guideFilter = find.byType(TextField).hitTestable().first;
+      await tester.enterText(guideFilter, 'workspace');
+      await tester.pumpAndSettle();
+      for (final destination in ['nav-games', 'nav-preferences']) {
+        await activate(tester, destination);
+        tester.view.physicalSize = const Size(800, 900);
+        await tester.pumpAndSettle();
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextButton>(keyed('nav-workspaces'))
+              .focusNode!
+              .hasFocus,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<TextField>(find.byType(TextField).hitTestable().first)
+              .controller!
+              .text,
+          'workspace',
+        );
+      }
+      await activate(tester, 'close-workspace');
+      expect(
+        tester.widget<McAction>(keyed('create-workspace')).focusNode!.hasFocus,
+        isTrue,
+      );
+      await openWorkspace(tester, 'two');
+      await activate(tester, 'workspace-profiles-tab');
+      final browser = tester.widget<WorkspaceBrowser>(
+        find.byType(WorkspaceBrowser),
+      );
+      expect(browser.controller.workspace?.id, 'two');
+      await activate(tester, 'create-profile');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<McAction>(keyed('create-profile')).focusNode!.hasFocus,
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('keyboard activation opens preferences and reaches its form', (
     tester,
   ) async {
     await mount(tester);
-    final welcome = tester
-        .widget<TextButton>(keyed('nav-workspaces'))
-        .focusNode!;
-    welcome.requestFocus();
-    await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
     final preferences = tester
         .widget<TextButton>(keyed('nav-preferences'))
         .focusNode!;
+    preferences.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
     expect(preferences.hasFocus, true);
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
+    await choose(tester, 'preferences-theme', 'Light');
     expect(
       tester
           .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))

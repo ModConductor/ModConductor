@@ -10,11 +10,13 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'controller.dart';
 import 'workspace_dialog.dart';
 import 'workspace_deletion_dialog.dart';
+import 'workspace_chrome.dart';
 
 part 'workspace_entry.dart';
 part 'workspace_deletion_actions.dart';
 part 'workspace_shell.dart';
 part 'workspace_workbench.dart';
+part 'workspace_navigation.dart';
 part 'workspace_profile_actions.dart';
 part 'workspace_profile_view.dart';
 part 'workspace_profile_context.dart';
@@ -89,6 +91,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.workbenchReady = true,
     this.compactCloseAction = false,
     this.openFolder,
+    this.frameBuilder,
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
@@ -106,6 +109,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final List<Widget> Function(BuildContext, WorkspaceInfo)? workbenchActions;
   final bool compactCloseAction;
   final WorkspaceFolderOpener? openFolder;
+  final WorkspaceFrameBuilder? frameBuilder;
   final ProfileInspectorBuilder? profileInspectorBuilder;
   final ProfileCreator? profileCreator;
   final Future<void> Function(BuildContext context)? onImportProfile;
@@ -256,7 +260,9 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
-    builder: (context, _) =>
-        controller.workspace == null ? _entry(context) : _workspace(context),
+    builder: (context, _) => controller.workspace == null
+        ? widget.frameBuilder?.call(context, null, _entry(context)) ??
+              _entry(context)
+        : _workspace(context),
   );
 }

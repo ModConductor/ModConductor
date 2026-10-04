@@ -7,8 +7,12 @@ mixin _ShellContent
         _WorkspaceScope,
         _ProfileCreation,
         _ProfileTransportFlow {
-  Widget _buildWorkspaceBrowser(BuildContext context) => WorkspaceBrowser(
+  Widget _buildWorkspaceBrowser(
+    BuildContext context,
+    WorkspaceFrameBuilder frameBuilder,
+  ) => WorkspaceBrowser(
     controller: _workspaces,
+    frameBuilder: frameBuilder,
     imageClient: widget.workspaces is ProfileImagesClient
         ? widget.workspaces as ProfileImagesClient
         : null,

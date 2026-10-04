@@ -1,6 +1,8 @@
 export 'src/actions.dart';
 export 'src/split_action.dart';
 export 'src/app_mark.dart';
+export 'src/app_header.dart';
+export 'src/navigation_strip.dart';
 export 'src/forms.dart';
 export 'src/surfaces.dart';
 export 'src/theme.dart';

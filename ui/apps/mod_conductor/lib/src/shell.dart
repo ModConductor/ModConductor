@@ -17,6 +17,7 @@ class _DesktopShell extends StatelessWidget {
     required this.child,
     this.requests,
     this.onRequests,
+    this.workspace,
   });
   final DesktopStatus connectionStatus;
   final _Destination destination;
@@ -32,164 +33,37 @@ class _DesktopShell extends StatelessWidget {
   final Widget child;
   final DesktopRequests? requests;
   final VoidCallback? onRequests;
+  final WorkspaceChrome? workspace;
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Column(
       children: [
-        Container(
-          padding: const EdgeInsetsDirectional.fromSTEB(24, 12, 24, 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            border: Border(
-              bottom: BorderSide(color: Theme.of(context).dividerColor),
+        McAppHeader(
+          appName: labels.appTitle,
+          workspaceName: workspace?.name,
+          workspacePath: workspace?.path,
+          actions: [
+            ...?workspace?.actions,
+            McIconAction(
+              key: const ValueKey('quick-theme'),
+              label: labels.changeAppearance,
+              onPressed: onToggleTheme,
+              icon: const Icon(Icons.brightness_6_outlined),
             ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const McAppMark(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      labels.appTitle,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontSize: 17),
-                    ),
-                  ),
-                  McIconAction(
-                    key: const ValueKey('quick-theme'),
-                    label: labels.changeAppearance,
-                    onPressed: onToggleTheme,
-                    icon: const Icon(Icons.brightness_6_outlined),
-                  ),
-                  McAction(
-                    key: const ValueKey('quit'),
-                    label: labels.quit,
-                    icon: Icons.close,
-                    focusNode: quitFocus,
-                    onPressed: onQuit,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final item in _Destination.values)
-                      Semantics(
-                        selected: destination == item,
-                        child: TextButton(
-                          key: ValueKey('nav-${item.name}'),
-                          autofocus: item == _Destination.workspaces,
-                          focusNode: switch (item) {
-                            _Destination.workspaces => workspacesFocus,
-                            _Destination.games => gamesFocus,
-                            _Destination.preferences => preferencesFocus,
-                          },
-                          style: TextButton.styleFrom(
-                            backgroundColor: destination == item
-                                ? Theme.of(context).colorScheme.primary
-                                      .withValues(alpha: .12)
-                                : null,
-                          ),
-                          onPressed: () => onNavigate(item),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              McIconLabel(
-                                icon: Icon(switch (item) {
-                                  _Destination.workspaces =>
-                                    Icons.home_outlined,
-                                  _Destination.games =>
-                                    Icons.sports_esports_outlined,
-                                  _Destination.preferences => Icons.tune,
-                                }, size: 18),
-                                label: switch (item) {
-                                  _Destination.workspaces => labels.workspaces,
-                                  _Destination.games => 'Games',
-                                  _Destination.preferences =>
-                                    labels.preferences,
-                                },
-                              ),
-                              if (item == _Destination.preferences &&
-                                  updateAvailable) ...[
-                                const SizedBox(width: 8),
-                                Semantics(
-                                  label: 'Update available',
-                                  child: CircleAvatar(
-                                    radius: 4,
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .primary,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    if (requests case final requests?)
-                      ListenableBuilder(
-                        listenable: requests,
-                        builder: (context, _) => TextButton(
-                          key: const ValueKey('open-requests'),
-                          onPressed: onRequests,
-                          child: McIconLabel(
-                            icon: const Icon(
-                              Icons.move_to_inbox_outlined,
-                              size: 18,
-                            ),
-                            label: labels.openRequests(requests.count),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            McAction(
+              key: const ValueKey('quit'),
+              label: labels.quit,
+              icon: Icons.close,
+              focusNode: quitFocus,
+              onPressed: onQuit,
+            ),
+          ],
+          navigation: _navigation(context),
+          workspaceNavigation: workspace?.navigation,
         ),
         Expanded(child: child),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(switch (connectionStatus) {
-                  DesktopConnected() => labels.connected,
-                  DesktopConnecting() => labels.connecting,
-                  DesktopDisconnected() ||
-                  DesktopFailure() => labels.notConnected,
-                }, style: Theme.of(context).textTheme.bodySmall),
-              ),
-              if (requests case final requests?)
-                ListenableBuilder(
-                  listenable: requests,
-                  builder: (context, _) => requests.available
-                      ? const SizedBox.shrink()
-                      : TextButton(
-                          onPressed: () => showDialog<void>(
-                            context: context,
-                            builder: (_) => McDialog(
-                              title: labels.cannotOpenFromOtherApps,
-                              children: [Text(labels.openFromThisWindow)],
-                            ),
-                          ),
-                          child: Text(labels.cannotOpenFromOtherApps),
-                        ),
-                ),
-            ],
-          ),
-        ),
+        _status(context),
       ],
     ),
   );

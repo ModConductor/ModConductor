@@ -33,6 +33,9 @@ import 'package:mc_thunderstore/mc_thunderstore.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 
 part 'shell.dart';
+part 'shell_navigation.dart';
+part 'shell_status.dart';
+part 'app_desktop_frame.dart';
 part 'preferences.dart';
 part 'preferences_migration.dart';
 part 'preferences_labels.dart';
@@ -431,63 +434,7 @@ class _ModConductorAppState extends _AppStateBase
             const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
                 _quitDesktop,
           },
-          child: _DesktopShell(
-            key: _requestShellKey,
-            requests: widget.desktopRequests,
-            onRequests: () => unawaited(_presentRequests(context)),
-            connectionStatus: widget.status,
-            destination: _destination,
-            updateAvailable: widget.updates?.updateAvailable ?? false,
-            onNavigate: _navigate,
-            onQuit: _quitDesktop,
-            workspacesFocus: _workspacesFocus,
-            preferencesFocus: _preferencesFocus,
-            gamesFocus: _gamesFocus,
-            quitFocus: _quitFocus,
-            labels: AppLocalizations.of(context),
-            onToggleTheme: !_applicationSettings.loaded
-                ? null
-                : () => unawaited(
-                    _quickTheme(
-                      Theme.of(context).brightness == Brightness.dark
-                          ? AppearancePreference.light
-                          : AppearancePreference.dark,
-                    ),
-                  ),
-            child: IndexedStack(
-              index: _destination.index,
-              children: [
-                ExcludeFocus(
-                  excluding: _destination != _Destination.workspaces,
-                  child: switch (widget.status) {
-                    DesktopFailure(:final reason) => _FailurePage(
-                      labels: AppLocalizations.of(context),
-                      reason: reason,
-                      onRetry: widget.onRetry,
-                      onPreferences: () => _navigate(_Destination.preferences),
-                    ),
-                    DesktopDisconnected() ||
-                    DesktopConnecting() ||
-                    DesktopConnected() => _buildWorkspaceBrowser(context),
-                  },
-                ),
-                ExcludeFocus(
-                  excluding: _destination != _Destination.games,
-                  child: GamesPage(
-                    catalogue: _gameCatalogue,
-                    client: widget.gameCatalogue is GameRegistrationClient
-                        ? widget.gameCatalogue as GameRegistrationClient
-                        : null,
-                    chooseDirectory: widget.chooseGameDirectory,
-                  ),
-                ),
-                ExcludeFocus(
-                  excluding: _destination != _Destination.preferences,
-                  child: _buildPreferencesPage(context),
-                ),
-              ],
-            ),
-          ),
+          child: _buildWorkspaceBrowser(context, _buildDesktopFrame),
         ),
       ),
     );

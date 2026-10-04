@@ -44,13 +44,13 @@ void main() {
       addTearDown(controller.dispose);
       await controller.open('/workspace');
       var optimiseCalls = 0;
-      for (final (width, scale, fitsTabs, fitsActions) in [
-        (1280.0, 1.0, true, true),
-        (1680.0, 1.0, true, true),
-        (1920.0, 1.5, true, true),
-        (1050.0, 1.0, false, false),
-        (800.0, 1.0, false, false),
-        (420.0, 1.3, false, false),
+      for (final (width, scale) in [
+        (1280.0, 1.0),
+        (1680.0, 1.0),
+        (1920.0, 1.5),
+        (1050.0, 1.0),
+        (800.0, 1.0),
+        (420.0, 1.3),
       ]) {
         tester.view.physicalSize = Size(width, 1000);
         await tester.pumpWidget(
@@ -100,31 +100,12 @@ void main() {
         );
         await tester.pumpAndSettle();
         final help = find.byKey(const ValueKey('workspace-help-tab'));
-        final tabs = find
-            .ancestor(of: help, matching: find.byType(SingleChildScrollView))
-            .first;
-        final tabViewport = tester.getRect(tabs);
-        final helpButton = tester.getRect(
-          find.ancestor(of: help, matching: find.byType(TextButton)).first,
-        );
-        if (fitsTabs) {
-          expect(tabViewport.contains(helpButton.topLeft), isTrue);
-          expect(helpButton.right, lessThanOrEqualTo(tabViewport.right));
-        } else {
-          await tester.drag(tabs, const Offset(-1400, 0));
+        final optimise = find.byKey(const ValueKey('workbench-optimise'));
+        if (width >= 1280) {
+          final before = optimiseCalls;
+          await tester.tap(optimise);
           await tester.pumpAndSettle();
-        }
-        if (fitsActions) {
-          final view = tester.getRect(
-            find.byKey(const ValueKey('workbench-view')),
-          );
-          final optimise = tester.getRect(
-            find.byKey(const ValueKey('workbench-optimise')),
-          );
-          expect(helpButton.right, lessThan(view.left));
-          expect(optimise.center.dy, closeTo(helpButton.center.dy, 1));
-          await tester.tap(find.byKey(const ValueKey('workbench-optimise')));
-          await tester.pumpAndSettle();
+          expect(optimiseCalls, before + 1);
         }
         expect(help.hitTestable(), findsOneWidget);
         await tester.tap(help);
@@ -136,13 +117,13 @@ void main() {
         expect(find.text('Mods visible: true'), findsNothing);
         expect(tester.takeException(), isNull);
         final mods = find.byKey(const ValueKey('workspace-mods-tab'));
-        await tester.ensureVisible(mods);
-        await tester.pumpAndSettle();
-        await tester.tap(mods);
+        final label = find.descendant(of: mods, matching: find.byType(Text));
+        Focus.of(tester.element(label)).requestFocus();
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
         await tester.pumpAndSettle();
         expect(find.text('Mods visible: true'), findsOneWidget);
       }
-      expect(optimiseCalls, 3);
     },
   );
 }
