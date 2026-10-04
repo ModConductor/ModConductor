@@ -44,7 +44,7 @@ type FnisTests() =
         flag "failedBrowserHandoffReleasesPendingAcquisitionForRetry" |> should equal true
 
     [<Test>]
-    member _.``ordinary output deletion should preserve the generator and require explicit deployment``() =
+    member _.``output deletion should retain other mod links and allow FNIS without deployment``() =
         if not (OperatingSystem.IsLinux()) then
             Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
 
@@ -53,7 +53,7 @@ type FnisTests() =
         flag "outputDeletionPreservesGeneratorOtherProfileAndForeignFiles" |> should equal true
         flag "undeployedInstalledFnisIsVisibleButRunDoesNotPrepareOrActivate" |> should equal true
         flag "generatedKindAloneDoesNotAuthorizeForeignToolDeletion" |> should equal true
-        flag "explicitDeploymentRestoresFnisRunAfterOutputRemoval" |> should equal true
+        flag "retainedDirtyViewEnablesFnisWithoutChangingOtherModLinks" |> should equal true
         flag "rerunAfterDeletionRecreatesOnlyTheOwningProfilesOutput" |> should equal true
         flag "invalidatedActiveGenerationDoesNotEnableFnisRun" |> should equal true
 
@@ -95,10 +95,16 @@ type FnisTests() =
         flag "unknownFnisRunStreamReturnsNotFound" |> should equal true
         flag "rerunReplacesPriorOutputWithoutSavingDeployment" |> should equal true
 
-        flag "successorReceiptRemainsReadableAfterTransientPredecessorIsPruned"
+        flag "rerunsReuseTheCurrentViewWithoutDeploymentReceipts"
         |> should equal true
 
         flag "interruptionBeforeActivationPreservesPriorViewAndWorkingOutput"
+        |> should equal true
+
+        flag "changedInputsAfterPublicationPreserveTheRetainedViewAndSelectedOutput"
+        |> should equal true
+
+        flag "occupiedFnisDestinationRollsBackEarlierOwnedLinksAndPreservesForeignFiles"
         |> should equal true
 
         flag "interruptionAfterActivationFinalizesWorkingOutput" |> should equal true

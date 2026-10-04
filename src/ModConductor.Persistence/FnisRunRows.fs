@@ -23,6 +23,8 @@ type internal StoredFnisRun =
       Problem: string option }
 
 module internal FnisRunRows =
+    let dirtyViewDetail = "Unavailable after FNIS output deletion"
+
     let outputId (profile: Guid) =
         let bytes =
             SHA256.HashData(

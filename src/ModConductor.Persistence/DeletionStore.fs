@@ -151,6 +151,7 @@ module private DirectDeletion =
 
     let private generations connection transaction workspace targets =
         let members = Set.ofList targets
+        let retainedView = targets |> List.forall (DeletionAdmission.retainsView connection transaction workspace)
 
         let values =
             DeletionRows.generations connection transaction workspace
@@ -162,7 +163,7 @@ module private DirectDeletion =
                 if context.Pending.IsSome then
                     Some "Finish the pending deployment before deleting this mod."
                 elif
-                    context.Active = Some generation.Id && DeletionRows.uses members generation
+                    not retainedView && context.Active = Some generation.Id && DeletionRows.uses members generation
                 then
                     Some "Deactivate game files before deleting this mod."
                 else
@@ -223,7 +224,7 @@ module private DirectDeletion =
                         privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
 
                     let links =
-                        [ for _, generation in values do
+                        [ for context, generation in values do
                               for file in generation.Files do
                                   if
                                       file.Backing
@@ -233,7 +234,11 @@ module private DirectDeletion =
                                               | [ name ] -> privateNames.Contains name
                                               | _ -> false))
                                   then
-                                      yield generation.Directory, file.Path ]
+                                      yield generation.Directory, file.Path
+                                      for link in context.Links do
+                                          if not link.Spec.Directory && link.Target = RecoveryFiles.nativeTarget generation file.Target then
+                                              yield (RecoveryFiles.binding context link.Target).Directory, link.Target.Path ]
+                        |> List.distinct
 
                     library, names, links)
             | _ -> Ok(library, names, []))
@@ -372,6 +377,7 @@ module private DirectDeletion =
             privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
 
         let library = LibraryRows.library connection transaction workspace
+        let retainedView = targets |> List.forall (DeletionAdmission.retainsView connection transaction workspace)
 
         for context, generation in affectedGenerations do
             let files =
@@ -413,6 +419,12 @@ module private DirectDeletion =
 
             let oldTargets = generation.Files |> List.map _.Target |> Set.ofList
             let retainedTargets = files |> List.map _.Target |> Set.ofList
+            if retainedView && context.Active = Some generation.Id then
+                DeploymentRows.writeContext connection transaction
+                    { context with
+                        Revision = context.Revision + 1L
+                        Links = context.Links |> List.filter (fun link ->
+                            link.Spec.Directory || not (oldTargets.Contains link.Target) || retainedTargets.Contains link.Target) }
 
             let changed =
                 { generation with
@@ -430,9 +442,10 @@ module private DirectDeletion =
             Sqlite.execute
                 connection
                 transaction
-                "UPDATE deployment_generations SET body=$body,digest=$digest,unavailable='Unavailable after mod deletion' WHERE context_id=$context AND id=$generation"
+                "UPDATE deployment_generations SET body=$body,digest=$digest,unavailable=$reason WHERE context_id=$context AND id=$generation"
                 [ "$body", box body
                   "$digest", box (DeploymentEncoding.hash body)
+                  "$reason", box (if retainedView then FnisRunRows.dirtyViewDetail else "Unavailable after mod deletion")
                   "$context", box (string context.Id)
                   "$generation", box (string generation.Id) ]
 
@@ -599,12 +612,14 @@ type DeletionStore internal (database: StateDatabase, access: LibraryAccess) =
             let connection = database.Connection
 
             DirectDeletion.row connection null workspace modId revision
-            |> Result.map (fun _ ->
+            |> Result.map (fun row ->
                 let targets = DeletionRows.targets connection null modId |> Set.ofList
 
                 DeletionRows.generations connection null workspace
                 |> List.choose (fun (context, generation) ->
                     if
+                        row.Entry.Kind <> ModKind.GeneratedOutput
+                        &&
                         context.Active = Some generation.Id
                         && DeletionRows.uses targets generation
                     then

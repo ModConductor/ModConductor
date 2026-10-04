@@ -40,16 +40,14 @@ module internal FnisRunRecovery =
             | None -> ()
             | Some run ->
                 let! _ = restorePending store profile run
-
                 let! state = store.Deployments.Read profile
-                let! receipt = store.Deployments.Receipt run
+                let! activated = store.FnisExecution.Activated run
 
-                match state, receipt with
-                | Ok state, _ when state.PendingReceipt = Some run -> ()
-                | Ok state, Ok receipt when
+                match state with
+                | Ok state when state.PendingReceipt = Some run -> ()
+                | Ok state when
                     state.WorkspaceId = workspace
-                    && receipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
-                    && state.ActiveGeneration = Some receipt.Proposed
+                    && activated
                     ->
                     do! store.FnisExecution.Complete run
                     let! _ = store.FnisExecution.PrunePrevious run
@@ -78,7 +76,8 @@ module internal FnisRunRecovery =
             | Ok deployment ->
                 match deployment.ActiveGeneration with
                 | None -> return! store.FnisExecution.InspectUndeployed(workspace, profile)
-                | Some _ when deployment.Active |> Option.exists (fun value -> value.Unavailable.IsSome) ->
+                | Some _ when deployment.Active |> Option.exists (fun value ->
+                    value.Unavailable |> Option.exists ((<>) FnisRunRows.dirtyViewDetail)) ->
                     return! store.FnisExecution.InspectUndeployed(workspace, profile)
                 | Some generation ->
                     return! store.FnisExecution.Inspect(workspace, profile, generation)

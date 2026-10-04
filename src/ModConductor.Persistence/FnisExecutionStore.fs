@@ -16,12 +16,15 @@ type internal FnisExecutionStore
     let claim = FnisRunClaim(directory, database)
     let lifecycle = FnisExecutionLifecycle(database, access)
     let publisher = FnisOutputPublisher(database, access, publication)
+    let view = FnisViewPublication(database, access)
 
     member _.CleanupStage(id: Guid) = claim.CleanupStage id
     member _.Interrupted(profile: Guid) = lifecycle.Interrupted profile
     member _.Defer(runId: Guid) = lifecycle.Defer runId
     member _.Complete(runId: Guid) = lifecycle.Complete runId
     member _.MarkCurrent(runId: Guid) = lifecycle.MarkCurrent runId
+    member _.Activated(runId: Guid) = lifecycle.Activated runId
+    member _.RefreshView(stage, token) = view.Refresh(stage, token)
     member _.PruneCandidate(runId: Guid) = lifecycle.PruneCandidate runId
     member _.PrunePrevious(runId: Guid) = lifecycle.PrunePrevious runId
 

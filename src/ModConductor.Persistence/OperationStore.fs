@@ -446,6 +446,15 @@ type OperationStore
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
 
+    member internal _.RefreshFnisView(stage: ModConductor.Fnis.FnisRunStage, token) =
+        task {
+            match deploymentBackend.TryAcquireWorkspace stage.Request.WorkspaceId with
+            | None -> return Error ModConductor.Fnis.FnisExecutionError.Busy
+            | Some lease ->
+                use lease = lease
+                return! fnisExecution.RefreshView(stage, token)
+        }
+
     member _.PluginOrders =
         profileGameData :> ModConductor.ProfileGameData.IProfilePluginOrders
 

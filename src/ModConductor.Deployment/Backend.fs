@@ -278,22 +278,6 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                                     state.Abandon value
                 })
 
-        member _.RefreshFnis(id, expected, candidate, progress, token) =
-            run expected.WorkspaceId (fun () ->
-                task {
-                    let! refreshed =
-                        LaunchDeployment.prepare
-                            repository
-                            execute
-                            id
-                            expected
-                            (Some candidate)
-                            progress
-                            token
-
-                    return refreshed |> Result.map (fun (_, receipt) -> receipt)
-                })
-
         member _.Activate(id, expected, progress, token) =
             run expected.WorkspaceId (fun () ->
                 task {

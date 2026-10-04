@@ -30,31 +30,20 @@ type internal FnisExecutionLifecycle(database: StateDatabase, access: LibraryAcc
         reader.Close()
         value
 
-    let activated (connection, transaction, runId, modId, version) =
-        use query =
-            Sqlite.command
-                connection
-                transaction
-                "SELECT context_id,proposed_id FROM deployment_receipts WHERE id=$id AND phase=2"
-                [ "$id", box (string runId) ]
-
-        use row = query.ExecuteReader()
-
-        if not (row.Read()) then
-            false
-        else
-            let context = Guid.Parse(row.GetString 0)
-            let proposed = Guid.Parse(row.GetString 1)
-            row.Close()
-
-            (DeploymentRows.context connection transaction context
-             |> Option.exists (fun value -> value.Active = Some proposed))
-            && (DeploymentRows.generation connection transaction context proposed
-                |> Option.exists (fun generation ->
-                    generation.References
-                    |> List.exists (function
-                        | SourcePin.Mod(id, selected, _) -> id = modId && selected = version
-                        | _ -> false)))
+    let activated (connection, transaction, workspace, profile, modId, version) =
+        GameContextRows.read connection transaction database.OwnerId workspace profile
+        |> Result.toOption
+        |> Option.bind _.Binding
+        |> Option.bind (fun binding ->
+            ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence
+            |> ModConductor.Deployment.DeploymentContextId.create workspace profile
+            |> DeploymentRows.context connection transaction)
+        |> Option.bind (fun context ->
+            context.Active |> Option.bind (DeploymentRows.generation connection transaction context.Id))
+        |> Option.exists (fun generation ->
+            generation.References |> List.exists (function
+                | SourcePin.Mod(id, selected, _) -> id = modId && selected = version
+                | _ -> false))
 
     let selectOutput
         (connection, transaction, runId, workspace, profile, modId, version, fingerprint)
@@ -115,7 +104,7 @@ type internal FnisExecutionLifecycle(database: StateDatabase, access: LibraryAcc
             let workspace, profile, modId, version, fingerprint =
                 candidate connection transaction runId
 
-            if not (activated (connection, transaction, runId, modId, version)) then
+            if not (activated (connection, transaction, workspace, profile, modId, version)) then
                 raise (InvalidDataException "The FNIS output is not active in the game view.")
 
             let selected =
@@ -138,6 +127,11 @@ type internal FnisExecutionLifecycle(database: StateDatabase, access: LibraryAcc
                 )
 
             transaction.Commit())
+
+    member _.Activated(runId: Guid) =
+        database.Enqueue(fun () ->
+            let workspace, profile, modId, version, _ = candidate database.Connection null runId
+            activated (database.Connection, null, workspace, profile, modId, version))
 
     member _.MarkCurrent(runId: Guid) =
         database.EnqueueInternal(fun () ->

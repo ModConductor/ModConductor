@@ -70,6 +70,8 @@
     <Compile Include="FnisOutputCleanup.fs" />
     <Compile Include="FnisInputInspection.fs" />
     <Compile Include="FnisOutputInspection.fs" />
+    <Compile Include="FnisViewFiles.fs" />
+    <Compile Include="FnisViewPublication.fs" />
     <Compile Include="FnisExecutionLifecycle.fs" />
     <Compile Include="FnisOutputPublisher.fs" />
     <Compile Include="FnisRunClaim.fs" />

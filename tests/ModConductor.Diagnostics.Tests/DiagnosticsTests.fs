@@ -304,9 +304,6 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot
         member _.PrepareRetained(_, _, _, _, _) =
             Task.FromResult(Error DeploymentError.NotFound)
 
-        member _.RefreshFnis(_, _, _, _, _) =
-            Task.FromResult(Error DeploymentError.NotFound)
-
         member _.Activate(_, _, _, _) =
             Task.FromResult(Error DeploymentError.NotFound)
 

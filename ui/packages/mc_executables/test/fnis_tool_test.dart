@@ -142,7 +142,7 @@ void main() {
   );
 
   testWidgets(
-    'deleting output keeps FNIS visible but requires deployment before running',
+    'deleting output refreshes FNIS and allows Run on the retained view',
     (tester) async {
       final fnis = FakeFnis()..current = status(FnisStatusPhase.ready);
       final changes = ValueNotifier(0);
@@ -163,16 +163,6 @@ void main() {
       await tester.pumpAndSettle();
       fnis.current = status(
         FnisStatusPhase.available,
-        output: FnisOutputStatusPhase.unavailable,
-        outputStatus: 'Deploy the profile before running FNIS',
-      );
-      changes.value++;
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Run FNIS'));
-      await tester.pumpAndSettle();
-      expect(fnis.runs, 0);
-      fnis.current = status(
-        FnisStatusPhase.failed,
         output: FnisOutputStatusPhase.missing,
       );
       changes.value++;

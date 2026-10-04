@@ -3,13 +3,19 @@ namespace ModConductor.Persistence
 open ModConductor.ModLibrary
 
 module internal DeletionAdmission =
-    let private ownedFnisOutput connection transaction workspace modId =
+    let ownedFnisOutput connection transaction workspace modId =
         DeletionRows.ids
             connection
             transaction
             "SELECT id FROM profiles WHERE workspace_id=$workspace"
             [ "$workspace", box (string workspace) ]
         |> List.exists (fun profile -> FnisRunRows.outputId profile = modId)
+
+    let retainsView connection transaction workspace modId =
+        LibraryRows.find connection transaction modId
+        |> Option.exists (fun row ->
+            row.Entry.Kind = ModKind.GeneratedOutput
+            && ownedFnisOutput connection transaction workspace modId)
 
     let private fnisRunning connection transaction modId =
         Sqlite.number

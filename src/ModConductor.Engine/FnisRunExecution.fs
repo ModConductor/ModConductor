@@ -172,22 +172,8 @@ module internal FnisRunExecution =
                         | Ok() ->
                             candidatePublished <- true
                             candidateCheckpoint stage.Request
-                            let! deployment = store.Deployments.Read stage.Request.ProfileId
-
                             let! refreshed =
-                                match deployment with
-                                | Error _ ->
-                                    Task.FromResult(
-                                        Error ModConductor.Deployment.DeploymentError.Stale
-                                    )
-                                | Ok state ->
-                                    store.Deployments.RefreshFnis(
-                                        stage.Request.Id,
-                                        state.Sources,
-                                        stage.Request.Id,
-                                        ignore,
-                                        token
-                                    )
+                                store.RefreshFnisView(stage, token)
 
                             match refreshed with
                             | Ok _ ->
@@ -208,7 +194,7 @@ module internal FnisRunExecution =
 
                                 let detail =
                                     match error with
-                                    | ModConductor.Deployment.DeploymentError.Cancelled ->
+                                    | FnisExecutionError.Cancelled ->
                                         "FNIS output activation was cancelled. The previous output remains active."
                                     | _ ->
                                         "FNIS output could not be activated. The previous output remains active."
@@ -218,7 +204,7 @@ module internal FnisRunExecution =
                                         store.FnisExecution.Fail(
                                             stage.Request.Id,
                                             (if
-                                                 error = ModConductor.Deployment.DeploymentError.Cancelled
+                                                 error = FnisExecutionError.Cancelled
                                              then
                                                  FnisOutputPhase.Cancelled
                                              else

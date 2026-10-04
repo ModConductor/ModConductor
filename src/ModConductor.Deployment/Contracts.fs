@@ -116,14 +116,6 @@ type IDeploymentBackend =
         cancellation: CancellationToken ->
             Task<Result<PreparedDeployment, DeploymentError>>
 
-    abstract RefreshFnis:
-        id: Guid *
-        expected: SourceStamp *
-        candidateRun: Guid *
-        progress: (DeploymentProgress -> unit) *
-        cancellation: CancellationToken ->
-            Task<Result<DeploymentReceipt, DeploymentError>>
-
     abstract Activate:
         prepared: Guid *
         expected: SourceStamp *
