@@ -243,7 +243,8 @@ module private DirectDeletion =
 
                                       for link in context.Links do
                                           if
-                                              not link.Spec.Directory
+                                              context.Active = Some generation.Id
+                                              && not link.Spec.Directory
                                               && link.Target = RecoveryFiles.nativeTarget
                                                   generation
                                                   file.Target

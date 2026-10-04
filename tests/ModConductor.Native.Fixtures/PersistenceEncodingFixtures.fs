@@ -47,7 +47,7 @@ module internal PersistenceEncodingFixtures =
         writer.WriteBoolean(
             "executablePreset",
             rejects "The executable record version is unsupported." (fun () ->
-                ExecutableEncoding.decodePreset (textMarker 2) |> ignore)
+                ExecutableEncoding.decodePreset (textMarker 3) |> ignore)
         )
 
         writer.WriteBoolean(

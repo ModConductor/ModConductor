@@ -132,6 +132,7 @@ module VortexMigrationFixtures =
 
         let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
         write (Path.Combine(staging, "Alpha", "textures", "alpha.txt")) "alpha payload"
+        write (Path.Combine(staging, "Beta", "textures", "alpha.txt")) "beta payload"
         write (Path.Combine(staging, "Beta", "beta.txt")) "beta payload"
         write (Path.Combine(staging, "Gamma", "gamma.txt")) "gamma payload"
         let archive = [| 80uy; 75uy; 3uy; 4uy; 1uy; 2uy |]
@@ -324,31 +325,46 @@ module VortexMigrationFixtures =
                 && alpha.Status = InventoryStatus.Ready
             )
 
-            let query =
-                { Text = ""
-                  Mode = FilterMode.All
-                  Filters = []
-                  View = OrganizationView.Flat
-                  Sort = OrganizationSort.Priority }
+            let profile = page.Workspace.SelectedProfile.Value.Id
+            let ordered, sources = InventoryObservations.fileSelection state profile
+            let beta = mods.Entries |> List.find (fun item -> item.Metadata.Name = "Beta Mod")
+            let gamma = mods.Entries |> List.find (fun item -> item.Metadata.Name = "Gamma Mod")
 
-            let order =
-                (store.ModOrganization :> IModOrganization)
-                    .Query(page.Workspace.SelectedProfile.Value.Id, query, None, None)
-                |> wait
-                |> result
+            (store.ModSelection :> IModSelection)
+                .Change(
+                    profile,
+                    sources.Stamp.SelectionRevision,
+                    [ beta.Id ],
+                    SelectionEdit.Enable true
+                )
+            |> wait
+            |> result
+            |> ignore
+
+            let _, enabledSources = InventoryObservations.fileSelection state profile
 
             writer.WriteBoolean(
                 "loadOrder",
-                order.Entries.Length = 3
-                && order.Entries[0].Entry.Mod.Metadata.Name = "Beta Mod"
-                && order.Entries[0].Entry.Selection = SelectionState.Managed(0, false)
-                && order.Entries[1].Entry.Selection = SelectionState.Managed(1, true)
+                ordered.Length = 3
+                && ordered[0] = { Id = beta.Id
+                                  Priority = 0
+                                  Enabled = Some false }
+                && ordered[1] = { Id = alpha.Id
+                                  Priority = 1
+                                  Enabled = Some true }
+                && InventoryObservations.fileWinner
+                    enabledSources
+                    "textures/alpha.txt"
+                    alpha.Id
+                    "alpha payload"
             )
 
             writer.WriteBoolean(
                 "missingProfileState",
-                order.Entries[2].Entry.Mod.Metadata.Name = "Gamma Mod"
-                && order.Entries[2].Entry.Selection = SelectionState.Managed(2, false)
+                ordered[2] =
+                    { Id = gamma.Id
+                      Priority = 2
+                      Enabled = Some false }
             )
 
             let categories =

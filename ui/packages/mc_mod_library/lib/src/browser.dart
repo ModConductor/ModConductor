@@ -237,12 +237,14 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: modPanel),
+                        Expanded(flex: compact ? 5 : 1, child: modPanel),
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: EdgeInsets.symmetric(
+                            vertical: compact ? McSpacing.small : 12,
+                          ),
                           child: choice(),
                         ),
-                        Expanded(child: filesPanel()),
+                        Expanded(flex: compact ? 6 : 1, child: filesPanel()),
                       ],
                     )
                   : Row(

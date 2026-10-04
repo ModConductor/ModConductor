@@ -20,7 +20,7 @@ type StorageTests() =
         flag events "commitWakes" |> should equal true
 
     [<Test>]
-    member _.``persisted values should reject every development version marker``() =
+    member _.``persisted values should reject unsupported codec versions``() =
         let codecs = field "codecVersions"
 
         for name in

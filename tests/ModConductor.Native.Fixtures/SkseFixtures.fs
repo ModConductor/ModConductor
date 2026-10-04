@@ -981,6 +981,16 @@ module SkseFixtures =
             (library.Scan(workspace, 100) |> wait |> result).Entries
             |> List.find (fun entry -> entry.Id = firstMod)
 
+        let activeRoot =
+            (store.Deployments.Read profile
+             |> wait
+             |> required "active loader before deletion")
+                .RunnableRoot
+
+        let activeLoader = Path.Combine(activeRoot, "skse64_loader.exe")
+        let loaderTarget = FileInfo(activeLoader).LinkTarget
+        let loaderBytes = File.ReadAllBytes activeLoader
+
         store.Deletions.Delete(workspace, firstMod, firstEntry.Revision)
         |> wait
         |> result
@@ -991,6 +1001,9 @@ module SkseFixtures =
             && (store.SkseLoaders.ReadStored(workspace, profile, Some restoredGeneration)
                 |> wait
                 |> Option.exists (fun value -> value.ModId = imported.ModId))
+            && File.Exists activeLoader
+            && FileInfo(activeLoader).LinkTarget = loaderTarget
+            && File.ReadAllBytes activeLoader = loaderBytes
 
         let nextRelease =
             { updateRelease with

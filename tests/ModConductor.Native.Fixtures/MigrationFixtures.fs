@@ -46,12 +46,13 @@ module MigrationFixtures =
             "[General]\nversion=1.2\nnotes=Useful notes\ncomments=Migration comment\ncategory=2\ninstallationFile=legacy.zip\nnexus_api_key=do-not-migrate\n[installedFiles]\n1\\modid=42\n1\\fileid=7\nsize=1\n"
 
         write (Path.Combine(alpha, "textures", "alpha.txt")) "alpha payload"
+        write (Path.Combine(mods, "Beta", "textures", "alpha.txt")) "beta payload"
         Directory.CreateDirectory(Path.Combine(mods, "Divider_separator")) |> ignore
         let backup = Directory.CreateDirectory(Path.Combine(mods, "Alpha backup1")).FullName
         write (Path.Combine(backup, "old.txt")) "backup payload"
 
         for profile, list in
-            [ "Default", "+Alpha\n-Divider_separator\n"
+            [ "Default", "+Alpha\n+Beta\n-Divider_separator\n"
               "Testing", "Alpha\n+Divider_separator\n" ] do
             let directory = Directory.CreateDirectory(Path.Combine(profiles, profile)).FullName
             write (Path.Combine(directory, "modlist.txt")) list
@@ -224,7 +225,7 @@ module MigrationFixtures =
 
             writer.WriteBoolean(
                 "counts",
-                migrated.Profiles = 2 && migrated.Mods = 3 && migrated.Artifacts = 2
+                migrated.Profiles = 2 && migrated.Mods = 4 && migrated.Artifacts = 2
             )
 
             writer.WriteBoolean("sourceUnchanged", (before = hashes sourceRoot))
@@ -250,29 +251,31 @@ module MigrationFixtures =
                 mods.Entries |> List.forall (fun item -> item.Status = InventoryStatus.Ready)
             )
 
-            let query =
-                { Text = ""
-                  Mode = FilterMode.All
-                  Filters = []
-                  View = OrganizationView.Flat
-                  Sort = OrganizationSort.Priority }
+            let ordered, sources =
+                InventoryObservations.fileSelection state page.Workspace.SelectedProfile.Value.Id
 
-            let order =
-                (store.ModOrganization :> IModOrganization)
-                    .Query(page.Workspace.SelectedProfile.Value.Id, query, None, None)
-                |> wait
-                |> result
+            let alpha = mods.Entries |> List.find (fun item -> item.Metadata.Name = "Alpha")
+            let beta = mods.Entries |> List.find (fun item -> item.Metadata.Name = "Beta")
 
-            let ordered =
-                order.Entries |> List.filter (fun item -> item.Entry.Mod.Kind <> ModKind.Backup)
+            let separator =
+                mods.Entries |> List.find (fun item -> item.Kind = ModKind.Separator)
 
             writer.WriteBoolean(
                 "reversePriority",
-                ordered.Length = 2
-                && ordered[0].Entry.Mod.Kind = ModKind.Separator
-                && match ordered[1].Entry.Selection with
-                   | SelectionState.Managed(1, true) -> true
-                   | _ -> false
+                ordered = [ { Id = separator.Id
+                              Priority = 0
+                              Enabled = None }
+                            { Id = beta.Id
+                              Priority = 1
+                              Enabled = Some true }
+                            { Id = alpha.Id
+                              Priority = 2
+                              Enabled = Some true } ]
+                && InventoryObservations.fileWinner
+                    sources
+                    "textures/alpha.txt"
+                    alpha.Id
+                    "alpha payload"
             )
 
             let categories =

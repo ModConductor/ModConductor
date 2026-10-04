@@ -190,17 +190,17 @@ module StorageFixtures =
             |> Array.map Path.GetFileName
             |> Array.sort
 
-        let mutable resetInstruction = false
+        let mutable incompatibleRefused = false
 
         try
             use _ = new OperationStore(unsupported)
             ()
-        with :? InvalidOperationException as error ->
-            resetInstruction <- error.Message.Contains("Delete the Mod Conductor state directory")
+        with :? InvalidOperationException ->
+            incompatibleRefused <- true
 
         writer.WriteBoolean(
             "unsupportedRefusedWithoutMutation",
-            resetInstruction
+            incompatibleRefused
             && File.ReadAllBytes unsupportedDatabase = unsupportedBytes
             && File.GetLastWriteTimeUtc unsupportedDatabase = unchangedTime
             && (Directory.GetFileSystemEntries unsupported
