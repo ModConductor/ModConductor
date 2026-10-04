@@ -189,12 +189,7 @@ type internal EnbSources
                 try
                     do!
                         handoff.Open(
-                            Uri(
-                                "https://www.nexusmods.com/skyrimspecialedition/mods/"
-                                + string next.NexusModId
-                                + "?tab=files&file_id="
-                                + string next.File.Id
-                            ),
+                            NexusWebLinks.fileDownload "skyrimspecialedition" next.NexusModId next.File.Id,
                             token
                         )
 

@@ -214,6 +214,8 @@ let private run (args: string array) =
         writeJson true (fun writer -> EnbFixtures.observe writer path)
     | [| "--fnis"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> FnisFixtures.observe writer path)
+    | [| "--fnis-acquisition"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> FnisFixtures.acquisitionEvidence writer path)
     | [| "--normalize-owned-fixture"; path |] when Path.IsPathFullyQualified path ->
         GenerationCleanup.normalize path
         0

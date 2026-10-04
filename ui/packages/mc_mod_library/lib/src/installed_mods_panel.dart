@@ -54,7 +54,8 @@ extension _InstalledModsPanel on _ModLibraryBrowserState {
           label: 'Delete mod',
           icon: const Icon(Icons.delete_outline),
           onPressed:
-              chosen?.kind == ModKind.regular &&
+              (chosen?.kind == ModKind.regular ||
+                      chosen?.kind == ModKind.generatedOutput) &&
                   controller.canEdit &&
                   !deletion.busy
               ? () => unawaited(_delete(chosen!))

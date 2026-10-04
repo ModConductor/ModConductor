@@ -1533,6 +1533,151 @@ module FnisFixtures =
              && ((InventoryObservations.read store profile).Entries
                  |> List.forall (fun row -> row.Entry.Mod.Metadata.Name <> "FNIS generated output")))
 
+    let private outputDeletionEvidence
+        (writer: Utf8JsonWriter)
+        scenario
+        (store: OperationStore)
+        (execution: IFnisExecution)
+        (service: FnisService)
+        (workspace: Guid)
+        (profile: Guid)
+        otherProfile
+        unusedModId
+        (outputEntry: unit -> ModConductor.ModLibrary.ModEntry option)
+        =
+        let token = CancellationToken.None
+        let library = store.ModLibrary :> ModConductor.ModLibrary.IModLibrary
+        let output = outputEntry () |> Option.get
+        let before = store.Deployments.Read profile |> wait |> result
+        let generator = store.FnisSetups.ReadInstalled(workspace, profile) |> wait |> Option.get
+        let otherOutput =
+            (InventoryObservations.read store otherProfile).Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun entry -> entry.Id = FnisRunRows.outputId otherProfile)
+        let request = FnisRequest(WorkspaceId = workspace.ToString("N"), ProfileId = profile.ToString("N"))
+        let deleting = DeletionService(store.Deletions, store.Deployments)
+        let deleteRequest = DeleteModRequest(
+            WorkspaceId = workspace.ToString("N"), ModId = output.Id.ToString("N"), Revision = uint64 output.Revision)
+        let observed = execution.Inspect(workspace, profile, token) |> wait |> result
+        let busyId = Guid.NewGuid()
+        let _, _, _ =
+            store.FnisExecution.Begin(
+                { Id = busyId; WorkspaceId = workspace; ProfileId = profile },
+                { generator with GenerationId = observed.GenerationId }, observed.Fingerprint)
+            |> wait |> result
+        let busyRejected =
+            try
+                deleting.DeleteMod(deleteRequest, StreamContext()) |> wait |> ignore
+                false
+            with :? RpcException -> true
+        check writer "runningFnisOutputDeletionDoesNotDeactivateOrRemoveFiles"
+            (busyRejected
+             && (store.Deployments.Read profile |> wait |> result).ActiveGeneration = before.ActiveGeneration
+             && (outputEntry () |> Option.get).CurrentVersion = output.CurrentVersion)
+        store.FnisExecution.Fail(busyId, ModConductor.Fnis.FnisOutputPhase.Cancelled, None,
+            Array.empty, Array.empty, Array.empty, "Fixture finished.").GetAwaiter().GetResult()
+        store.FnisExecution.CleanupStage busyId
+
+        use database = new Microsoft.Data.Sqlite.SqliteConnection(
+            "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False")
+        database.Open()
+        let sequence () =
+            Sqlite.number database null
+                "SELECT coalesce(max(seq),0) FROM sqlite_sequence WHERE name='deployment_receipts'" []
+        let receiptsBefore = sequence ()
+        let payloads =
+            use query =
+                Sqlite.command database null
+                    "SELECT l.directory,p.id FROM mod_libraries l JOIN mod_payloads p ON p.workspace_id=l.workspace_id JOIN mod_versions v ON v.id=p.publication_id WHERE v.mod_id=$mod"
+                    [ "$mod", box (string output.Id) ]
+            use reader = query.ExecuteReader()
+            [ while reader.Read() do
+                yield Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload") ]
+        let foreign = Path.Combine(before.RunnableRoot, "Data", "foreign-output-delete.txt")
+        File.WriteAllText(foreign, "foreign content")
+        deleting.DeleteMod(deleteRequest, StreamContext()) |> wait |> ignore
+        let undeployed = store.Deployments.Read profile |> wait |> result
+        let remaining =
+            Sqlite.number database null
+                "SELECT (SELECT count(*) FROM mods WHERE id=$mod)+(SELECT count(*) FROM mod_versions WHERE mod_id=$mod)+(SELECT count(*) FROM fnis_outputs WHERE mod_id=$mod)+(SELECT count(*) FROM fnis_runs WHERE output_mod_id=$mod)"
+                [ "$mod", box (string output.Id) ]
+        let stillInstalled = store.FnisSetups.ReadInstalled(workspace, profile) |> wait
+        let otherAfter =
+            (InventoryObservations.read store otherProfile).Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun entry -> entry.Id = otherOutput.Id)
+        let toolAfter = service.ReadFnis(request, StreamContext()) |> wait
+        let rejected = execution.Run(
+            { Id = Guid.NewGuid(); WorkspaceId = workspace; ProfileId = profile }, token) |> wait
+        check writer "outputDeletionClearsOwnedFilesAndReferencesWithoutPreparingDeployment"
+            (remaining = 0L && (outputEntry () |> Option.isNone)
+             && (payloads |> List.forall (File.Exists >> not))
+             && undeployed.ActiveGeneration.IsNone
+             && undeployed.Sources.SelectionRevision > before.Sources.SelectionRevision
+             && sequence () = receiptsBefore)
+        check writer "outputDeletionPreservesGeneratorOtherProfileAndForeignFiles"
+            (stillInstalled = Some generator
+             && otherAfter.CurrentVersion = otherOutput.CurrentVersion
+             && File.ReadAllText foreign = "foreign content"
+             && (library.Version(generator.VersionId, 0) |> wait |> Result.isOk))
+        check writer "undeployedInstalledFnisIsVisibleButRunDoesNotPrepareOrActivate"
+            (toolAfter.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Unavailable
+             && not toolAfter.CanRun && toolAfter.OutputStatus <> ""
+             && Result.isError rejected && sequence () = receiptsBefore
+             && (store.Deployments.Read profile |> wait |> result).ActiveGeneration.IsNone)
+
+        let externalId = Guid.NewGuid()
+        let external = Directory.CreateDirectory(Path.Combine(scenario, "workspace", "foreign-tool-output")).FullName
+        let externalFile = Path.Combine(external, "keep.txt")
+        File.WriteAllText(externalFile, "foreign tool")
+        let registered = library.Register(workspace, externalId,
+            { Name = "Foreign tool output"; Notes = ""; Comment = ""; Version = ""; Source = ""; Categories = [] },
+            ModConductor.ModLibrary.Registration.Directory(
+                ModConductor.ModLibrary.ModKind.GeneratedOutput, LogicalPath.create [ "foreign-tool-output" ] |> result)) |> wait |> result
+        let refusal = store.Deletions.Delete(workspace, externalId, registered.Revision) |> wait
+        check writer "generatedKindAloneDoesNotAuthorizeForeignToolDeletion"
+            (Result.isError refusal && File.ReadAllText externalFile = "foreign tool")
+
+        let changed = store.Deployments.Read profile |> wait |> result
+        let prepared = store.Deployments.Prepare(Guid.NewGuid(), changed.Sources, ignore, token) |> wait |> result
+        store.Deployments.Activate(prepared.Id, prepared.Sources, ignore, token) |> wait |> result |> ignore
+        let deployedTool = service.ReadFnis(request, StreamContext()) |> wait
+        check writer "explicitDeploymentRestoresFnisRunAfterOutputRemoval"
+            (deployedTool.CanRun && deployedTool.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Missing)
+        let rerun = Guid.NewGuid()
+        execution.Run({ Id = rerun; WorkspaceId = workspace; ProfileId = profile }, token) |> wait |> result |> ignore
+        until "FNIS after deleted output" (fun () -> execution.Inspect(workspace, profile, token) |> wait |> result)
+            (fun value -> value.LatestRunId = Some rerun && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current) |> ignore
+        check writer "rerunAfterDeletionRecreatesOnlyTheOwningProfilesOutput"
+            ((outputEntry () |> Option.get).Id = output.Id
+             && ((InventoryObservations.read store otherProfile).Entries
+                 |> List.forall (fun row -> row.Entry.Mod.Id <> output.Id)))
+
+        let current = store.Deployments.Read profile |> wait |> result
+        let saved = store.Deployments.Prepare(Guid.NewGuid(), current.Sources, ignore, token) |> wait |> result
+        store.Deployments.Activate(saved.Id, saved.Sources, ignore, token) |> wait |> result |> ignore
+        let unused =
+            (InventoryObservations.read store profile).Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun entry -> entry.Id = unusedModId)
+        store.Deletions.Delete(workspace, unused.Id, unused.Revision) |> wait |> result |> ignore
+        let invalidated = store.Deployments.Read profile |> wait |> result
+        let disabled = service.ReadFnis(request, StreamContext()) |> wait
+        let refused = execution.Run(
+            { Id = Guid.NewGuid(); WorkspaceId = workspace; ProfileId = profile }, token) |> wait
+        check writer "invalidatedActiveGenerationDoesNotEnableFnisRun"
+            (invalidated.ActiveGeneration.IsSome
+             && (invalidated.Active |> Option.exists (fun value -> value.Unavailable.IsSome))
+             && disabled.OutputStatus <> "" && not disabled.CanRun
+             && disabled.OutputPhase = ModConductor.Protocol.V1.FnisOutputPhase.Unavailable
+             && Result.isError refused)
+        let prepared = store.Deployments.Prepare(Guid.NewGuid(), invalidated.Sources, ignore, token) |> wait |> result
+        store.Deployments.Activate(prepared.Id, prepared.Sources, ignore, token) |> wait |> result |> ignore
+        let finalRun = Guid.NewGuid()
+        execution.Run({ Id = finalRun; WorkspaceId = workspace; ProfileId = profile }, token) |> wait |> result |> ignore
+        until "FNIS after invalidated deployment" (fun () -> execution.Inspect(workspace, profile, token) |> wait |> result)
+            (fun value -> value.LatestRunId = Some finalRun && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current) |> ignore
+
     let private executionEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "execution")).FullName
         use server = new NexusServer()
@@ -2430,6 +2575,9 @@ module FnisFixtures =
 
         select false inputMod
 
+        File.WriteAllText(mode, "success")
+        outputDeletionEvidence writer scenario store execution runService workspace profile imported inputMod outputEntry
+
         shutdownProcessEvidence writer scenario mode runner execution runService workspace profile
 
         restartAndOwnershipEvidence
@@ -2442,6 +2590,91 @@ module FnisFixtures =
             profile
             outputEntry
             otherProfile
+
+    let acquisitionEvidence (writer: Utf8JsonWriter) area =
+        let scenario = Directory.CreateDirectory(Path.Combine(area, "acquisition")).FullName
+        use server = new NexusServer()
+        server.Premium <- false
+        use credentials = new CredentialSession(NexusMemoryStore())
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn session
+
+        use store =
+            new OperationStore(
+                Path.Combine(scenario, "state"),
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy = policy
+            )
+
+        let workspace, profile, _ = createWorkspace store scenario
+        configure server 811L (archive "acquisition" true 0)
+        let opened = ConcurrentQueue<Uri>()
+        let opening = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        let finish = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
+        let handoff =
+            OAuthHandoff(fun (uri, _) ->
+                opened.Enqueue uri
+                opening.TrySetResult() |> ignore
+                finish.Task)
+
+        use coordinator = new FnisCoordinator(session, store.Downloads, store, handoff)
+        let starting = coordinator.Install(workspace, profile)
+        opening.Task.WaitAsync(TimeSpan.FromSeconds 10.).GetAwaiter().GetResult()
+        let whileOpening = coordinator.Read(workspace, profile) |> wait
+        let repeatedWhileOpening = coordinator.Install(workspace, profile).WaitAsync(TimeSpan.FromSeconds 10.) |> wait
+        finish.SetResult()
+        let initial = starting |> wait
+        let repeated = coordinator.Install(workspace, profile) |> wait
+        let refreshed = coordinator.Read(workspace, profile) |> wait
+        let again = coordinator.Install(workspace, profile) |> wait
+        writer.WriteNumber("browserOpens", opened.Count)
+        let fileHandoff = opened.ToArray().[0]
+        writer.WriteString("fileHandoff", fileHandoff.AbsoluteUri)
+
+        check
+            writer
+            "pendingAcquisitionDoesNotReopenOnReadOrRepeatedInstall"
+            (opened.Count = 1
+             && whileOpening.Phase = FnisPhase.WaitingForNexus
+             && repeatedWhileOpening = whileOpening
+             && initial.Phase = FnisPhase.WaitingForNexus
+             && repeated = initial
+             && refreshed = initial
+             && again = initial)
+
+        check
+            writer
+            "fileHandoffRequestsModManagerDownloadForSelectedFnisFile"
+            (fileHandoff.AbsolutePath = "/skyrimspecialedition/mods/3038"
+             && (let parameters = fileHandoff.Query.TrimStart('?').Split('&') |> Set.ofArray
+                 parameters.Contains "tab=files" && parameters.Contains "file_id=811" && parameters.Contains "nmm=1"))
+
+        coordinator.Cancel(workspace, profile) |> wait |> ignore
+        coordinator.Install(workspace, profile) |> wait |> ignore
+        check writer "cancelledAcquisitionCanBeExplicitlyRetried" (opened.Count = 2)
+
+        use resumed = new FnisCoordinator(session, store.Downloads, store, handoff)
+        resumed.Read(workspace, profile) |> wait |> ignore
+        resumed.Install(workspace, profile) |> wait |> ignore
+        check writer "resumedPendingAcquisitionKeepsItsOriginalHandoff" (opened.Count = 2)
+
+        coordinator.Cancel(workspace, profile) |> wait |> ignore
+        let failedHandoff = OAuthHandoff(fun _ -> Task.FromException(InvalidOperationException("Synthetic browser failure.")))
+        use failedCoordinator = new FnisCoordinator(session, store.Downloads, store, failedHandoff)
+        let failed = failedCoordinator.Install(workspace, profile) |> wait
+        let retried = coordinator.Install(workspace, profile) |> wait
+        check writer "failedBrowserHandoffReleasesPendingAcquisitionForRetry"
+            (failed.Phase = FnisPhase.Failed && retried.Phase = FnisPhase.WaitingForNexus && opened.Count = 3)
 
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName
@@ -2638,6 +2871,7 @@ module FnisFixtures =
         writer.WriteStartObject("fnis")
         freshnessEvidence writer
         layoutEvidence writer
+        acquisitionEvidence writer area
         lifecycleEvidence writer area
 
         if OperatingSystem.IsLinux() then

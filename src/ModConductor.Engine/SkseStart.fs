@@ -60,13 +60,7 @@ type internal SkseStart
             try
                 do!
                     handoff.Open(
-                        Uri(
-                            "https://www.nexusmods.com/skyrimspecialedition/mods/"
-                            + string release.ModId
-                            + "?tab=files&file_id="
-                            + string release.File.Id
-                            + "&nmm=1"
-                        ),
+                        NexusWebLinks.fileDownload "skyrimspecialedition" release.ModId release.File.Id,
                         monitor.Token
                     )
 

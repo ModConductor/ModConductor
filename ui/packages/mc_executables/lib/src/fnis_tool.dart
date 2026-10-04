@@ -10,10 +10,12 @@ class FnisTool extends StatefulWidget {
     required this.client,
     required this.workspaceId,
     required this.profileId,
+    this.changes,
   });
 
   final FnisClient client;
   final String workspaceId, profileId;
+  final Listenable? changes;
 
   @override
   State<FnisTool> createState() => _FnisToolState();
@@ -24,17 +26,31 @@ class _FnisToolState extends State<FnisTool> {
   String? problem;
   bool busy = false;
   int epoch = 0;
+  bool readPending = false;
   StreamSubscription<FnisStatus>? runSubscription;
 
   @override
   void initState() {
     super.initState();
+    widget.changes?.addListener(_changed);
     unawaited(_read());
+  }
+
+  void _changed() {
+    if (busy) {
+      readPending = true;
+    } else {
+      unawaited(_read());
+    }
   }
 
   @override
   void didUpdateWidget(FnisTool oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.changes != widget.changes) {
+      oldWidget.changes?.removeListener(_changed);
+      widget.changes?.addListener(_changed);
+    }
     if (oldWidget.client == widget.client &&
         oldWidget.workspaceId == widget.workspaceId &&
         oldWidget.profileId == widget.profileId) {
@@ -47,6 +63,7 @@ class _FnisToolState extends State<FnisTool> {
     status = null;
     problem = null;
     busy = false;
+    readPending = false;
     unawaited(_read());
   }
 
@@ -132,12 +149,19 @@ class _FnisToolState extends State<FnisTool> {
         );
       }
     } finally {
-      if (mounted && current == epoch) setState(() => busy = false);
+      if (mounted && current == epoch) {
+        setState(() => busy = false);
+        if (readPending) {
+          readPending = false;
+          unawaited(_read());
+        }
+      }
     }
   }
 
   @override
   void dispose() {
+    widget.changes?.removeListener(_changed);
     final previous = runSubscription;
     if (previous != null) unawaited(previous.cancel());
     super.dispose();
@@ -147,11 +171,7 @@ class _FnisToolState extends State<FnisTool> {
   Widget build(BuildContext context) {
     final value = status;
     if (value == null && problem == null) return const SizedBox.shrink();
-    if (value != null &&
-        value.phase != FnisStatusPhase.ready &&
-        value.phase != FnisStatusPhase.updateAvailable &&
-        value.phase != FnisStatusPhase.sourceUnavailable &&
-        value.outputPhase != FnisOutputStatusPhase.running) {
+    if (value != null && value.outputStatus.isEmpty) {
       return const SizedBox.shrink();
     }
     final warning = value?.exitCode != null && value!.exitCode != 0;

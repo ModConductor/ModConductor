@@ -20,12 +20,14 @@ class ExecutablesBrowser extends StatefulWidget {
     required this.chooseExecutable,
     required this.chooseDirectory,
     this.fnis,
+    this.fnisChanges,
     this.outputs,
     this.workspace,
   });
   final ExecutablesController controller;
   final ExecutablePathChooser chooseExecutable, chooseDirectory;
   final FnisClient? fnis;
+  final Listenable? fnisChanges;
   final GeneratedOutputsClient? outputs;
   final WorkspaceInfo? workspace;
   @override
@@ -238,6 +240,7 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
                         client: widget.fnis!,
                         workspaceId: widget.workspace!.id,
                         profileId: widget.workspace!.selectedProfile!.id,
+                        changes: widget.fnisChanges,
                       ),
                     Expanded(
                       child: c.needsRead && (c.problem != null || c.uncertain)

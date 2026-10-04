@@ -8,7 +8,7 @@ open ModConductor.FilePlanning
 open ModConductor.GameContexts
 open ModConductor.Platform
 
-/// Reconstructs installed component routes from the existing generation selections.
+/// Reconstructs installed component routes for explicit deployment preparation.
 module internal ComponentRoutes =
     let private logical parts =
         LogicalPath.create parts |> Result.mapError (fun _ -> RecoveryError.InvalidPlan)
@@ -82,7 +82,11 @@ module internal ComponentRoutes =
             let! skse =
                 SkseLoaderStore(database).ReadStored(workspace, profile, componentGeneration)
 
-            let! fnis = FnisStore(database).ReadStored(workspace, profile, componentGeneration)
+            let fnisStore = FnisStore(database)
+            let! fnis =
+                match componentGeneration with
+                | Some _ -> fnisStore.ReadStored(workspace, profile, componentGeneration)
+                | None -> fnisStore.ReadInstalled(workspace, profile)
             let! enb = EnbStore(database).Components(workspace, profile, componentGeneration)
 
             let selected =

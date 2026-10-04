@@ -298,11 +298,18 @@ module SkseCoordinatorFixtures =
         let runtime = context.Binding.Value.Evidence.Executable.Value.FileVersion
         let fileId = 301L
         configure server runtime fileId "2.2.0" (archive runtime "nxm-correct" true 0)
+        let opened = System.Collections.Concurrent.ConcurrentQueue<Uri>()
+        let handoff = OAuthHandoff(fun (uri, _) -> opened.Enqueue uri; Task.CompletedTask)
 
         use coordinator =
-            new SkseCoordinator(session, store.Downloads, store.GameContexts, store, server.Handoff)
+            new SkseCoordinator(session, store.Downloads, store.GameContexts, store, handoff)
 
         let waiting = coordinator.Start(workspace, profile) |> wait
+        let fileHandoff = opened.ToArray() |> Array.exactlyOne
+        let parameters = fileHandoff.Query.TrimStart('?').Split('&') |> Set.ofArray
+        check writer "skseBrowserHandoffRequestsSelectedFileAsModManagerDownload"
+            (fileHandoff.AbsolutePath = "/skyrimspecialedition/mods/30379"
+             && parameters.Contains "file_id=301" && parameters.Contains "nmm=1")
         let expiry = DateTimeOffset.UtcNow.AddMinutes(5.).ToUnixTimeSeconds()
         accept session coordinator (nxm fileId "42" expiry)
 

@@ -11,6 +11,9 @@ type internal FnisStore(database: StateDatabase) =
     member _.ReadStored(workspace, profile, activeGeneration) =
         FnisGeneratorRows.readStored database workspace profile activeGeneration
 
+    member _.ReadInstalled(workspace, profile) =
+        FnisGeneratorRows.readInstalled database workspace profile
+
     member _.SaveArtifactSelection(artifact: Artifact, value: StoredFnisSelection) =
         database.EnqueueInternal(fun () ->
             Sqlite.execute
@@ -108,14 +111,17 @@ type internal FnisStore(database: StateDatabase) =
 
     member _.SavePending(value: StoredFnisSelection) =
         database.EnqueueInternal(fun () ->
-            Sqlite.execute
-                database.Connection
-                null
-                ("INSERT INTO fnis_pending_handoffs(profile_id,"
-                 + selectionColumns
-                 + ") VALUES($profile,$workspace,$account,$nexusMod,$nexusFile,$name,$fileVersion,$category,$description,$bytes,$component,$acquisition,$source,$terms,$checked) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,account_id=excluded.account_id,nexus_mod=excluded.nexus_mod,nexus_file=excluded.nexus_file,file_name=excluded.file_name,file_version=excluded.file_version,file_category=excluded.file_category,file_description=excluded.file_description,file_bytes=excluded.file_bytes,component_version=excluded.component_version,acquisition=excluded.acquisition,source=excluded.source,terms=excluded.terms,checked_at=excluded.checked_at")
-                (("$profile", box (string value.ProfileId.Value))
-                 :: FnisRows.selectionParameters value))
+            use command =
+                Sqlite.command
+                    database.Connection
+                    null
+                    ("INSERT INTO fnis_pending_handoffs(profile_id,"
+                     + selectionColumns
+                     + ") VALUES($profile,$workspace,$account,$nexusMod,$nexusFile,$name,$fileVersion,$category,$description,$bytes,$component,$acquisition,$source,$terms,$checked) ON CONFLICT(profile_id) DO NOTHING")
+                    (("$profile", box (string value.ProfileId.Value))
+                     :: FnisRows.selectionParameters value)
+
+            command.ExecuteNonQuery() = 1)
 
     member _.Pending() =
         database.Enqueue(fun () ->

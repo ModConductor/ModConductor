@@ -157,7 +157,10 @@ type internal FnisSetupReader
                 ->
                 return! savedArtifactState workspace profile value
             | _ ->
-                let! installed = store.FnisSetups.ReadStored(workspace, profile, generation)
+                let! installed =
+                    match generation with
+                    | Some _ -> store.FnisSetups.ReadStored(workspace, profile, generation)
+                    | None -> store.FnisSetups.ReadInstalled(workspace, profile)
 
                 match installed with
                 | Some installed -> return! installedState workspace profile installed

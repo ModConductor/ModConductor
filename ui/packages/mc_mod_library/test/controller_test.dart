@@ -12,10 +12,11 @@ ModEntry mod(
   int revision = 0,
   String workspace = 'workspace',
   String? version,
+  ModKind kind = ModKind.regular,
 }) => ModEntry(
   id: id,
   workspaceId: workspace,
-  kind: ModKind.regular,
+  kind: kind,
   metadata: ModMetadata(name: 'Mod $id'),
   revision: revision,
   status: InventoryStatus.ready,

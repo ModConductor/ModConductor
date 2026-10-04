@@ -32,136 +32,7 @@ type FnisCoordinator
             monitor.IsActive
         )
 
-    let installCached workspace profile problem =
-        task {
-            let! cached = sources.Cached(workspace, profile)
-
-            match cached with
-            | None -> return! status.Unavailable workspace profile problem
-            | Some selection ->
-                let! artifact = store.Artifacts.Read(workspace, selection.ArtifactId.Value)
-
-                match artifact with
-                | Ok artifact ->
-                    return!
-                        monitor.PrepareArtifact(
-                            (workspace, profile),
-                            selection,
-                            artifact,
-                            "Installing cached FNIS"
-                        )
-                | Error _ -> return! status.Unavailable workspace profile problem
-        }
-
-    let openNexusPage workspace profile (selection: StoredFnisSelection) =
-        task {
-            let release = selection.Selection.Release
-
-            try
-                do!
-                    handoff.Open(
-                        Uri(FnisCatalogue.Source + "?tab=files&file_id=" + string release.File.Id),
-                        monitor.Token
-                    )
-
-                do! store.FnisSetups.SavePending selection
-
-                return!
-                    status.Persist
-                        workspace
-                        profile
-                        { Phase = FnisPhase.WaitingForNexus
-                          Version = string release.ComponentVersion
-                          Status = "Waiting for Nexus Mods"
-                          Detail = "Select Mod Manager Download for FNIS Behavior SE 7.6."
-                          FileId = Some release.File.Id
-                          ArtifactId = None }
-            with error ->
-                return!
-                    status.Failed(
-                        workspace,
-                        profile,
-                        string release.ComponentVersion,
-                        Some release.File.Id,
-                        None,
-                        "Nexus Mods could not be opened",
-                        error.Message
-                    )
-        }
-
-    let startDirect workspace profile (selection: StoredFnisSelection) =
-        task {
-            let release = selection.Selection.Release
-
-            let! lease =
-                nexus.Resolve(
-                    "skyrimspecialedition",
-                    release.ModId,
-                    release.File.Id,
-                    selection.AccountId
-                )
-
-            match lease with
-            | Error problem ->
-                return!
-                    status.Failed(
-                        workspace,
-                        profile,
-                        string release.ComponentVersion,
-                        Some release.File.Id,
-                        None,
-                        "FNIS source unavailable",
-                        NexusProblem.message problem
-                    )
-            | Ok _ ->
-                let! started =
-                    downloads.Start
-                        { Id = Guid.NewGuid()
-                          WorkspaceId = workspace
-                          Name = release.File.Name
-                          Sources = [ DownloadSource.Nexus(sources.Reference(selection, false)) ]
-                          ExpectedLength = release.File.Bytes
-                          ExpectedSha256 = None }
-
-                match started with
-                | Error problem ->
-                    return!
-                        status.Failed(
-                            workspace,
-                            profile,
-                            string release.ComponentVersion,
-                            Some release.File.Id,
-                            None,
-                            "FNIS download could not start",
-                            string problem
-                        )
-                | Ok artifact ->
-                    return!
-                        monitor.PrepareArtifact(
-                            (workspace, profile),
-                            selection,
-                            artifact,
-                            "Downloading FNIS"
-                        )
-        }
-
-    let installSelected workspace profile (selection: StoredFnisSelection) =
-        task {
-            let! existing = downloads.FindNexus(workspace, sources.Reference(selection, false))
-
-            match existing with
-            | Some artifact ->
-                return!
-                    monitor.PrepareArtifact(
-                        (workspace, profile),
-                        selection,
-                        artifact,
-                        "Preparing FNIS"
-                    )
-            | None when selection.Selection.Acquisition = FnisAcquisition.NexusPage ->
-                return! openNexusPage workspace profile selection
-            | None -> return! startDirect workspace profile selection
-        }
+    let start = FnisStart(nexus, downloads, store, handoff, sources, monitor, reader, status)
 
     let restoredState workspace profile =
         task {
@@ -242,14 +113,7 @@ type FnisCoordinator
 
     member _.Read(workspace, profile) = reader.Read(workspace, profile)
 
-    member _.Install(workspace, profile) =
-        task {
-            let! selected = sources.Resolve(workspace, profile)
-
-            match selected with
-            | Error problem -> return! installCached workspace profile problem
-            | Ok selection -> return! installSelected workspace profile selection
-        }
+    member _.Install(workspace, profile) = start.Install(workspace, profile)
 
     member this.Cancel(workspace, profile) =
         task {

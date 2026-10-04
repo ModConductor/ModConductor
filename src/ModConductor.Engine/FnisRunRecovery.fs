@@ -77,7 +77,9 @@ module internal FnisRunRecovery =
                 return Error FnisExecutionError.NotFound
             | Ok deployment ->
                 match deployment.ActiveGeneration with
-                | None -> return Error FnisExecutionError.NotFound
+                | None -> return! store.FnisExecution.InspectUndeployed(workspace, profile)
+                | Some _ when deployment.Active |> Option.exists (fun value -> value.Unavailable.IsSome) ->
+                    return! store.FnisExecution.InspectUndeployed(workspace, profile)
                 | Some generation ->
                     return! store.FnisExecution.Inspect(workspace, profile, generation)
         }

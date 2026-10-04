@@ -38,6 +38,7 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   final _discoveryLocalChanges = ValueNotifier<int>(0);
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
+  final _fnisChanges = ValueNotifier<int>(0);
   final _play = GamePlayController();
   final _profileData = ProfileDataController();
   bool _skseLaunchCheckStarted = false;

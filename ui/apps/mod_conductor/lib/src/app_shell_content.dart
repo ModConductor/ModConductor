@@ -124,6 +124,7 @@ mixin _ShellContent
             chooseExecutable: widget.chooseExecutable,
             chooseDirectory: widget.chooseGameDirectory,
             fnis: _supportsSkyrim ? widget.fnis : null,
+            fnisChanges: _fnisChanges,
             outputs: widget.outputs,
             workspace: workspace,
           ),

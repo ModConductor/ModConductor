@@ -494,13 +494,15 @@ module EnbFixtures =
             let workspace, profile, _, _ = createWorkspace store scenario true
             let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
             archive runtimePath runtimeEntries
+            let opened = System.Collections.Concurrent.ConcurrentQueue<Uri>()
+            let handoff = OAuthHandoff(fun (uri, _) -> opened.Enqueue uri; Task.CompletedTask)
 
             use coordinator =
                 new EnbCoordinator(
                     nexus,
                     store.Downloads,
                     store,
-                    server.Handoff,
+                    handoff,
                     row,
                     eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
                 )
@@ -607,6 +609,19 @@ module EnbFixtures =
                         || value.Phase = ModConductor.Protocol.V1.EnbPhase.Conflict)
 
             let deployed = store.Deployments.Read profile |> wait |> result
+            if not premium then
+                let links = opened.ToArray()
+                let modDownload modId fileId =
+                    links |> Array.exists (fun uri ->
+                        let parameters = uri.Query.TrimStart('?').Split('&') |> Set.ofArray
+                        uri.AbsolutePath = "/skyrimspecialedition/mods/" + string modId
+                        && parameters.Contains ("file_id=" + string fileId)
+                        && parameters.Contains "nmm=1")
+                check writer "enbNexusHandoffsRequestModManagerDownloadButAuthorPageDoesNot"
+                    (modDownload EnbCatalogue.LeanModId 7001L
+                     && modDownload EnbCatalogue.CathedralModId 7002L
+                     && (links |> Array.exists (fun uri ->
+                         uri.Host <> "www.nexusmods.com" && not (uri.Query.Contains "nmm="))))
             let initial = deployed.ActiveGeneration
 
             let interrupted =

@@ -53,6 +53,7 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
       _archives.invalidate();
       _deployments.invalidate();
       _play.invalidate();
+      _fnisChanges.value++;
     }
     _selectionRevision = _mods.inventory.revision;
     _catalogueRevision = _mods.inventory.catalogueRevision;
@@ -67,6 +68,7 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
   }
 
   void _deploymentChanged() {
+    _fnisChanges.value++;
     _plugins.invalidate();
     _archives.invalidate();
     _files.invalidate();

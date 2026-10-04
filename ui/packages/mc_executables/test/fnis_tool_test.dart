@@ -6,12 +6,13 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_executables/mc_executables.dart';
 
 class FakeFnis implements FnisClient {
-  FnisStatus current = status(FnisStatusPhase.available);
+  FnisStatus current = status(FnisStatusPhase.available, installed: false);
   int runs = 0;
   int reads = 0;
   bool failRead = false;
   int cancelledListeners = 0;
   String? observedRun;
+  Completer<FnisStatus>? pendingRead;
   late final StreamController<FnisStatus> events =
       StreamController<FnisStatus>.broadcast(
         onCancel: () => cancelledListeners++,
@@ -21,6 +22,9 @@ class FakeFnis implements FnisClient {
   Future<FnisStatus> read(String workspace, String profile) async {
     reads++;
     if (failRead) throw StateError('read failed');
+    final pending = pendingRead;
+    pendingRead = null;
+    if (pending != null) return pending.future;
     return current;
   }
 
@@ -71,6 +75,7 @@ FnisStatus status(
   int? exitCode,
   String? outputStatus,
   String runLog = '',
+  bool installed = true,
 }) => FnisStatus(
   phase: phase,
   version: '',
@@ -81,20 +86,103 @@ FnisStatus status(
   canUpdate: false,
   canRemove: false,
   canRecover: false,
-  outputPhase: output,
+  outputPhase: installed ? output : FnisOutputStatusPhase.unavailable,
   outputStatus:
       outputStatus ??
-      (output == FnisOutputStatusPhase.running
-          ? 'FNIS is running'
-          : 'FNIS output is current'),
-  canRun: output != FnisOutputStatusPhase.running,
-  canCancelRun: output == FnisOutputStatusPhase.running,
+      (installed
+          ? (output == FnisOutputStatusPhase.running
+                ? 'FNIS is running'
+                : 'FNIS output is current')
+          : ''),
+  canRun:
+      installed &&
+      output != FnisOutputStatusPhase.running &&
+      output != FnisOutputStatusPhase.unavailable,
+  canCancelRun: installed && output == FnisOutputStatusPhase.running,
   runId: runId,
   exitCode: exitCode,
   runLog: runLog,
 );
 
 void main() {
+  testWidgets(
+    'setup changes received during a read show installed FNIS without manual refresh',
+    (tester) async {
+      final fnis = FakeFnis();
+      final initial = fnis.current;
+      final pending = Completer<FnisStatus>();
+      fnis.pendingRead = pending;
+      final changes = ValueNotifier(0);
+      addTearDown(changes.dispose);
+      addTearDown(fnis.events.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FnisTool(
+              client: fnis,
+              workspaceId: 'w',
+              profileId: 'p',
+              changes: changes,
+            ),
+          ),
+        ),
+      );
+      fnis.current = status(
+        FnisStatusPhase.failed,
+        output: FnisOutputStatusPhase.missing,
+      );
+      changes.value++;
+      pending.complete(initial);
+      await tester.pumpAndSettle();
+      expect(fnis.reads, 2);
+      await tester.tap(find.text('Run FNIS'));
+      await tester.pumpAndSettle();
+      expect(fnis.runs, 1);
+    },
+  );
+
+  testWidgets(
+    'deleting output keeps FNIS visible but requires deployment before running',
+    (tester) async {
+      final fnis = FakeFnis()..current = status(FnisStatusPhase.ready);
+      final changes = ValueNotifier(0);
+      addTearDown(changes.dispose);
+      addTearDown(fnis.events.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FnisTool(
+              client: fnis,
+              workspaceId: 'w',
+              profileId: 'p',
+              changes: changes,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      fnis.current = status(
+        FnisStatusPhase.available,
+        output: FnisOutputStatusPhase.unavailable,
+        outputStatus: 'Deploy the profile before running FNIS',
+      );
+      changes.value++;
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Run FNIS'));
+      await tester.pumpAndSettle();
+      expect(fnis.runs, 0);
+      fnis.current = status(
+        FnisStatusPhase.failed,
+        output: FnisOutputStatusPhase.missing,
+      );
+      changes.value++;
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Run FNIS'));
+      await tester.pumpAndSettle();
+      expect(fnis.runs, 1);
+    },
+  );
+
   testWidgets('installed FNIS reruns from Tools and uses its returned state', (
     tester,
   ) async {
@@ -110,7 +198,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Run FNIS'), findsNothing);
 
-    fnis.current = status(FnisStatusPhase.ready);
+    fnis.current = status(
+      FnisStatusPhase.failed,
+      output: FnisOutputStatusPhase.missing,
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

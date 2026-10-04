@@ -36,6 +36,28 @@ type FnisTests() =
         flag "directAcquisitionPublishesGeneratorAndProvenance" |> should equal true
 
     [<Test>]
+    member _.``pending acquisition should reuse one mod manager browser handoff``() =
+        flag "pendingAcquisitionDoesNotReopenOnReadOrRepeatedInstall" |> should equal true
+        flag "fileHandoffRequestsModManagerDownloadForSelectedFnisFile" |> should equal true
+        flag "cancelledAcquisitionCanBeExplicitlyRetried" |> should equal true
+        flag "resumedPendingAcquisitionKeepsItsOriginalHandoff" |> should equal true
+        flag "failedBrowserHandoffReleasesPendingAcquisitionForRetry" |> should equal true
+
+    [<Test>]
+    member _.``ordinary output deletion should preserve the generator and require explicit deployment``() =
+        if not (OperatingSystem.IsLinux()) then
+            Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
+
+        flag "runningFnisOutputDeletionDoesNotDeactivateOrRemoveFiles" |> should equal true
+        flag "outputDeletionClearsOwnedFilesAndReferencesWithoutPreparingDeployment" |> should equal true
+        flag "outputDeletionPreservesGeneratorOtherProfileAndForeignFiles" |> should equal true
+        flag "undeployedInstalledFnisIsVisibleButRunDoesNotPrepareOrActivate" |> should equal true
+        flag "generatedKindAloneDoesNotAuthorizeForeignToolDeletion" |> should equal true
+        flag "explicitDeploymentRestoresFnisRunAfterOutputRemoval" |> should equal true
+        flag "rerunAfterDeletionRecreatesOnlyTheOwningProfilesOutput" |> should equal true
+        flag "invalidatedActiveGenerationDoesNotEnableFnisRun" |> should equal true
+
+    [<Test>]
     member _.``cancel retry failure and recovery should preserve the active setup``() =
         flag "cancelledUpdatePreservesPriorGeneration" |> should equal true
         flag "retryResumesAndPublishesSelectedUpdate" |> should equal true

@@ -57,6 +57,8 @@ type FnisRunner
 
             match observed with
             | Error error -> return Error error
+            | Ok observed when observed.Phase = FnisOutputPhase.Unavailable ->
+                return Error(FnisExecutionError.Unavailable observed.Detail)
             | Ok observed ->
                 let! generator =
                     store.FnisSetups.ReadStored(

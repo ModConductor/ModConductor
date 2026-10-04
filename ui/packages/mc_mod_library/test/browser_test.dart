@@ -61,8 +61,10 @@ class CompletedDeletionClient extends Fake implements MaintenanceClient {
 }
 
 void main() {
-  testWidgets('confirmed deletion calls maintenance once', (tester) async {
-    final entry = mod('mod', revision: 4);
+  testWidgets('confirmed generated output deletion calls maintenance once', (
+    tester,
+  ) async {
+    final entry = mod('mod', revision: 4, kind: ModKind.generatedOutput);
     final library = FolderClient()
       ..onQuery = (_, _) async => inventoryPage([entry], null);
     final maintenance = CompletedDeletionClient();

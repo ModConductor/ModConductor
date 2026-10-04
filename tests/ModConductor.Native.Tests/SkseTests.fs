@@ -67,6 +67,7 @@ type SkseTests() =
     [<Test>]
     member _.``NXM handoff should complete or publish each durable coordinator failure``() =
         coordinatorFlag "acceptNxmCompletesExpectedHandoff" |> should equal true
+        coordinatorFlag "skseBrowserHandoffRequestsSelectedFileAsModManagerDownload" |> should equal true
         coordinatorFlag "acceptNxmWrongAccountIsDurable" |> should equal true
         coordinatorFlag "acceptNxmExpiredIsDurable" |> should equal true
         coordinatorFlag "acceptNxmMetadataFailureIsDurable" |> should equal true

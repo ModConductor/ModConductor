@@ -60,7 +60,9 @@ type internal FnisService(coordinator: FnisCoordinator, execution: IFnisExecutio
             reply.OutputPhase <- outputPhase value.Phase
             reply.OutputStatus <- value.Status
             reply.OutputDetail <- value.Detail
-            reply.CanRun <- value.Phase <> ModConductor.Fnis.FnisOutputPhase.Running
+            reply.CanRun <-
+                value.Phase <> ModConductor.Fnis.FnisOutputPhase.Running
+                && value.Phase <> ModConductor.Fnis.FnisOutputPhase.Unavailable
             reply.CanCancelRun <- value.Phase = ModConductor.Fnis.FnisOutputPhase.Running
             value.LatestRunId |> Option.iter (fun id -> reply.RunId <- id.ToString("N"))
             value.ExitCode |> Option.iter (fun code -> reply.ExitCode <- code)
@@ -74,20 +76,8 @@ type internal FnisService(coordinator: FnisCoordinator, execution: IFnisExecutio
         task {
             let! value = coordinator.Read(workspace, profile)
 
-            let! output =
-                if
-                    value.Phase = FnisPhase.Ready
-                    || value.Phase = FnisPhase.UpdateAvailable
-                    || value.Phase = FnisPhase.SourceUnavailable
-                then
-                    task {
-                        let! result = execution.Inspect(workspace, profile, token)
-                        return Result.toOption result
-                    }
-                else
-                    Task.FromResult None
-
-            return wire value output
+            let! output = execution.Inspect(workspace, profile, token)
+            return wire value (Result.toOption output)
         }
 
     override _.ReadFnis(request, context) =

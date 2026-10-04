@@ -73,6 +73,7 @@
     <Compile Include="FnisNxmIngress.fs" />
     <Compile Include="FnisSetupMonitor.fs" />
     <Compile Include="FnisSetupReader.fs" />
+    <Compile Include="FnisStart.fs" />
     <Compile Include="FnisCoordinator.fs" />
     <Compile Include="FnisService.fs" />
     <Compile Include="SkyrimSetupModel.fs" />

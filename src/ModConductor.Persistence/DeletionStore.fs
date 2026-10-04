@@ -11,14 +11,7 @@ open ModConductor.ModLibrary
 open ModConductor.Platform
 
 module private DirectDeletion =
-    let row connection transaction workspace modId expected =
-        match LibraryRows.find connection transaction modId with
-        | None -> Error "The mod is no longer installed."
-        | Some value when value.Entry.WorkspaceId <> workspace || value.Entry.Revision <> expected ->
-            Error "The mod changed. Delete it again."
-        | Some value when value.Entry.Kind <> ModKind.Regular ->
-            Error "Choose a regular installed mod."
-        | Some value -> Ok value
+    let row = DeletionAdmission.row
 
     let private ensureIdle connection transaction workspace targets =
         let members = Set.ofList targets
@@ -476,6 +469,12 @@ module private DirectDeletion =
             Sqlite.execute
                 connection
                 transaction
+                "DELETE FROM fnis_outputs WHERE mod_id=$mod; DELETE FROM fnis_runs WHERE output_mod_id=$mod"
+                args
+
+            Sqlite.execute
+                connection
+                transaction
                 "DELETE FROM skse_loader_selections WHERE mod_id=$mod; DELETE FROM skse_replacement_intents WHERE mod_id=$mod OR previous_mod_id=$mod; DELETE FROM artifact_links WHERE mod_id=$mod; DELETE FROM mod_categories WHERE mod_id=$mod; DELETE FROM hidden_mod_files WHERE mod_id=$mod; DELETE FROM file_visibility_changes WHERE mod_id=$mod; DELETE FROM profile_mods WHERE mod_id=$mod; UPDATE mods SET current_version=NULL WHERE id=$mod"
                 args
 
@@ -611,7 +610,9 @@ type DeletionStore internal (database: StateDatabase, access: LibraryAccess) =
                     then
                         generation.Provenance
                         |> Option.bind _.Profile
-                        |> Option.map (fun profile -> profile.Id, generation.Id)
+                        |> Option.map _.Id
+                        |> Option.orElseWith (fun () -> DeletionRows.profile connection null workspace context)
+                        |> Option.map (fun profile -> profile, generation.Id)
                     else
                         None)))
 

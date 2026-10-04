@@ -134,6 +134,7 @@
     <Compile Include="ProfileTransportStore.fs" />
     <Compile Include="BundleStore.fs" />
     <Compile Include="DeletionRows.fs" />
+    <Compile Include="DeletionAdmission.fs" />
     <Compile Include="BundleDeletion.fs" />
     <Compile Include="DeletionStore.fs" />
     <Compile Include="MigrationStore.fs" />

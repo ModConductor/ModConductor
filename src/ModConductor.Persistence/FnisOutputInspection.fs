@@ -8,6 +8,21 @@ module internal FnisOutputInspection =
     let private latest = FnisRunRows.latest
     let private outputId = FnisRunRows.outputId
 
+    let unavailable workspace profile (generator: StoredFnisGenerator) detail =
+        { WorkspaceId = workspace
+          ProfileId = profile
+          GenerationId = generator.GenerationId
+          Generator = generator.Executable
+          Fingerprint = ""
+          Phase = FnisOutputPhase.Unavailable
+          Status = "FNIS cannot run yet"
+          Detail = detail
+          LatestRunId = None
+          ExitCode = None
+          StandardOutput = ""
+          StandardError = ""
+          RunLog = "" }
+
     let private viewMatchesOutput connection profile generation =
         let output = outputId profile
 
