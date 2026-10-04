@@ -1,7 +1,7 @@
 { self, pkgs, dotnet-sdk, flutter }:
 let
   lib = pkgs.lib;
-  productVersion = "0.1.1";
+  productVersion = "0.2.0";
   sourceFor = directories: files: lib.cleanSourceWith {
     src = self.outPath;
     filter = path: type:

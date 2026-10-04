@@ -107,12 +107,12 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
         let value =
             new HttpRequestMessage((if fields.IsSome then HttpMethod.Post else HttpMethod.Get), uri)
 
-        value.Headers.UserAgent.ParseAdd("ModConductor/0.1.1")
+        value.Headers.UserAgent.ParseAdd("ModConductor/0.2.0")
 
         value.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
         |> ignore
 
-        value.Headers.TryAddWithoutValidation("Application-Version", "0.1.1") |> ignore
+        value.Headers.TryAddWithoutValidation("Application-Version", "0.2.0") |> ignore
         authorization |> Option.iter (authorize value)
 
         fields
@@ -287,12 +287,12 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
                                 Uri(api, path)
                             )
 
-                        request.Headers.UserAgent.ParseAdd("ModConductor/0.1.1")
+                        request.Headers.UserAgent.ParseAdd("ModConductor/0.2.0")
 
                         request.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
                         |> ignore
 
-                        request.Headers.TryAddWithoutValidation("Application-Version", "0.1.1")
+                        request.Headers.TryAddWithoutValidation("Application-Version", "0.2.0")
                         |> ignore
 
                         bearer

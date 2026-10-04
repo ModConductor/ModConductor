@@ -22,7 +22,7 @@ type internal Transport(client: HttpClient) =
             lock gate (fun () -> cached <- Some(uri, bytes, DateTimeOffset.UtcNow + value.MaxAge.Value))
     let send (uri: Uri) label (token: CancellationToken) = task {
         use request = new HttpRequestMessage(HttpMethod.Get, uri)
-        request.Headers.UserAgent.ParseAdd("ModConductor/0.1.1")
+        request.Headers.UserAgent.ParseAdd("ModConductor/0.2.0")
         use! response = client.SendAsync(request, token)
         match int response.StatusCode with
         | 429 ->
