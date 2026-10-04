@@ -7,10 +7,13 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_mod_library/mc_mod_library.dart';
 import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 import 'package:mod_conductor/src/app.dart';
+
+import 'workbench_test.dart' show headers;
 
 DiagnosticFinding finding({
   String id = 'conflict',
@@ -1063,6 +1066,120 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets(
+    'compact load order filters and closes at 900x650 at both interface sizes',
+    (tester) async {
+      await (FontLoader('packages/mc_ui_foundation/Roboto')..addFont(
+            rootBundle.load(
+              'packages/mc_ui_foundation/assets/fonts/Roboto-Regular.ttf',
+            ),
+          ))
+          .load();
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      for (final interfaceScale in [1.0, 0.9]) {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await mountApp(
+          tester,
+          workspaces: FakeWorkspaces(
+            savedWorkspace: const WorkspaceInfo(
+              id: 'workspace-1',
+              name: 'My workspace',
+              path: '/games/my-workspace',
+              revision: 1,
+              selectedProfile: ProfileInfo('profile-1', 'Main'),
+            ),
+          ),
+          diagnostics: FakeDiagnostics(),
+          gameContexts: FakeGameContexts(),
+          settings: _DisplaySettings(interfaceScale),
+          size: const Size(900, 650),
+        );
+        await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('workspace-mods-tab')));
+        await tester.pumpAndSettle();
+        final loadOrder = tester
+            .widget<LoadOrderPane>(find.byType(LoadOrderPane))
+            .controller;
+        loadOrder.syncPlugins(
+          headers.entries,
+          headers.entries.map((entry) => entry.name).toList(),
+        );
+        await tester.pumpAndSettle();
+        final initialRows = List.of(loadOrder.rows.visible);
+        expect(tester.takeException(), isNull);
+        await tester.tap(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is McIconAction &&
+                widget.label == 'Filter plugins and files',
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        final filter = find.byWidgetPredicate(
+          (widget) =>
+              widget is TextField &&
+              widget.decoration?.labelText == 'Filter plugins and files',
+        );
+        await tester.enterText(filter, 'SkyUI');
+        await tester.pumpAndSettle();
+        expect(loadOrder.rows.visible, ['plugin:skyui_se.esp']);
+        for (final label in [
+          'Filter mods',
+          'Add mod folder',
+          'Move selected entries up',
+          'Move selected entries down',
+          'Inspect selected entry',
+        ]) {
+          expect(
+            find
+                .byWidgetPredicate(
+                  (widget) => widget is McIconAction && widget.label == label,
+                )
+                .hitTestable(),
+            findsOneWidget,
+            reason: '$label remains reachable with the filter open',
+          );
+        }
+        expect(
+          find.widgetWithText(TextButton, 'Filters').hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          find
+              .byWidgetPredicate(
+                (widget) =>
+                    widget is McIconMenu &&
+                    widget.label == 'Installed mods options',
+              )
+              .hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          find
+              .byWidgetPredicate(
+                (widget) =>
+                    widget is McChoice<String> && widget.label == 'View',
+              )
+              .hitTestable(),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is McIconAction && widget.label == 'Close filter',
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(loadOrder.rows.query, isEmpty);
+        expect(loadOrder.rows.visible, initialRows);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
 
   testWidgets(
     'wide Help reuses one sidebar, list, inspector and explicit preview',
