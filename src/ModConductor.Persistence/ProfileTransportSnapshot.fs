@@ -226,9 +226,16 @@ module internal ProfileTransportSnapshot =
                           Version = version
                           Base = baseVersion
                           Source =
-                            match ModConductor.Thunderstore.VersionReference.tryDecode row.Entry.Metadata.Source with
+                            match
+                                ModConductor.Thunderstore.VersionReference.tryDecode
+                                    row.Entry.Metadata.Source
+                            with
                             | Some source -> Some(PortableSource.Thunderstore source)
-                            | None -> version |> Option.bind (fun value -> nexus connection transaction value.Id baseVersion) |> Option.map PortableSource.Nexus
+                            | None ->
+                                version
+                                |> Option.bind (fun value ->
+                                    nexus connection transaction value.Id baseVersion)
+                                |> Option.map PortableSource.Nexus
                           Hidden =
                             version
                             |> Option.map (fun value ->

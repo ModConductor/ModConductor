@@ -55,7 +55,9 @@ type EnbTests() =
         |> should equal true
 
         flag "nxmAcquisitionReachesReady" |> should equal true
-        flag "enbNexusHandoffsRequestModManagerDownloadButAuthorPageDoesNot" |> should equal true
+
+        flag "enbNexusHandoffsRequestModManagerDownloadButAuthorPageDoesNot"
+        |> should equal true
 
         flag "authenticatedGrpcCombinedCancellationUsesProductionEnbOwner"
         |> should equal true

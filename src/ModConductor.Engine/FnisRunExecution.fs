@@ -172,8 +172,7 @@ module internal FnisRunExecution =
                         | Ok() ->
                             candidatePublished <- true
                             candidateCheckpoint stage.Request
-                            let! refreshed =
-                                store.RefreshFnisView(stage, token)
+                            let! refreshed = store.RefreshFnisView(stage, token)
 
                             match refreshed with
                             | Ok _ ->
@@ -203,9 +202,7 @@ module internal FnisRunExecution =
                                     do!
                                         store.FnisExecution.Fail(
                                             stage.Request.Id,
-                                            (if
-                                                 error = FnisExecutionError.Cancelled
-                                             then
+                                            (if error = FnisExecutionError.Cancelled then
                                                  FnisOutputPhase.Cancelled
                                              else
                                                  FnisOutputPhase.Failed),

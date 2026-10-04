@@ -30,8 +30,13 @@ module internal GenerationRetirement =
     /// Removes a retired generation's derived link tree, never following payload links.
     let removeOwned (generation: Generation) =
         let path = HostPath.value generation.Directory.Path
+
         let name =
-            if Path.GetFileName(Path.GetDirectoryName path).StartsWith(".mc-generation-", StringComparison.Ordinal) then
+            if
+                Path
+                    .GetFileName(Path.GetDirectoryName path)
+                    .StartsWith(".mc-generation-", StringComparison.Ordinal)
+            then
                 Path.GetFileName path
             else
                 generation.Id.ToString("N")

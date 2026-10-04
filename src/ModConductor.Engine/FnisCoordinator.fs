@@ -32,7 +32,8 @@ type FnisCoordinator
             monitor.IsActive
         )
 
-    let start = FnisStart(nexus, downloads, store, handoff, sources, monitor, reader, status)
+    let start =
+        FnisStart(nexus, downloads, store, handoff, sources, monitor, reader, status)
 
     let restoredState workspace profile =
         task {

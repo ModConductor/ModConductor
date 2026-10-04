@@ -359,7 +359,8 @@ module internal InstallationRows =
                           "$workspace", box (string plan.Artifact.WorkspaceId)
                           "$name", box plan.Name
                           "$label", box plan.Version
-                          "$source", box (ThunderstoreSource.metadata connection transaction plan.Artifact.Id) ]
+                          "$source",
+                          box (ThunderstoreSource.metadata connection transaction plan.Artifact.Id) ]
 
                     Ok 0L
                 | Some target ->

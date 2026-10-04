@@ -60,9 +60,11 @@ type internal FnisService(coordinator: FnisCoordinator, execution: IFnisExecutio
             reply.OutputPhase <- outputPhase value.Phase
             reply.OutputStatus <- value.Status
             reply.OutputDetail <- value.Detail
+
             reply.CanRun <-
                 value.Phase <> ModConductor.Fnis.FnisOutputPhase.Running
                 && value.Phase <> ModConductor.Fnis.FnisOutputPhase.Unavailable
+
             reply.CanCancelRun <- value.Phase = ModConductor.Fnis.FnisOutputPhase.Running
             value.LatestRunId |> Option.iter (fun id -> reply.RunId <- id.ToString("N"))
             value.ExitCode |> Option.iter (fun code -> reply.ExitCode <- code)

@@ -37,26 +37,48 @@ type FnisTests() =
 
     [<Test>]
     member _.``pending acquisition should reuse one mod manager browser handoff``() =
-        flag "pendingAcquisitionDoesNotReopenOnReadOrRepeatedInstall" |> should equal true
-        flag "fileHandoffRequestsModManagerDownloadForSelectedFnisFile" |> should equal true
+        flag "pendingAcquisitionDoesNotReopenOnReadOrRepeatedInstall"
+        |> should equal true
+
+        flag "fileHandoffRequestsModManagerDownloadForSelectedFnisFile"
+        |> should equal true
+
         flag "cancelledAcquisitionCanBeExplicitlyRetried" |> should equal true
         flag "resumedPendingAcquisitionKeepsItsOriginalHandoff" |> should equal true
-        flag "failedBrowserHandoffReleasesPendingAcquisitionForRetry" |> should equal true
+
+        flag "failedBrowserHandoffReleasesPendingAcquisitionForRetry"
+        |> should equal true
 
     [<Test>]
     member _.``output deletion should retain other mod links and allow FNIS without deployment``() =
         if not (OperatingSystem.IsLinux()) then
             Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
 
-        flag "runningFnisOutputDeletionDoesNotDeactivateOrRemoveFiles" |> should equal true
-        flag "outputDeletionClearsOwnedFilesAndReferencesWithoutPreparingDeployment" |> should equal true
-        flag "outputDeletionPreservesGeneratorOtherProfileAndForeignFiles" |> should equal true
-        flag "undeployedInstalledFnisIsVisibleButRunDoesNotPrepareOrActivate" |> should equal true
-        flag "generatedKindAloneDoesNotAuthorizeForeignToolDeletion" |> should equal true
-        flag "retainedDirtyViewEnablesFnisWithoutChangingOtherModLinks" |> should equal true
-        flag "rerunAfterDeletionRecreatesOnlyTheOwningProfilesOutput" |> should equal true
+        flag "runningFnisOutputDeletionDoesNotDeactivateOrRemoveFiles"
+        |> should equal true
+
+        flag "outputDeletionClearsOwnedFilesAndReferencesWithoutPreparingDeployment"
+        |> should equal true
+
+        flag "outputDeletionPreservesGeneratorOtherProfileAndForeignFiles"
+        |> should equal true
+
+        flag "undeployedInstalledFnisIsVisibleButRunDoesNotPrepareOrActivate"
+        |> should equal true
+
+        flag "generatedKindAloneDoesNotAuthorizeForeignToolDeletion"
+        |> should equal true
+
+        flag "retainedDirtyViewEnablesFnisWithoutChangingOtherModLinks"
+        |> should equal true
+
+        flag "rerunAfterDeletionRecreatesOnlyTheOwningProfilesOutput"
+        |> should equal true
+
         flag "invalidatedActiveGenerationDoesNotEnableFnisRun" |> should equal true
-        flag "outputDeletionPreservesUnrelatedInvalidationAndRefusesFnisRun" |> should equal true
+
+        flag "outputDeletionPreservesUnrelatedInvalidationAndRefusesFnisRun"
+        |> should equal true
 
     [<Test>]
     member _.``cancel retry failure and recovery should preserve the active setup``() =
@@ -96,8 +118,7 @@ type FnisTests() =
         flag "unknownFnisRunStreamReturnsNotFound" |> should equal true
         flag "rerunReplacesPriorOutputWithoutSavingDeployment" |> should equal true
 
-        flag "rerunsReuseTheCurrentViewWithoutDeploymentReceipts"
-        |> should equal true
+        flag "rerunsReuseTheCurrentViewWithoutDeploymentReceipts" |> should equal true
 
         flag "interruptionBeforeActivationPreservesPriorViewAndWorkingOutput"
         |> should equal true

@@ -60,7 +60,10 @@ type internal SkseStart
             try
                 do!
                     handoff.Open(
-                        NexusWebLinks.fileDownload "skyrimspecialedition" release.ModId release.File.Id,
+                        NexusWebLinks.fileDownload
+                            "skyrimspecialedition"
+                            release.ModId
+                            release.File.Id,
                         monitor.Token
                     )
 

@@ -42,6 +42,7 @@ type internal FnisStart
     let openNexusPage workspace profile (selection: StoredFnisSelection) =
         task {
             let release = selection.Selection.Release
+
             let waiting =
                 { Phase = FnisPhase.WaitingForNexus
                   Version = string release.ComponentVersion
@@ -57,9 +58,13 @@ type internal FnisStart
             else
                 try
                     let! view = status.Persist workspace profile waiting
+
                     do!
                         handoff.Open(
-                            NexusWebLinks.fileDownload "skyrimspecialedition" release.ModId release.File.Id,
+                            NexusWebLinks.fileDownload
+                                "skyrimspecialedition"
+                                release.ModId
+                                release.File.Id,
                             monitor.Token
                         )
 
@@ -159,7 +164,9 @@ type internal FnisStart
 
             match saved with
             | Some value when
-                value.Phase = "waiting" || value.Phase = "downloading" || value.Phase = "installing"
+                value.Phase = "waiting"
+                || value.Phase = "downloading"
+                || value.Phase = "installing"
                 ->
                 return! reader.Read(workspace, profile)
             | _ ->

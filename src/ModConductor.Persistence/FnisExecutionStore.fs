@@ -35,7 +35,9 @@ type internal FnisExecutionStore
             match installed with
             | None -> return Error FnisExecutionError.NotFound
             | Some generator ->
-                let! inspected = FnisOutputInspection.inspection database workspace profile generator
+                let! inspected =
+                    FnisOutputInspection.inspection database workspace profile generator
+
                 return
                     match inspected with
                     | Error(FnisExecutionError.Unavailable detail) ->
@@ -46,12 +48,18 @@ type internal FnisExecutionStore
     member _.InspectUndeployed(workspace, profile) =
         task {
             let! installed = setups.ReadInstalled(workspace, profile)
+
             return
                 match installed with
                 | None -> Error FnisExecutionError.NotFound
                 | Some generator ->
-                    Ok(FnisOutputInspection.unavailable
-                        workspace profile generator "Deploy the profile before running FNIS.")
+                    Ok(
+                        FnisOutputInspection.unavailable
+                            workspace
+                            profile
+                            generator
+                            "Deploy the profile before running FNIS."
+                    )
         }
 
     member _.Begin(request: FnisRunRequest, generator: StoredFnisGenerator, fingerprint) =

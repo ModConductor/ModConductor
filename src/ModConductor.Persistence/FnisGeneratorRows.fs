@@ -3,7 +3,10 @@ namespace ModConductor.Persistence
 open System
 
 module internal FnisGeneratorRows =
-    let private decode (generation: Guid) (reader: Microsoft.Data.Sqlite.SqliteDataReader) : StoredFnisGenerator =
+    let private decode
+        (generation: Guid)
+        (reader: Microsoft.Data.Sqlite.SqliteDataReader)
+        : StoredFnisGenerator =
         { GenerationId = generation
           ModId = Guid.Parse(reader.GetString 0)
           VersionId = Guid.Parse(reader.GetString 1)
@@ -22,7 +25,11 @@ module internal FnisGeneratorRows =
 
     let private readRow generation (query: Microsoft.Data.Sqlite.SqliteCommand) =
         use reader = query.ExecuteReader()
-        if reader.Read() then Some(decode generation reader) else None
+
+        if reader.Read() then
+            Some(decode generation reader)
+        else
+            None
 
     let private selected connection workspace profile =
         Sqlite.command
@@ -42,7 +49,12 @@ module internal FnisGeneratorRows =
             else
                 None)
 
-    let readStored (database: StateDatabase) (workspace: Guid) (profile: Guid) (activeGeneration: Guid option) =
+    let readStored
+        (database: StateDatabase)
+        (workspace: Guid)
+        (profile: Guid)
+        (activeGeneration: Guid option)
+        =
         database.Enqueue(fun () ->
             match activeGeneration with
             | None -> None

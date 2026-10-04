@@ -23,7 +23,11 @@ type internal ProfileTransportImportMod
           Notes = value.Notes
           Comment = value.Comment
           Version = value.Version
-          Source = match value.Source with Some(PortableSource.Thunderstore source) -> ModConductor.Thunderstore.VersionReference.encode source | _ -> ""
+          Source =
+            match value.Source with
+            | Some(PortableSource.Thunderstore source) ->
+                ModConductor.Thunderstore.VersionReference.encode source
+            | _ -> ""
           Categories =
             value.Categories
             |> List.map (fun label ->

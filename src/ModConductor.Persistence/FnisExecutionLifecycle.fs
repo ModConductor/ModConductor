@@ -39,9 +39,11 @@ type internal FnisExecutionLifecycle(database: StateDatabase, access: LibraryAcc
             |> ModConductor.Deployment.DeploymentContextId.create workspace profile
             |> DeploymentRows.context connection transaction)
         |> Option.bind (fun context ->
-            context.Active |> Option.bind (DeploymentRows.generation connection transaction context.Id))
+            context.Active
+            |> Option.bind (DeploymentRows.generation connection transaction context.Id))
         |> Option.exists (fun generation ->
-            generation.References |> List.exists (function
+            generation.References
+            |> List.exists (function
                 | SourcePin.Mod(id, selected, _) -> id = modId && selected = version
                 | _ -> false))
 

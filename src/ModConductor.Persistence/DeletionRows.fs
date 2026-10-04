@@ -29,11 +29,16 @@ module internal DeletionRows =
                 [ "$mod", box (string modId) ])
 
     let profile connection transaction workspace (context: Context) =
-        ids connection transaction
+        ids
+            connection
+            transaction
             "SELECT id FROM profiles WHERE workspace_id=$workspace ORDER BY id"
             [ "$workspace", box (string workspace) ]
         |> List.tryFind (fun profile ->
-            ModConductor.Deployment.DeploymentContextId.create workspace profile context.Fingerprint = context.Id)
+            ModConductor.Deployment.DeploymentContextId.create
+                workspace
+                profile
+                context.Fingerprint = context.Id)
 
     let generations connection transaction workspace =
         let contexts =

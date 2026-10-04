@@ -83,10 +83,12 @@ module internal ComponentRoutes =
                 SkseLoaderStore(database).ReadStored(workspace, profile, componentGeneration)
 
             let fnisStore = FnisStore(database)
+
             let! fnis =
                 match componentGeneration with
                 | Some _ -> fnisStore.ReadStored(workspace, profile, componentGeneration)
                 | None -> fnisStore.ReadInstalled(workspace, profile)
+
             let! enb = EnbStore(database).Components(workspace, profile, componentGeneration)
 
             let selected =
