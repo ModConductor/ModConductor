@@ -88,11 +88,12 @@ try {
   }
 } finally { $zip.Dispose() }
 $installer = "$Output/ModConductor-$Version-win-x64-setup.exe"
+$nsisNotice = (Resolve-Path (Join-Path $root 'packaging/windows/notices/nsis-LICENSE.txt')).Path
 $nsisArguments = @(
   "/DPAYLOAD=$payload", "/DUNINSTALL_FILES=$uninstallFiles",
   "/DOUTPUT=$installer", "/DVERSION=$Version",
   "/DAPP_ICON=$root/ui/apps/mod_conductor/windows/runner/resources/app_icon.ico",
-  "/DNSIS_NOTICE=$root/packaging/windows/notices/nsis-LICENSE.txt",
+  "/DNSIS_NOTICE=$nsisNotice",
   "$root/tools/windows-installer.nsi"
 )
 & $Makensis @nsisArguments
