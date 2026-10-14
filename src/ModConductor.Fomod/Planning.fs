@@ -111,80 +111,88 @@ module Planning =
 
     let private addEntry
         (winners: Dictionary<string, ReviewedFile>)
-        count
+        (candidates: ResizeArray<ReviewedFile>)
         (source: string list)
         (mapping: FileMapping)
         label
         (entry: ArchiveEntry)
         =
-        if count >= 20000 then
-            Error "The installer expands to too many file mappings."
-        else
-            let suffix =
-                if mapping.Folder then
-                    LogicalPath.components entry.Path |> List.skip source.Length
-                elif mapping.AppendName then
-                    [ LogicalPath.components entry.Path |> List.last ]
-                else
-                    []
+        let suffix =
+            if mapping.Folder then
+                LogicalPath.components entry.Path |> List.skip source.Length
+            elif mapping.AppendName then
+                [ LogicalPath.components entry.Path |> List.last ]
+            else
+                []
 
-            LogicalPath.create (mapping.Destination @ suffix)
-            |> Result.mapError (fun _ ->
-                "An installer destination is unsafe. Use the manual layout.")
-            |> Result.map (fun destination ->
-                let id = Destinations.key destination
+        LogicalPath.create (mapping.Destination @ suffix)
+        |> Result.mapError (fun _ -> "An installer destination is unsafe. Use the manual layout.")
+        |> Result.map (fun destination ->
+            let id = Destinations.key destination
 
-                let replaced =
-                    match winners.TryGetValue id with
-                    | true, previous when previous.Source <> entry.Path ->
-                        previous.Replaces @ [ previous.Source ]
-                    | true, previous -> previous.Replaces
-                    | _ -> []
+            let replaced =
+                match winners.TryGetValue id with
+                | true, previous when previous.Source <> entry.Path ->
+                    previous.Replaces @ [ previous.Source ]
+                | true, previous -> previous.Replaces
+                | _ -> []
 
-                winners[id] <-
-                    { File =
-                        { Index = entry.Index
-                          Destination = destination }
-                      Source = entry.Path
-                      Choice = label
-                      Replaces = replaced }
+            let file =
+                { File =
+                    { Index = entry.Index
+                      Destination = destination }
+                  Source = entry.Path
+                  Choice = label
+                  Replaces = replaced }
 
-                count + 1)
+            winners[id] <- file
+            candidates.Add file)
 
     let private mapped (definition: Definition) (chosen: (FileMapping * string) list) =
         let files, folders = indexes definition
         let winners = Dictionary<string, ReviewedFile>()
+        let candidates = ResizeArray<ReviewedFile>()
 
         chosen
         |> List.sortBy (fun (mapping, _) -> mapping.Priority, mapping.Order)
         |> List.fold
             (fun outcome (mapping, label) ->
                 outcome
-                |> Result.bind (fun count ->
+                |> Result.bind (fun () ->
                     matching definition files folders mapping
                     |> Result.bind (fun (source, matches) ->
                         matches
                         |> List.fold
                             (fun outcome entry ->
                                 outcome
-                                |> Result.bind (fun count ->
-                                    addEntry winners count source mapping label entry))
-                            (Ok count))))
-            (Ok 0)
-        |> Result.bind (fun _ ->
+                                |> Result.bind (fun () ->
+                                    addEntry winners candidates source mapping label entry))
+                            (Ok()))))
+            (Ok())
+        |> Result.bind (fun () ->
             let values =
-                winners.Values
-                |> Seq.sortBy (fun file -> Destinations.key file.File.Destination)
+                candidates
                 |> Seq.toList
+                |> Destinations.merge (fun file -> file.File.Destination)
+                |> List.sortBy (fun file -> Destinations.key file.File.Destination)
 
             if values.IsEmpty then
                 Error "No files are selected. Change your choices or use the manual layout."
             else
-                Destinations.validate (values |> List.map _.File.Destination)
-                |> Result.map (fun () ->
+                let destinations = values |> List.map _.File.Destination |> Destinations.normalize
+
+                let values =
+                    List.map2
+                        (fun (value: ReviewedFile) path ->
+                            { value with
+                                File = { value.File with Destination = path } })
+                        values
+                        destinations
+
+                Ok
                     { Files = values
                       Name = definition.Name
-                      Version = definition.Version }))
+                      Version = definition.Version })
 
     let build (definition: Definition) (facts: Facts) (wizard: Wizard) =
         if wizard.Current.IsSome || wizard.Problem.IsSome then

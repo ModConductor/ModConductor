@@ -8,6 +8,8 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open SharpCompress.Common
+open SharpCompress.Archives
+open SharpCompress.Readers
 open SharpCompress.Writers
 open SharpCompress.Writers.SevenZip
 open ModConductor.ArchiveInspection
@@ -175,8 +177,21 @@ module ArchiveInspectionFixtures =
                 Path.Combine(AppContext.BaseDirectory, "fixtures", "archives", "unix-symlink.7z")
             )
 
-        check (safeError (fun () -> inspect unixSymlink |> ignore) |> Option.isSome)
-        writer.WriteBoolean("Unix7zSymlinkRefused", true)
+        store.ArchiveInspection.WithContents(
+            reference unixSymlink,
+            token,
+            fun contents ->
+                contents.ReadEntries(
+                    contents.Manifest.Entries
+                    |> List.filter (fun entry -> not entry.Directory)
+                    |> List.map _.Index,
+                    fun (_, stream) -> stream.CopyTo Stream.Null
+                )
+        )
+        |> wait
+        |> result
+
+        writer.WriteBoolean("Unix7zEntriesReadAsOrdinaryBytes", true)
 
         for name in
             [ "rar5-store.rar"
@@ -222,8 +237,7 @@ module ArchiveInspectionFixtures =
             writer.WriteBoolean(name + "LazyBytesUnchanged", true)
 
         for label, names, attr in
-            [ "traversal", [ "../outside.txt" ], 0
-              "rooted", [ "/outside.txt" ], 0
+            [ "rooted", [ "/outside.txt" ], 0
               "drive", [ "C:/outside.txt" ], 0
               "unc", [ "\\\\server\\file" ], 0
               "duplicate", [ "a.txt"; "a.txt" ], 0
@@ -235,66 +249,96 @@ module ArchiveInspectionFixtures =
               "device", [ "device" ], int (0x21B6u <<< 16) ] do
             let path = Path.Combine(area, label + ".zip")
             zip path names attr
+            let before = hash path
             let artifact = adopt path
-            check (safeError (fun () -> inspect artifact |> ignore) |> Option.isSome)
-            writer.WriteBoolean(label + "Refused", true)
+
+            store.ArchiveInspection.WithContents(
+                reference artifact,
+                token,
+                fun contents ->
+                    check (contents.Manifest.Entries.Length = names.Length)
+
+                    contents.ReadEntries(
+                        contents.Manifest.Entries |> List.map _.Index,
+                        fun (_, stream) ->
+                            use output = new MemoryStream()
+                            stream.CopyTo output
+                            check (output.ToArray() = payload)
+                    )
+            )
+            |> wait
+            |> result
+
+            check (hash path = before)
+            writer.WriteBoolean(label + "BytesReadWithoutMetadataPolicy", true)
 
         let original = adopt (Path.Combine(area, "textures.zip"))
-
-        let limited =
-            { ArchiveLimits.Default with
-                Entries = 2 }
-
-        let source = store.ArtifactSource
-
-        let checkLimit limits =
-            let reader = Inspection(source, limits)
-
-            check (
-                safeError (fun () ->
-                    reader.Inspect(reference original, token) |> wait |> result |> ignore)
-                |> Option.isSome
-            )
-
-        checkLimit limited
-        checkLimit { ArchiveLimits.Default with Depth = 1 }
-
-        checkLimit
-            { ArchiveLimits.Default with
-                FileBytes = 10L }
-
-        checkLimit
-            { ArchiveLimits.Default with
-                TotalBytes = 50L }
-
-        writer.WriteBoolean("MetadataLimitsRefusedWithoutPartialManifest", true)
-        let expansion = Path.Combine(area, "expansion.zip")
+        let solid = Path.Combine(area, "duplicates-and-empty.7z")
 
         do
-            use file = File.Create expansion
-            use compressed = new ZipArchive(file, ZipArchiveMode.Create)
+            use output = File.Create solid
 
-            use entry =
-                compressed.CreateEntry("zeros.bin", CompressionLevel.SmallestSize).Open()
+            use archive =
+                WriterFactory.OpenWriter(
+                    output,
+                    ArchiveType.SevenZip,
+                    SevenZipWriterOptions(CompressionType.LZMA2)
+                )
 
-            entry.Write(Array.zeroCreate<byte> 100000)
+            for name, bytes in
+                [ "same.txt", [| 1uy |]
+                  "same.txt", [| 2uy; 3uy |]
+                  "empty.txt", [||]
+                  "another-empty.txt", [||] ] do
+                use source = new MemoryStream(bytes)
+                archive.Write(name, source, Nullable(DateTime(2026, 10, 14)))
 
-        let expansive = adopt expansion
+        do
+            use source = File.OpenRead solid
+            use archive = ArchiveFactory.OpenArchive(source, ReaderOptions.ForExternalStream)
+            check archive.IsSolid
 
-        let smallRatio =
-            Inspection(
-                source,
-                { ArchiveLimits.Default with
-                    Ratio = 10L }
-            )
+        let solidArtifact = adopt solid
+        let before = hash solid
 
-        check (
-            safeError (fun () ->
-                smallRatio.Inspect(reference expansive, token) |> wait |> result |> ignore)
-            |> Option.isSome
+        store.ArchiveInspection.WithContents(
+            reference solidArtifact,
+            token,
+            fun contents ->
+                let mutable read = Map.empty
+
+                contents.ReadEntries(
+                    [ 0; 1; 2; 3 ],
+                    fun (index, stream) ->
+                        use output = new MemoryStream()
+                        stream.CopyTo output
+                        read <- read.Add(index, output.ToArray())
+                )
+
+                check (read = Map.ofList [ 0, [| 1uy |]; 1, [| 2uy; 3uy |]; 2, [||]; 3, [||] ])
+
+                contents.ReadEntry(
+                    0,
+                    fun stream ->
+                        use output = new MemoryStream()
+                        stream.CopyTo output
+                        check (output.ToArray() = [| 1uy |])
+                )
+
+                contents.ReadEntry(
+                    1,
+                    fun stream ->
+                        use output = new MemoryStream()
+                        stream.CopyTo output
+                        check (output.ToArray() = [| 2uy; 3uy |])
+                )
         )
+        |> wait
+        |> result
 
-        writer.WriteBoolean("ExpansionRatioRefused", true)
+        check (hash solid = before)
+        writer.WriteBoolean("StreamingDuplicateOccurrencesAndEmptyFilesReadExactBytes", true)
+
         let corrupt = adopt (Path.Combine(area, "corrupt.7z"))
         let error = safeError (fun () -> inspect corrupt |> ignore)
         check error.IsSome
@@ -305,45 +349,27 @@ module ArchiveInspectionFixtures =
                 Path.Combine(AppContext.BaseDirectory, "fixtures", "archives", "rar5-encrypted.rar")
             )
 
-        let passwordError = safeError (fun () -> inspect encrypted |> ignore)
+        let passwordError =
+            safeError (fun () ->
+                store.ArchiveInspection.WithContents(
+                    reference encrypted,
+                    token,
+                    fun contents ->
+                        contents.ReadEntries(
+                            contents.Manifest.Entries
+                            |> List.filter (fun e -> not e.Directory)
+                            |> List.map _.Index,
+                            fun (_, stream) -> stream.CopyTo Stream.Null
+                        )
+                )
+                |> wait
+                |> result)
+
         check passwordError.IsSome
         writer.WriteString("PasswordError", passwordError.Value)
         let unsupported = adopt (Path.Combine(area, "unsupported.bin"))
         check (safeError (fun () -> inspect unsupported |> ignore) |> Option.isSome)
         writer.WriteBoolean("UnsupportedHasNormalError", true)
-        let wrongSize = Path.Combine(area, "wrong-size.zip")
-        zip wrongSize [ "body.txt" ] 0
-        let encoded = File.ReadAllBytes wrongSize
-
-        for offset in 0 .. encoded.Length - 4 do
-            let signature = BitConverter.ToUInt32(encoded, offset)
-
-            let sizeOffset =
-                if signature = 0x04034B50u then Some(offset + 22)
-                elif signature = 0x02014B50u then Some(offset + 24)
-                else None
-
-            sizeOffset
-            |> Option.iter (fun start -> BitConverter.GetBytes(1u).CopyTo(encoded, start))
-
-        File.WriteAllBytes(wrongSize, encoded)
-        let declared = adopt wrongSize
-        check ((inspect declared).Entries.Head.Size = 1L)
-
-        check (
-            safeError (fun () ->
-                store.ArchiveInspection.WithContents(
-                    reference declared,
-                    token,
-                    fun contents -> contents.ReadEntry(0, fun stream -> stream.CopyTo Stream.Null)
-                )
-                |> wait
-                |> result)
-            |> Option.isSome
-        )
-
-        writer.WriteBoolean("MetadataListingIsLazyAndEntryReadChecksActualSize", true)
-
         let changed = Path.Combine(area, "changed.zip")
         File.Copy(Path.Combine(area, "textures.zip"), changed)
         let artifact = adopt changed

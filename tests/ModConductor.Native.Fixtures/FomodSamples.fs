@@ -19,7 +19,7 @@ module FomodSamples =
   <requiredInstallFiles><folder source="Core" destination=""/></requiredInstallFiles>
   <installSteps order="Explicit">
     <installStep name="Texture quality"><optionalFileGroups><group name="Texture quality" type="SelectExactlyOne"><plugins order="Explicit">
-      <plugin name="2K textures"><description>Water textures at 2048 × 2048 pixels.</description><files><file source="Textures/2K/water.dds" destination="textures/water.dds" priority="10"/><file source="Textures/2K/water.dds" destination="textures/second.dds" priority="10"/></files><conditionFlags><flag name="quality">2k</flag></conditionFlags><typeDescriptor><type name="Optional"/></typeDescriptor></plugin>
+      <plugin name="2K textures"><description>Water textures at 2048 × 2048 pixels.</description><files><file source="Textures/2K/water.dds" destination="textures/water.dds" priority="10"/><file source="Textures/2K/water.dds" destination="Textures/second.dds" priority="10"/></files><conditionFlags><flag name="quality">2k</flag></conditionFlags><typeDescriptor><type name="Optional"/></typeDescriptor></plugin>
       <plugin name="4K textures"><description>High resolution water.</description><files><file source="Textures/4K/water.dds" destination="textures/water.dds" priority="10"/></files><conditionFlags><flag name="quality">4k</flag></conditionFlags><typeDescriptor><type name="Optional"/></typeDescriptor></plugin>
     </plugins></group></optionalFileGroups></installStep>
     <installStep name="Patches"><visible><flagDependency flag="quality" value="2k"/></visible><optionalFileGroups order="Explicit">

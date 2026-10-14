@@ -9,6 +9,7 @@ open System.Threading
 open ModConductor.ArchiveInstallation
 open ModConductor.ArtifactLibrary
 open ModConductor.ModLibrary
+open ModConductor.ModMaintenance
 open ModConductor.ModSelection
 open ModConductor.Persistence
 open ModConductor.Platform
@@ -68,21 +69,16 @@ module InstallationFixtures =
             [ "First/Data/Meshes/a.nif", "first"; "Second/Data/Meshes/b.nif", "second" ]
 
         ArchiveInspectionFixtures.create area
-        let malformed = Path.Combine(area, "wrong-size.zip")
-        File.Copy(Path.Combine(area, "textures.zip"), malformed)
+        let malformed = Path.Combine(area, "corrupt-payload.zip")
+        zipEntries malformed [ "textures/broken.dds", "ordinary compressed payload" ]
         let bytes = File.ReadAllBytes malformed
 
-        for i in 0 .. bytes.Length - 4 do
-            let signature = BitConverter.ToUInt32(bytes, i)
+        let payloadOffset =
+            30
+            + int (BitConverter.ToUInt16(bytes, 26))
+            + int (BitConverter.ToUInt16(bytes, 28))
 
-            let offset =
-                if signature = 0x04034B50u then Some(i + 22)
-                elif signature = 0x02014B50u then Some(i + 24)
-                else None
-
-            offset
-            |> Option.iter (fun start -> BitConverter.GetBytes(1u).CopyTo(bytes, start))
-
+        bytes[payloadOffset] <- 7uy
         File.WriteAllBytes(malformed, bytes)
 
     let worker state (workspace: string) (artifact: string) (id: string) checkpoint =
@@ -202,6 +198,131 @@ module InstallationFixtures =
                 |> wait
                 |> result
 
+            let mergedPath = Path.Combine(area, "merged-tree.zip")
+
+            zipEntries
+                mergedPath
+                [ "Wrapper/Data/meshes/actors/a.nif", "first"
+                  "Wrapper/data/Meshes/ACTORS/b.nif", "second"
+                  "Wrapper/Data/MESHES/actors/A.nif", "replacement"
+                  "Wrapper/Data/textures/old", "stale file"
+                  "Wrapper/Data/Textures/old/new.dds", "folder replaces file"
+                  "Wrapper/Data/sound/old.wav/nested.txt", "stale folder"
+                  "Wrapper/Data/Sound/old.wav", "file replaces folder"
+                  "Wrapper/Data/empty.txt", "" ]
+
+            let originalMerged = File.ReadAllBytes mergedPath
+            let merged = adopt mergedPath
+
+            let mergedDraft =
+                store.Installations.Prepare(reference merged, token) |> wait |> result
+
+            check
+                "SharedSourceFoldersAndReplacementProduceOneTree"
+                (mergedDraft.Files.Length = 5 && mergedDraft.Plan.IsSome)
+
+            let mergedId = Guid.NewGuid()
+
+            store.Installations.Start(workspace, mergedDraft.Id, mergedDraft.Revision, mergedId)
+            |> result
+            |> ignore
+
+            let mergedJob = untilStopped store workspace mergedId
+
+            if mergedJob.State <> InstallationState.Complete then
+                failwith (defaultArg mergedJob.Problem "Merged installation incomplete")
+
+            let mergedVersion = library.Version(mergedJob.VersionId.Value, 0) |> wait |> result
+
+            let bytes =
+                mergedVersion.Entries
+                |> List.map (fun entry ->
+                    Destinations.key entry.Path,
+                    library.ReadPayload(mergedVersion.Id, entry.Payload.Id, 0L, 65536)
+                    |> wait
+                    |> result
+                    |> Encoding.UTF8.GetString)
+                |> Map.ofList
+
+            check
+                "MergedTreePublishesWinningAndEmptyBytes"
+                (bytes = Map.ofList
+                    [ "MESHES/ACTORS/B.NIF", "second"
+                      "MESHES/ACTORS/A.NIF", "replacement"
+                      "TEXTURES/OLD/NEW.DDS", "folder replaces file"
+                      "SOUND/OLD.WAV", "file replaces folder"
+                      "EMPTY.TXT", "" ])
+
+            let prefixes =
+                mergedVersion.Entries
+                |> List.collect (fun entry ->
+                    let parts = LogicalPath.components entry.Path
+
+                    [ for count in 1 .. parts.Length - 1 ->
+                          LogicalPath.create (List.take count parts) |> result ])
+                |> List.groupBy Destinations.key
+
+            check
+                "PublishedDirectoriesHaveOneSpellingAndArchiveStaysUnchanged"
+                (prefixes |> List.forall (fun (_, paths) -> (paths |> List.distinct).Length = 1)
+                 && File.ReadAllBytes mergedPath = originalMerged)
+
+            let updatePath = Path.Combine(area, "merged-update.zip")
+            zipEntries updatePath [ "Data/mEsHeS/AcToRs/c.nif", "added" ]
+            let updateArchive = adopt updatePath
+
+            let updateDraft =
+                store.Installations.Prepare(reference updateArchive, token) |> wait |> result
+
+            let currentMerged =
+                (library.Scan(workspace, 100) |> wait |> result).Entries
+                |> List.find (fun entry -> entry.Id = mergedJob.ModId.Value)
+
+            let update =
+                store.Installations.PrepareUpdate(
+                    workspace,
+                    updateDraft.Id,
+                    updateDraft.Revision,
+                    currentMerged.Id,
+                    currentMerged.Revision,
+                    UpdateMode.Merge,
+                    Set.empty,
+                    "2"
+                )
+                |> wait
+                |> result
+
+            let updateJob =
+                store.Installations.StartUpdate(workspace, update.Id, Guid.NewGuid()) |> result
+
+            let updated = untilStopped store workspace updateJob.Id
+
+            if updated.State <> InstallationState.Complete then
+                failwith (defaultArg updated.Problem "Merged update incomplete")
+
+            let updatedVersion = library.Version(updated.VersionId.Value, 0) |> wait |> result
+
+            let added =
+                updatedVersion.Entries
+                |> List.find (fun entry -> Destinations.key entry.Path = "MESHES/ACTORS/C.NIF")
+
+            let previous =
+                mergedVersion.Entries
+                |> List.find (fun entry -> Destinations.key entry.Path = "MESHES/ACTORS/B.NIF")
+
+            check
+                "MergeUpdateRetainsPayloadsAndExistingDirectorySpelling"
+                (updatedVersion.Entries.Length = 6
+                 && mergedVersion.Entries
+                    |> List.forall (fun entry -> List.contains entry updatedVersion.Entries)
+                 && (LogicalPath.components added.Path |> List.take 2) = (LogicalPath.components
+                                                                              previous.Path
+                                                                          |> List.take 2)
+                 && (library.ReadPayload(updatedVersion.Id, added.Payload.Id, 0L, 65536)
+                     |> wait
+                     |> result
+                     |> Encoding.UTF8.GetString) = "added")
+
             let nested = adopt (Path.Combine(area, "Nested data.zip"))
 
             let nestedDraft =
@@ -249,7 +370,7 @@ module InstallationFixtures =
                 )
                 |> result
 
-            let rejected =
+            let replaced =
                 store.Installations.Change(
                     workspace,
                     changed.Id,
@@ -259,21 +380,27 @@ module InstallationFixtures =
                         [ "textures"; "renamed.dds" ]
                     )
                 )
-
-            let unchanged =
-                store.Installations.Draft(workspace, changed.Id, changed.Revision) |> result
-
-            let exactRefusal =
-                match rejected with
-                | Error message ->
-                    message = "Two files have the same destination. Change a destination or exclude a file."
-                | Ok _ -> false
+                |> result
 
             check
-                "ConflictingRemapLeavesConfirmedDraftUnchanged"
-                (exactRefusal
-                 && unchanged.Revision = changed.Revision
-                 && unchanged.Plan = changed.Plan)
+                "ConflictingRemapUsesLastSelectedFile"
+                (replaced.Files.Length = 1
+                 && replaced.Files.Head.Index = changed.Files[1].Index
+                 && replaced.Plan.Value.Files = replaced.Files)
+
+            let fresh = store.Installations.Prepare(reference archive, token) |> wait |> result
+
+            let changed =
+                store.Installations.Change(
+                    workspace,
+                    fresh.Id,
+                    fresh.Revision,
+                    LayoutChange.Destination(
+                        [ "Rivière"; "Data"; "textures"; "water.dds" ],
+                        [ "textures"; "renamed.dds" ]
+                    )
+                )
+                |> result
 
             let plan = changed.Plan.Value
             let job = Guid.NewGuid()
@@ -457,7 +584,7 @@ module InstallationFixtures =
                 ((untilStopped store workspace cancelId).State = InstallationState.Stopped)
 
             store.Installations.Discard(workspace, cancelId) |> wait |> result |> ignore
-            let corrupt = adopt (Path.Combine(area, "wrong-size.zip"))
+            let corrupt = adopt (Path.Combine(area, "corrupt-payload.zip"))
             let draft = store.Installations.Prepare(reference corrupt, token) |> wait |> result
             let corruptId = Guid.NewGuid()
 

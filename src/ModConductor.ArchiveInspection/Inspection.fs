@@ -8,13 +8,11 @@ open SharpCompress.Readers
 open SharpCompress.Common
 open ModConductor.ArtifactLibrary
 
-type Inspection(source: IArtifactSource, ?limits: ArchiveLimits, ?nested: INestedArchiveSource) =
-    let limits = defaultArg limits ArchiveLimits.Default
-
+type Inspection(source: IArtifactSource, ?nested: INestedArchiveSource) =
     let read sha (file: Stream) token consume =
         let mutable format = Nullable<ArchiveType>()
 
-        match BethesdaArchive.tryOpen file sha limits token with
+        match BethesdaArchive.tryOpen file sha token with
         | Some contents -> consume (ArchiveContents contents)
         | None ->
             file.Position <- 0L
@@ -25,12 +23,7 @@ type Inspection(source: IArtifactSource, ?limits: ArchiveLimits, ?nested: INeste
             file.Position <- 0L
             use archive = ArchiveFactory.OpenArchive(file, ReaderOptions.ForExternalStream)
 
-            consume (
-                ArchiveContents(
-                    SharpArchiveContents(archive, sha, file.Length, limits, token)
-                    :> IArchiveContents
-                )
-            )
+            consume (ArchiveContents(SharpArchiveContents(archive, sha, token) :> IArchiveContents))
 
     member _.WithOwnedStream(sha, file: Stream, token, consume) = read sha file token consume
 

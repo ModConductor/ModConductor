@@ -34,19 +34,9 @@ module internal UpdateInspection =
                     |> Result.bind (fun row ->
                         row.Entry.CurrentVersion
                         |> Option.bind (fun id ->
-                            LibraryRows.version
-                                connection
-                                null
-                                id
-                                0
-                                (ArchiveLimits.Default.Entries + 1))
+                            LibraryRows.version connection null id 0 Int32.MaxValue)
                         |> required "Save a complete version before updating this mod."
                         |> Result.map (fun version -> row, version))
-                    |> Result.bind (fun (row, version) ->
-                        if version.Entries.Length > ArchiveLimits.Default.Entries then
-                            Error "This mod has too many files for an archive update."
-                        else
-                            Ok(row, version))
                     |> Result.bind (fun (row, version) ->
                         LibraryRows.library connection null row.Entry.WorkspaceId
                         |> required "The mod library is unavailable."
@@ -104,7 +94,7 @@ module internal UpdateInspection =
                                             SourceFiles.scan
                                                 source
                                                 (Set.singleton held.Identity)
-                                                ArchiveLimits.Default.Entries
+                                                Int32.MaxValue
                                                 ignore
                                         with
                                         | Error _ ->

@@ -279,7 +279,7 @@ module FomodFixtures =
             |> Set.ofList
 
         check
-            "FlagsPrioritiesAndInstallFlagsProduceExactManifest"
+            "SharedFolderCasingPreservesFlagsPriorityAndExactManifest"
             (outputs = set
                 [ "textures/water.dds"
                   "textures/second.dds"

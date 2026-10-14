@@ -10,7 +10,7 @@ open ModConductor.Platform
 module internal BethesdaArchive =
     open BethesdaArchiveCommon
 
-    let tryOpen (source: Stream) digest (limits: ArchiveLimits) token =
+    let tryOpen (source: Stream) digest token =
         if not source.CanSeek then
             unsupported ()
 
@@ -22,9 +22,9 @@ module internal BethesdaArchive =
             let magic = readBytes source 4 |> fourcc
 
             match magic with
-            | "BSA\000" -> Some(BsaArchive.openContents source digest limits token)
-            | "BTDX" -> Some(Ba2Archive.openContents source digest limits token)
-            | "\000\001\000\000" -> Some(MorrowindArchive.openContents source digest limits token)
+            | "BSA\000" -> Some(BsaArchive.openContents source digest token)
+            | "BTDX" -> Some(Ba2Archive.openContents source digest token)
+            | "\000\001\000\000" -> Some(MorrowindArchive.openContents source digest token)
             | _ ->
                 seek source 0L
                 None

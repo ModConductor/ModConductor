@@ -7,7 +7,7 @@ open ModConductor.Platform
 open BethesdaArchiveCommon
 
 module internal BsaArchive =
-    let openContents (source: Stream) digest (limits: ArchiveLimits) token =
+    let openContents (source: Stream) digest token =
         let version = u32 source
 
         if version <> 103u && version <> 104u && version <> 105u then
@@ -27,13 +27,8 @@ module internal BsaArchive =
         if flags &&& 0x03u <> 0x03u || flags &&& 0x260u <> 0u then
             unsupported ()
 
-        if
-            folderCount < 0
-            || fileCount < 0
-            || fileCount > limits.Entries
-            || folderCount > limits.Entries
-        then
-            refuse "The archive contains too many entries."
+        if folderCount < 0 || fileCount < 0 then
+            malformed ()
 
         let folderRecordBytes = if version = 105u then 24L else 16L
         range source folderOffset (int64 folderCount * folderRecordBytes)
@@ -90,7 +85,7 @@ module internal BsaArchive =
             malformed ()
 
         let namesStart = source.Position
-        let names = [ for _ in 1..fileCount -> terminatedName limits source ]
+        let names = [ for _ in 1..fileCount -> terminatedName source ]
 
         if source.Position - namesStart <> declaredFileNames then
             malformed ()
@@ -114,7 +109,7 @@ module internal BsaArchive =
                       else
                           folder + "\\" + names[index]
 
-                  let path = ArchiveNames.parse limits false logicalName
+                  let path = ArchiveNames.parse logicalName
                   let saved = source.Position
                   seek source dataOffset
                   let mutable prefix = 0L
@@ -159,7 +154,6 @@ module internal BsaArchive =
                         Prefix = None
                         Parts = [ part ] } ]
 
-        let manifest =
-            validateEntries digest ("BSA v" + string version) source.Length limits stored
+        let manifest = manifest digest ("BSA v" + string version) stored
 
-        Contents(source, stored, manifest, source.Length, limits, token) :> IArchiveContents
+        Contents(source, stored, manifest, token) :> IArchiveContents

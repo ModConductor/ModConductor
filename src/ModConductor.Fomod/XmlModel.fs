@@ -31,10 +31,7 @@ module XmlModel =
 
     let private always = Condition.All []
 
-    let rec private condition depth (node: XElement) =
-        if depth > 32 then
-            refuse "The installer conditions are too deeply nested. Use the manual layout."
-
+    let rec private condition (node: XElement) =
         match node.Name.LocalName with
         | "fileDependency" ->
             shape [] [ "file"; "state" ] node
@@ -71,7 +68,7 @@ module XmlModel =
                 [ "operator" ]
                 node
 
-            let values = node.Elements() |> Seq.map (condition (depth + 1)) |> Seq.toList
+            let values = node.Elements() |> Seq.map condition |> Seq.toList
 
             match optional "operator" "And" node with
             | "And" -> Condition.All values
@@ -79,7 +76,7 @@ module XmlModel =
             | _ -> refuse "The installer contains an unsupported condition operator."
 
     let private dependency name node =
-        child name node |> Option.map (condition 0) |> Option.defaultValue always
+        child name node |> Option.map condition |> Option.defaultValue always
 
     let private image name node =
         child name node
@@ -119,7 +116,7 @@ module XmlModel =
             []
             node
 
-        let mutable mappingId, optionId, groupCount = 0, 0, 0
+        let mutable mappingId, optionId = 0, 0
 
         let mappings (parent: XElement) =
             shape [ "file"; "folder" ] [] parent
@@ -132,8 +129,6 @@ module XmlModel =
 
                   mappingId <- mappingId + 1
 
-                  if mappingId > 20000 then
-                      refuse "The installer contains too many file mappings."
 
                   let source =
                       attribute "source" item
@@ -173,7 +168,7 @@ module XmlModel =
                           shape [ "dependencies"; "type" ] [] item
 
                           yield
-                              condition 0 (requiredChild "dependencies" item),
+                              condition (requiredChild "dependencies" item),
                               typed (requiredChild "type" item) ]
 
                 TypeDescriptor.Dependent(fallback, values)
@@ -187,8 +182,6 @@ module XmlModel =
 
             optionId <- optionId + 1
 
-            if optionId > 4096 then
-                refuse "The installer contains too many choices."
 
             let flags =
                 child "conditionFlags" item
@@ -210,10 +203,7 @@ module XmlModel =
 
         let parseGroup (item: XElement) =
             shape [ "plugins" ] [ "name"; "type" ] item
-            groupCount <- groupCount + 1
 
-            if groupCount > 512 then
-                refuse "The installer contains too many choice groups."
 
             let plugins = requiredChild "plugins" item
             shape [ "plugin" ] [ "order" ] plugins
@@ -236,8 +226,6 @@ module XmlModel =
                 shape [ "installStep" ] [ "order" ] parent
                 let steps = children "installStep" parent
 
-                if steps.Length > 128 then
-                    refuse "The installer contains too many steps."
 
                 steps
                 |> List.map (fun item ->
@@ -267,7 +255,7 @@ module XmlModel =
                       shape [ "dependencies"; "files" ] [] item
 
                       yield
-                          condition 0 (requiredChild "dependencies" item),
+                          condition (requiredChild "dependencies" item),
                           mappings (requiredChild "files" item) ])
             |> Option.defaultValue []
 

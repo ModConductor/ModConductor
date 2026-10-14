@@ -554,50 +554,14 @@ module BethesdaArchiveFixtures =
 
         writer.WriteBoolean("UnsupportedAndMalformedBa2VariantsRefused", true)
 
-        use limitedFile = File.OpenRead bsaPath
-
-        let limited =
-            Inspection(
-                Unchecked.defaultof<IArtifactSource>,
-                { ArchiveLimits.Default with
-                    FileBytes = 8L }
-            )
-
-        check (
-            safe (fun () ->
-                limited.WithOwnedStream(bsaBefore, limitedFile, token, fun c -> c.Manifest)
-                |> ignore)
-            |> Option.isSome
-        )
-
-        writer.WriteBoolean("BethesdaEntryLimitRefused", true)
-
         let ratioPath = Path.Combine(area, "mixed-ratio.ba2")
         mixedRatioTexture ratioPath
-        use ratioFile = File.OpenRead ratioPath
+        let mixed = adopt ratioPath
+        let mixedManifest = inspect mixed
 
-        let ratioInspection =
-            Inspection(
-                Unchecked.defaultof<IArtifactSource>,
-                { ArchiveLimits.Default with
-                    Ratio = 2L }
-            )
-
-        let mutable published = false
-
-        check (
-            safe (fun () ->
-                ratioInspection.WithOwnedStream(
-                    hash ratioPath,
-                    ratioFile,
-                    token,
-                    fun _ -> published <- true
-                ))
-            |> Option.isSome
-        )
-
-        check (not published)
-        writer.WriteBoolean("MixedDx10CompressedPartRatioRefusedWithoutManifest", true)
+        check (mixedManifest.Entries.Length = 1)
+        check ((extract mixed 0).Length = int mixedManifest.TotalSize)
+        writer.WriteBoolean("MixedDx10CompressedPartsReadWithoutRatioPolicy", true)
 
         let changed = Path.Combine(area, "changed-v105.bsa")
         File.Copy(bsaPath, changed)

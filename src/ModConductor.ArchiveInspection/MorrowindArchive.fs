@@ -6,13 +6,7 @@ open ModConductor.Platform
 open BethesdaArchiveCommon
 
 module internal MorrowindArchive =
-    let private entries
-        (source: Stream)
-        count
-        hashes
-        (limits: ArchiveLimits)
-        (token: CancellationToken)
-        =
+    let private entries (source: Stream) count hashes (token: CancellationToken) =
         let records = [ for _ in 1..count -> int64 (u32 source), int64 (u32 source) ]
         let offsets = [ for _ in 1..count -> int64 (u32 source) ]
         let names = source.Position
@@ -27,7 +21,7 @@ module internal MorrowindArchive =
                   malformed ()
 
               seek source position
-              let name = terminatedName limits source
+              let name = terminatedName source
 
               if source.Position > hashes then
                   malformed ()
@@ -35,7 +29,7 @@ module internal MorrowindArchive =
               range source (data + offset) size
 
               yield
-                  { Path = ArchiveNames.parse limits false name
+                  { Path = ArchiveNames.parse name
                     Expanded = size
                     Compressed = None
                     Prefix = None
@@ -45,12 +39,12 @@ module internal MorrowindArchive =
                           Expanded = size
                           Codec = Raw } ] } ]
 
-    let openContents (source: Stream) digest (limits: ArchiveLimits) token =
+    let openContents (source: Stream) digest token =
         let hashes = 12L + int64 (u32 source)
         let count = int (u32 source)
 
-        if count < 0 || count > limits.Entries then
-            refuse "The archive contains too many entries."
+        if count < 0 then
+            malformed ()
 
         let metadata = 12L + int64 count * 12L
 
@@ -58,6 +52,6 @@ module internal MorrowindArchive =
             malformed ()
 
         range source 12L (hashes - 12L + int64 count * 8L)
-        let stored = entries source count hashes limits token
-        let manifest = validateEntries digest "BSA v256" source.Length limits stored
-        Contents(source, stored, manifest, source.Length, limits, token) :> IArchiveContents
+        let stored = entries source count hashes token
+        let manifest = manifest digest "BSA v256" stored
+        Contents(source, stored, manifest, token) :> IArchiveContents

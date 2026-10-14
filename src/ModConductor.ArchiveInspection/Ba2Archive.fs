@@ -12,7 +12,7 @@ module internal Ba2Archive =
     let private overlaps start length otherStart otherEnd =
         length > 0L && start < otherEnd && otherStart < start + length
 
-    let openContents (source: Stream) digest (limits: ArchiveLimits) token =
+    let openContents (source: Stream) digest token =
         let version = u32 source
 
         if
@@ -37,8 +37,8 @@ module internal Ba2Archive =
 
         let namesOffset = int64 namesOffsetRaw
 
-        if count < 0 || count > limits.Entries then
-            refuse "The archive contains too many entries."
+        if count < 0 then
+            malformed ()
 
         let headerBytes =
             if version = 2u then 32L
@@ -56,16 +56,10 @@ module internal Ba2Archive =
             else
                 let start = source.Position
                 let mutable length = headerBytes
-                let mutable totalChunks = 0
 
                 for _ in 1..count do
                     readBytes source 13 |> ignore
                     let chunks = readByte source
-                    totalChunks <- totalChunks + chunks
-
-                    if totalChunks > limits.Entries then
-                        refuse "The archive contains too much entry metadata."
-
                     length <- length + 24L + int64 chunks * 24L
                     seek source (source.Position + 10L + int64 chunks * 24L)
 
@@ -171,9 +165,6 @@ module internal Ba2Archive =
                   if length = 0 then
                       malformed ()
 
-                  if length > limits.PathCharacters then
-                      refuse "An archive path is empty or too long."
-
                   yield readBytes source length |> decodeName ]
 
         let namesEnd = source.Position
@@ -193,7 +184,7 @@ module internal Ba2Archive =
 
         let stored =
             [ for index in 0 .. count - 1 do
-                  let path = ArchiveNames.parse limits false names[index]
+                  let path = ArchiveNames.parse names[index]
 
                   if kind = "GNRL" then
                       let part, packed = general[index]
@@ -222,12 +213,6 @@ module internal Ba2Archive =
                             Prefix = Some header
                             Parts = parts } ]
 
-        let manifest =
-            validateEntries
-                digest
-                ("BA2 v" + string version + " " + kind)
-                source.Length
-                limits
-                stored
+        let manifest = manifest digest ("BA2 v" + string version + " " + kind) stored
 
-        Contents(source, stored, manifest, source.Length, limits, token) :> IArchiveContents
+        Contents(source, stored, manifest, token) :> IArchiveContents

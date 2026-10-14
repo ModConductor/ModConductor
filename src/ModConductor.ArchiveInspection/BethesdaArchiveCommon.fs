@@ -27,7 +27,6 @@ module internal BethesdaArchiveCommon =
           Parts: DataPart list }
 
     let private utf8 = UTF8Encoding(false, true)
-    let refuse message = ArchiveNames.refuse message
 
     let malformed () =
         raise (InvalidDataException "The Bethesda archive is malformed.")
@@ -97,7 +96,7 @@ module internal BethesdaArchiveCommon =
         with :? DecoderFallbackException ->
             malformed ()
 
-    let terminatedName (limits: ArchiveLimits) source =
+    let terminatedName source =
         use bytes = new MemoryStream()
         let mutable done' = false
 
@@ -107,75 +106,22 @@ module internal BethesdaArchiveCommon =
             if value = 0 then
                 done' <- true
             else
-                if bytes.Length >= int64 limits.PathCharacters then
-                    refuse "An archive path is empty or too long."
-
                 bytes.WriteByte(byte value)
 
         decodeName (bytes.ToArray())
 
-    let validateEntries
-        digest
-        format
-        compressedLength
-        (limits: ArchiveLimits)
-        (stored: StoredEntry list)
-        =
-        if stored.Length > limits.Entries then
-            refuse "The archive contains too many entries."
-
-        let mutable total = 0L
-        let mutable names = 0
-
-        let entries =
+    let manifest digest format (stored: StoredEntry list) =
+        { Sha256 = digest
+          Format = format
+          Entries =
             stored
             |> List.mapi (fun index entry ->
-                let components = LogicalPath.components entry.Path
-                names <- names + (components |> List.sumBy (fun value -> value.Length))
-
-                if names > limits.NameCharacters then
-                    refuse "The archive contains too much filename data."
-
-                if entry.Expanded < 0L || entry.Expanded > limits.FileBytes then
-                    refuse "An archive entry exceeds the file size limit."
-
-                if entry.Expanded > limits.TotalBytes - total then
-                    refuse "The archive exceeds the expanded size limit."
-
-                for part in entry.Parts do
-                    match part.Codec with
-                    | Raw -> ()
-                    | _ when
-                        part.Stored <= 0L
-                        || decimal part.Expanded > decimal limits.Ratio * decimal part.Stored
-                        ->
-                        refuse "The archive exceeds the expansion ratio limit."
-                    | _ -> ()
-
-                total <- total + entry.Expanded
-
-                match entry.Compressed with
-                | Some packed when
-                    packed > 0L && decimal entry.Expanded > decimal limits.Ratio * decimal packed
-                    ->
-                    refuse "The archive exceeds the expansion ratio limit."
-                | _ -> ()
-
                 { Index = index
                   Path = entry.Path
                   Directory = false
                   Size = entry.Expanded
                   CompressedSize = entry.Compressed })
-
-        if decimal total > decimal limits.Ratio * decimal (max 1L compressedLength) then
-            refuse "The archive exceeds the expansion ratio limit."
-
-        ArchiveNames.validate limits entries
-
-        { Sha256 = digest
-          Format = format
-          Entries = entries
-          TotalSize = total }
+          TotalSize = stored |> List.sumBy _.Expanded }
 
     let private partStream (source: Stream) token part =
         seek source part.Offset
@@ -194,8 +140,6 @@ module internal BethesdaArchiveCommon =
             source: Stream,
             stored: StoredEntry list,
             manifest: ArchiveManifest,
-            compressedLength: int64,
-            limits: ArchiveLimits,
             token: CancellationToken
         ) =
         interface IArchiveContents with
@@ -209,18 +153,6 @@ module internal BethesdaArchiveCommon =
                     || indices |> List.exists (fun i -> i < 0 || i >= stored.Length)
                 then
                     invalidArg (nameof indices) "Choose file entries from this manifest."
-
-                let mutable decoded = 0L
-
-                let count amount =
-                    decoded <- decoded + amount
-
-                    if
-                        decoded > limits.TotalBytes
-                        || decimal decoded > decimal limits.Ratio
-                                             * decimal (max 1L compressedLength)
-                    then
-                        refuse "The archive entry read exceeds the expanded data limit."
 
                 for index in indices |> List.sort do
                     token.ThrowIfCancellationRequested()
@@ -237,7 +169,7 @@ module internal BethesdaArchiveCommon =
                            |> List.map (fun part -> fun () -> partStream source token part))
 
                     use stream = new SequenceStream(factories, entry.Expanded)
-                    use bounded = new EntryRead(stream, entry.Expanded, count, token)
+                    use bounded = new EntryRead(stream, entry.Expanded, token)
                     consume (index, bounded)
                     bounded.CopyTo Stream.Null
 

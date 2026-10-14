@@ -11,9 +11,13 @@ open ModConductor.Platform
 module Layout =
     let private refuse message = raise (InstallationException message)
 
-    let private starts prefix path =
+    let private starts (prefix: string list) (path: string list) =
         List.length prefix <= List.length path
-        && List.take (List.length prefix) path = prefix
+        && List.forall2
+            (fun (a: string) (b: string) ->
+                String.Equals(a.Normalize(), b.Normalize(), StringComparison.OrdinalIgnoreCase))
+            prefix
+            (List.take (List.length prefix) path)
 
     let private path parts =
         LogicalPath.create parts
@@ -73,7 +77,7 @@ module Layout =
 
                       if i < parts.Length - 1 && (name = "data" || name = "data files") then
                           yield List.take (i + 1) parts ])
-            |> List.distinct
+            |> List.distinctBy (List.map (fun part -> part.Normalize().ToUpperInvariant()))
 
         match candidates with
         | [ root ] -> Some root
@@ -133,6 +137,16 @@ module Layout =
         SHA256.HashData(buffer.ToArray()) |> Convert.ToHexStringLower
 
     let private finish (draft: InstallationDraft) =
+        let files =
+            Destinations.merge (fun (file: SelectedFile) -> file.Destination) draft.Files
+
+        let destinations = files |> List.map _.Destination |> Destinations.normalize
+
+        let draft =
+            { draft with
+                Files =
+                    List.map2 (fun file path -> { file with Destination = path }) files destinations }
+
         if draft.Files.IsEmpty then
             Ok { draft with Plan = None }
         else
@@ -409,9 +423,27 @@ module Layout =
                 if selected |> List.exists (fun file -> not (List.contains file draft.Files)) then
                     Error "The archive selection changed. Review the layout again."
                 else
-                    Destinations.validate (
-                        (selected |> List.map _.Destination) @ (target.Existing |> List.map _.Path)
-                    )
+                    let destinations =
+                        (target.Existing |> List.map _.Path) @ (selected |> List.map _.Destination)
+                        |> Destinations.normalize
+
+                    let existing, incoming = List.splitAt target.Existing.Length destinations
+
+                    let target =
+                        { target with
+                            Existing =
+                                List.map2
+                                    (fun file path -> { file with Path = path })
+                                    target.Existing
+                                    existing }
+
+                    let selected =
+                        List.map2
+                            (fun file path -> { file with Destination = path })
+                            selected
+                            incoming
+
+                    Destinations.validate destinations
                     |> Result.map (fun () -> updatePlan draft name version target selected source))
 
     let confirm (plan: InstallationPlan) (manifest: ArchiveManifest) =

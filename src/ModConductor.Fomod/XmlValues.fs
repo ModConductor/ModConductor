@@ -113,12 +113,11 @@ module internal XmlValues =
             |> List.sortWith (fun a b -> StringComparer.Ordinal.Compare(nameOf b, nameOf a))
         | _ -> refuse "The installer has an unsupported sort order."
 
-    let document maxCharacters (stream: Stream) =
+    let document (stream: Stream) =
         let settings =
             XmlReaderSettings(
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = maxCharacters,
                 CloseInput = false
             )
 

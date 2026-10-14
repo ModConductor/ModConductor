@@ -41,7 +41,12 @@ type internal InstallationPayloads(database: StateDatabase, access: LibraryAcces
             |> Option.map (fun target ->
                 let version =
                     db (fun () ->
-                        LibraryRows.version connection null target.PreviousVersion 0 20001
+                        LibraryRows.version
+                            connection
+                            null
+                            target.PreviousVersion
+                            0
+                            Int32.MaxValue
                         |> Option.get)
 
                 for entry in version.Entries do
