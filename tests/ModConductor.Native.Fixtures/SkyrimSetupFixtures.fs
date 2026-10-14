@@ -111,6 +111,9 @@ module SkyrimSetupFixtures =
         let mutable waitForFnisNexus = false
         let mutable enbCancels = 0
         let mutable runCalls = 0
+        let mutable waitCalls = 0
+        let mutable runRefusal: FnisExecutionError option = None
+        let mutable terminalOutput = ModConductor.Fnis.FnisOutputPhase.Current
         let mutable blockEnb = false
         let enbStarted = new ManualResetEventSlim(false)
         let mutable blockFnis = false
@@ -134,6 +137,10 @@ module SkyrimSetupFixtures =
                 | Some code -> "FNIS output is available, but FNIS exited with code " + string code
                 | None when output = ModConductor.Fnis.FnisOutputPhase.Current ->
                     "FNIS output is current"
+                | None when output = ModConductor.Fnis.FnisOutputPhase.Running -> "FNIS is running"
+                | None when output = ModConductor.Fnis.FnisOutputPhase.Failed -> "FNIS failed"
+                | None when output = ModConductor.Fnis.FnisOutputPhase.Cancelled ->
+                    "FNIS was cancelled"
                 | None -> "FNIS output is stale"
               Detail =
                 if exitWarning.IsSome then
@@ -241,6 +248,9 @@ module SkyrimSetupFixtures =
 
         member _.EnbCancels = enbCancels
         member _.RunCalls = runCalls
+        member _.WaitCalls = waitCalls
+        member _.RefuseFnis(error) = runRefusal <- error
+        member _.FinishFnisWith(phase) = terminalOutput <- phase
 
         member _.BlockEnb() =
             blockEnb <- true
@@ -362,16 +372,27 @@ module SkyrimSetupFixtures =
               RecoverFnis = fun _ _ _ -> Task.FromResult fnis
               InspectFnis = fun _ _ _ -> Task.FromResult(Ok(inspection ()))
               RunFnis =
-                fun request token ->
-                    task {
-                        runCalls <- runCalls + 1
+                fun request _ ->
+                    runCalls <- runCalls + 1
+
+                    match runRefusal with
+                    | Some error -> Task.FromResult(Error error)
+                    | None ->
                         latestRun <- Some request.Id
-                        output <- ModConductor.Fnis.FnisOutputPhase.Running
 
-                        if blockFnis then
-                            fnisRelease.Wait token
+                        output <-
+                            if blockFnis then
+                                ModConductor.Fnis.FnisOutputPhase.Running
+                            else
+                                terminalOutput
 
-                        output <- ModConductor.Fnis.FnisOutputPhase.Current
+                        Task.FromResult(Ok(inspection ()))
+              WaitForFnisRun =
+                fun _ token ->
+                    task {
+                        waitCalls <- waitCalls + 1
+                        fnisRelease.Wait token
+                        output <- terminalOutput
                         return Ok(inspection ())
                     }
               CancelFnisRun =
@@ -394,6 +415,171 @@ module SkyrimSetupFixtures =
                               Latest = None }
                     )
               PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
+
+    let private fnisRunLifetimeEvidence writer area (store: OperationStore) noChoice fnisOnly =
+        for name, terminal in
+            [ "success", ModConductor.Fnis.FnisOutputPhase.Current
+              "failure", ModConductor.Fnis.FnisOutputPhase.Failed
+              "cancelled", ModConductor.Fnis.FnisOutputPhase.Cancelled ] do
+            let workspace, profile, _ = createWorkspace store area ("delayed-fnis-" + name) true
+            let workflow = WorkflowState()
+            workflow.BlockFnis()
+            workflow.FinishFnisWith terminal
+            use owner = new SkyrimSetupCoordinator(store, workflow.Dependencies)
+
+            owner.Start(workspace, profile, fnisOnly, CancellationToken.None)
+            |> wait
+            |> result
+            |> ignore
+
+            until "FNIS admitted before completion" (fun () -> workflow.WaitCalls) ((=) 1)
+            |> ignore
+
+            let running =
+                owner.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
+
+            let continued =
+                owner.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+
+            let intent = store.SkyrimSetups.Read(workspace, profile) |> wait
+
+            check
+                writer
+                ("admittedFnisStaysActive-" + name)
+                (running.Phase = SkyrimSetupPhase.FnisRunning
+                 && running.Active
+                 && not running.CanContinue
+                 && continued.Active
+                 && workflow.RunCalls = 1
+                 && (intent |> Option.exists (fun value -> not value.Completed))
+                 && (running.Components |> List.map _.Id) = [ "skse"; "enb"; "fnis" ])
+
+            let revision = owner.CurrentRevision(workspace, profile)
+            use timeout = new CancellationTokenSource(TimeSpan.FromSeconds 10.)
+            let changed = owner.WaitForChange(workspace, profile, revision, timeout.Token)
+            workflow.ReleaseFnis()
+            changed.GetAwaiter().GetResult()
+
+            let finished =
+                if terminal = ModConductor.Fnis.FnisOutputPhase.Current then
+                    until
+                        "FNIS completion finishes parent without a view"
+                        (fun () -> store.SkyrimSetups.Read(workspace, profile) |> wait)
+                        (Option.exists _.Completed)
+                    |> ignore
+
+                    owner.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
+                else
+                    until
+                        "FNIS terminal failure stops parent"
+                        (fun () ->
+                            owner.Read(workspace, profile, noChoice, CancellationToken.None)
+                            |> wait)
+                        (fun value -> value.Phase = SkyrimSetupPhase.Failed)
+
+            let repeated =
+                owner.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+
+            check
+                writer
+                ("terminalFnisNotifiesWithoutRetry-" + name)
+                (not finished.Active
+                 && not repeated.Active
+                 && workflow.RunCalls = 1
+                 && workflow.FnisInstalls = 1
+                 && not owner.Failed.IsCompleted)
+
+        let resumedWorkspace, resumedProfile, _ =
+            createWorkspace store area "resumed-fnis" true
+
+        let resumedWorkflow = WorkflowState()
+        resumedWorkflow.BlockFnis()
+        use firstOwner = new SkyrimSetupCoordinator(store, resumedWorkflow.Dependencies)
+
+        firstOwner.Start(resumedWorkspace, resumedProfile, fnisOnly, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        until "first FNIS observer starts" (fun () -> resumedWorkflow.WaitCalls) ((=) 1)
+        |> ignore
+
+        firstOwner.Stop() |> wait
+        use resumedOwner = new SkyrimSetupCoordinator(store, resumedWorkflow.Dependencies)
+
+        let resumed =
+            resumedOwner.Read(resumedWorkspace, resumedProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        until "saved FNIS run is observed" (fun () -> resumedWorkflow.WaitCalls) ((=) 2)
+        |> ignore
+
+        resumedOwner.Read(resumedWorkspace, resumedProfile, noChoice, CancellationToken.None)
+        |> wait
+        |> ignore
+
+        resumedWorkflow.ReleaseFnis()
+
+        until
+            "resumed FNIS observer finishes setup without more reads"
+            (fun () -> store.SkyrimSetups.Read(resumedWorkspace, resumedProfile) |> wait)
+            (Option.exists _.Completed)
+        |> ignore
+
+        check
+            writer
+            "savedFnisRunResumesObservationWithoutReadmission"
+            (resumed.Active && resumedWorkflow.RunCalls = 1 && resumedWorkflow.WaitCalls = 2)
+
+        let workspace, profile, _ = createWorkspace store area "refused-fnis" true
+        let workflow = WorkflowState()
+        let detail = "The FNIS launch context is unavailable."
+        workflow.RefuseFnis(Some(FnisExecutionError.Unavailable detail))
+        use owner = new SkyrimSetupCoordinator(store, workflow.Dependencies)
+
+        owner.Start(workspace, profile, fnisOnly, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        let refused =
+            until
+                "FNIS admission refusal is visible"
+                (fun () -> owner.Read(workspace, profile, noChoice, CancellationToken.None) |> wait)
+                (fun value -> value.Phase = SkyrimSetupPhase.Failed)
+
+        let repeated =
+            owner.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "fnisAdmissionRefusalIsVisibleWithoutRetry"
+            (refused.Status = "FNIS could not run"
+             && refused.Detail = detail
+             && not refused.Active
+             && repeated.Detail = detail
+             && workflow.RunCalls = 1
+             && workflow.WaitCalls = 0
+             && workflow.FnisInstalls = 1
+             && not owner.Failed.IsCompleted)
+
+        workflow.RefuseFnis None
+
+        owner.Start(workspace, profile, fnisOnly, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        until
+            "explicit FNIS retry completes"
+            (fun () -> store.SkyrimSetups.Read(workspace, profile) |> wait)
+            (Option.exists _.Completed)
+        |> ignore
+
+        check
+            writer
+            "explicitApplyRetriesFnisWithoutReinstalling"
+            (workflow.RunCalls = 2 && workflow.FnisInstalls = 1)
 
     let private fnisNexusWarningEvidence
         writer
@@ -446,7 +632,8 @@ module SkyrimSetupFixtures =
                         |> result
                     else
                         current)
-                (fun _ -> waitingWorkflow.FnisInstalls = 1)
+                (fun current ->
+                    waitingWorkflow.FnisInstalls = 1 && current.Active && not current.CanContinue)
 
         let repeatedWait =
             waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None)
@@ -775,6 +962,8 @@ module SkyrimSetupFixtures =
         skseOnly
         (releaseSkseGeneration: ManualResetEventSlim)
         (enteredSkseGeneration: ManualResetEventSlim)
+        (releaseFnisGeneration: ManualResetEventSlim)
+        (enteredFnisGeneration: ManualResetEventSlim)
         =
         let pausedWorkspace, pausedProfile, _ =
             createWorkspace store area "paused-skse" true
@@ -916,6 +1105,242 @@ module SkyrimSetupFixtures =
              && finalDeployment.PendingReceipt.IsNone
              && (finalIntent |> Option.exists _.Completed))
 
+
+        pausedOwner.Stop() |> wait
+
+        let beforeRecord =
+            store.SkseLoaders.ReadStored(
+                pausedWorkspace,
+                pausedProfile,
+                finalDeployment.ActiveGeneration
+            )
+            |> wait
+            |> Option.get
+
+        let library = store.ModLibrary :> ModConductor.ModLibrary.IModLibrary
+
+        let ownedBytes () =
+            let version = library.Version(beforeRecord.VersionId, 0) |> wait |> result
+
+            version.Entries
+            |> List.map (fun entry ->
+                let bytes =
+                    library.ReadPayload(version.Id, entry.Payload.Id, 0L, int entry.Payload.Length)
+                    |> wait
+                    |> result
+
+                ModConductor.Platform.LogicalPath.display entry.Path,
+                Convert.ToHexStringLower(SHA256.HashData bytes))
+
+        let beforeBytes = ownedBytes ()
+        pausedWorkflow.BlockEnb()
+        pausedWorkflow.BlockFnis()
+
+        let archivePath = Path.Combine(area, "cancel-then-fnis.zip")
+        use fnisArchive = File.Create archivePath
+        use fnisZip = new ZipArchive(fnisArchive, ZipArchiveMode.Create, true)
+        use generator = fnisZip.CreateEntry("FNIS/" + FnisCatalogue.GeneratorPath).Open()
+        generator.Write(Encoding.UTF8.GetBytes "fixture-generator")
+        generator.Dispose()
+        fnisZip.Dispose()
+        fnisArchive.Dispose()
+
+        let artifact =
+            store.Artifacts.Add(
+                { Id = Guid.NewGuid()
+                  WorkspaceId = pausedWorkspace
+                  Path = archivePath
+                  Storage = ArtifactStorage.Reference },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        let fnisRelease: FnisRelease =
+            { ModId = FnisCatalogue.NexusModId
+              File =
+                { Id = 912L
+                  Name = "FNIS Behavior SE.zip"
+                  Version = "7.6"
+                  Category = "MAIN"
+                  Description = "fixture"
+                  Bytes = None }
+              ComponentVersion = Version(7, 6) }
+
+        let baseDependencies = pausedWorkflow.Dependencies
+        let mutable installingFnis = false
+        let installedChanges = Event<Guid * Guid>()
+        let mutable installation: Task = Task.CompletedTask
+
+        let dependencies =
+            { baseDependencies with
+                ReadFnis =
+                    fun workspace profile ->
+                        task {
+                            let! state = baseDependencies.ReadFnis workspace profile
+
+                            return
+                                if installingFnis then
+                                    { state with
+                                        Phase = FnisPhase.Installing }
+                                else
+                                    state
+                        }
+                InstallFnis =
+                    fun workspace profile ->
+                        task {
+                            installingFnis <- true
+                            let! state = baseDependencies.InstallFnis workspace profile
+
+                            installation <-
+                                Task.Run(fun () ->
+                                    task {
+                                        let! installed =
+                                            store.InstallFnis(
+                                                workspace,
+                                                profile,
+                                                fnisRelease,
+                                                artifact,
+                                                CancellationToken.None
+                                            )
+
+                                        installed |> result |> ignore
+                                        installingFnis <- false
+                                        installedChanges.Trigger(workspace, profile)
+                                    }
+                                    :> Task)
+
+                            return
+                                { state with
+                                    Phase = FnisPhase.Installing }
+                        } }
+
+        use owner =
+            new SkyrimSetupCoordinator(
+                store,
+                dependencies,
+                childChanges = [ installedChanges.Publish ]
+            )
+
+        let pendingSelection =
+            { noChoice with
+                Enb = SetupAction.Install
+                Fnis = SetupAction.Install
+                EnbArchive = Some "fixture-enb.zip" }
+
+        owner.Start(pausedWorkspace, pausedProfile, pendingSelection, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        if not (pausedWorkflow.WaitForEnb()) then
+            failwith "ENB did not enter its cancellable step."
+
+        let enbActive =
+            owner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        let cancelled =
+            owner.Cancel(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+
+        let fnisOnly =
+            { noChoice with
+                Fnis = SetupAction.Install }
+
+        releaseFnisGeneration.Reset()
+
+        try
+            owner.Start(pausedWorkspace, pausedProfile, fnisOnly, CancellationToken.None)
+            |> wait
+            |> result
+            |> ignore
+
+            if not (enteredFnisGeneration.Wait(TimeSpan.FromSeconds 10.)) then
+                failwith "FNIS did not enter the held generation step."
+
+            let during =
+                owner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None)
+                |> wait
+
+            let deployment = store.Deployments.Read pausedProfile |> wait |> result
+
+            let record =
+                store.SkseLoaders.ReadStored(
+                    pausedWorkspace,
+                    pausedProfile,
+                    deployment.ActiveGeneration
+                )
+                |> wait
+
+            check
+                writer
+                "cancelThenFnisRetainsInstalledSkseDuringGeneration"
+                ((enbActive.Components
+                  |> List.exists (fun item -> item.Id = "skse" && item.Installed))
+                 && cancelled.Phase = SkyrimSetupPhase.Cancelled
+                 && during.Active
+                 && during.Phase = SkyrimSetupPhase.SettingUpFnis
+                 && (during.Components |> List.map _.Id) = [ "skse"; "enb"; "fnis" ]
+                 && (during.Components
+                     |> List.exists (fun item -> item.Id = "skse" && item.Installed))
+                 && record = Some beforeRecord
+                 && ownedBytes () = beforeBytes)
+        finally
+            releaseFnisGeneration.Set()
+
+        installation.GetAwaiter().GetResult()
+
+        until
+            "FNIS run follows actual generator installation"
+            (fun () -> pausedWorkflow.WaitCalls)
+            ((=) 1)
+        |> ignore
+
+        let running =
+            owner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        let deployment = store.Deployments.Read pausedProfile |> wait |> result
+
+        let retained =
+            store.SkseLoaders.ReadStored(
+                pausedWorkspace,
+                pausedProfile,
+                deployment.ActiveGeneration
+            )
+            |> wait
+            |> Option.get
+
+        let fnis =
+            store.FnisSetups.ReadStored(pausedWorkspace, pausedProfile, deployment.ActiveGeneration)
+            |> wait
+
+        check
+            writer
+            "cancelThenFnisRetainsOwnedSkseBytesAndRecords"
+            (running.Active
+             && running.Phase = SkyrimSetupPhase.FnisRunning
+             && (running.Components
+                 |> List.exists (fun item -> item.Id = "skse" && item.Installed))
+             && (running.Components
+                 |> List.exists (fun item -> item.Id = "fnis" && item.Installed))
+             && retained.ModId = beforeRecord.ModId
+             && retained.VersionId = beforeRecord.VersionId
+             && retained.ArchiveSha256 = beforeRecord.ArchiveSha256
+             && ownedBytes () = beforeBytes
+             && fnis.IsSome
+             && File.ReadAllText(Path.Combine(deployment.RunnableRoot, FnisCatalogue.GeneratorPath)) = "fixture-generator"
+             && pausedWorkflow.SkseStarts = 1
+             && pausedWorkflow.EnbSelections = 1
+             && pausedWorkflow.FnisInstalls = 1)
+
+        pausedWorkflow.ReleaseFnis()
+
+        until
+            "FNIS completes after cancellation and new selection"
+            (fun () -> store.SkyrimSetups.Read(pausedWorkspace, pausedProfile) |> wait)
+            (Option.exists _.Completed)
+        |> ignore
 
     let private skseFailureRetryEvidence writer (store: OperationStore) area noChoice skseOnly =
         let failedWorkspace, failedProfile, _ =
@@ -1192,6 +1617,8 @@ module SkyrimSetupFixtures =
 
         use releaseSkseGeneration = new ManualResetEventSlim(true)
         use enteredSkseGeneration = new ManualResetEventSlim(false)
+        use releaseFnisGeneration = new ManualResetEventSlim(true)
+        use enteredFnisGeneration = new ManualResetEventSlim(false)
 
         use store =
             new OperationStore(
@@ -1200,7 +1627,12 @@ module SkyrimSetupFixtures =
                     (fun name _ ->
                         if name = "install-intent" && not releaseSkseGeneration.IsSet then
                             enteredSkseGeneration.Set()
-                            releaseSkseGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
+                            releaseSkseGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore),
+                fnisCheckpoint =
+                    (fun name _ ->
+                        if name = "install-intent" && not releaseFnisGeneration.IsSet then
+                            enteredFnisGeneration.Set()
+                            releaseFnisGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
             )
 
         let workspace, profile, _ = createWorkspace store area "selected" true
@@ -1486,6 +1918,7 @@ module SkyrimSetupFixtures =
              && (fnisOnlyIntent |> Option.exists (fun item -> item.Selection = fnisOnly)))
 
         fnisNexusWarningEvidence writer area state store noChoice fnisOnly
+        fnisRunLifetimeEvidence writer area store noChoice fnisOnly
 
         let _, allState, _ =
             execute "all-selected" combined (fun state ->
@@ -1730,6 +2163,8 @@ module SkyrimSetupFixtures =
             skseOnly
             releaseSkseGeneration
             enteredSkseGeneration
+            releaseFnisGeneration
+            enteredFnisGeneration
 
         heldEnbGenerationEvidence writer area noChoice enbWithArchive
 

@@ -11,6 +11,7 @@ class FakeFnis implements FnisClient {
   int reads = 0;
   bool failRead = false;
   int cancelledListeners = 0;
+  int observations = 0;
   String? observedRun;
   Completer<FnisStatus>? pendingRead;
   late final StreamController<FnisStatus> events =
@@ -40,6 +41,7 @@ class FakeFnis implements FnisClient {
 
   @override
   Stream<FnisStatus> observeRun(String workspace, String profile, String id) {
+    observations++;
     observedRun = id;
     return events.stream;
   }
@@ -75,6 +77,9 @@ FnisStatus status(
   int? exitCode,
   String? outputStatus,
   String runLog = '',
+  String outputDetail = '',
+  String standardOutput = '',
+  String standardError = '',
   bool installed = true,
 }) => FnisStatus(
   phase: phase,
@@ -94,6 +99,9 @@ FnisStatus status(
                 ? 'FNIS is running'
                 : 'FNIS output is current')
           : ''),
+  outputDetail: outputDetail,
+  standardOutput: standardOutput,
+  standardError: standardError,
   canRun:
       installed &&
       output != FnisOutputStatusPhase.running &&
@@ -105,6 +113,167 @@ FnisStatus status(
 );
 
 void main() {
+  for (final failed in [false, true]) {
+    testWidgets(
+      'external FNIS run observes ${failed ? 'failure' : 'success'} once and releases its listener',
+      (tester) async {
+        final fnis = FakeFnis()
+          ..current = status(
+            FnisStatusPhase.ready,
+            output: FnisOutputStatusPhase.running,
+            runId: 'setup-run',
+          );
+        final changes = ValueNotifier(0);
+        addTearDown(changes.dispose);
+        addTearDown(fnis.events.close);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: FnisTool(
+                client: fnis,
+                workspaceId: 'w',
+                profileId: 'p',
+                changes: changes,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(fnis.observedRun, 'setup-run');
+        expect(fnis.runs, 0);
+        changes.value++;
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.refresh));
+        await tester.pumpAndSettle();
+        expect(fnis.observations, 1);
+
+        final pending = Completer<FnisStatus>();
+        fnis.pendingRead = pending;
+        changes.value++;
+        await tester.pump();
+        final terminal = status(
+          FnisStatusPhase.ready,
+          output: failed
+              ? FnisOutputStatusPhase.failed
+              : FnisOutputStatusPhase.current,
+          runId: 'setup-run',
+          exitCode: failed ? 9 : 0,
+          outputStatus: failed ? 'FNIS failed' : 'FNIS finished',
+          outputDetail: 'Authoritative terminal detail',
+          standardOutput: 'Captured stdout',
+          standardError: 'Captured stderr',
+          runLog: 'Captured log',
+        );
+        fnis.events.add(terminal);
+        await tester.pumpAndSettle();
+        pending.complete(fnis.current);
+        await tester.pumpAndSettle();
+        expect(
+          find.text(failed ? 'FNIS failed' : 'FNIS finished'),
+          findsOneWidget,
+        );
+        expect(find.text('Authoritative terminal detail'), findsOneWidget);
+        expect(find.text('Exit code ${failed ? 9 : 0}'), findsOneWidget);
+        expect(find.text('Cancel'), findsNothing);
+        expect(fnis.cancelledListeners, 1);
+        expect(fnis.observations, 1);
+        expect(fnis.runs, 0);
+        await tester.tap(find.text('Last run'));
+        await tester.pumpAndSettle();
+        expect(find.text('Captured stdout'), findsOneWidget);
+        expect(find.text('Captured stderr'), findsOneWidget);
+        expect(find.text('Captured log'), findsOneWidget);
+        fnis.events.add(fnis.current);
+        await tester.pumpAndSettle();
+        expect(find.text('FNIS is running'), findsNothing);
+      },
+    );
+  }
+
+  testWidgets(
+    'external run replacement and client context changes discard old reads and events',
+    (tester) async {
+      final first = FakeFnis()
+        ..current = status(
+          FnisStatusPhase.ready,
+          output: FnisOutputStatusPhase.running,
+          runId: 'old',
+        );
+      final second = FakeFnis()
+        ..current = status(
+          FnisStatusPhase.ready,
+          output: FnisOutputStatusPhase.running,
+          runId: 'new-profile',
+        );
+      addTearDown(first.events.close);
+      addTearDown(second.events.close);
+      final changes = ValueNotifier(0);
+      addTearDown(changes.dispose);
+      Widget view(FakeFnis client, String workspace, String profile) =>
+          MaterialApp(
+            home: Scaffold(
+              body: FnisTool(
+                client: client,
+                workspaceId: workspace,
+                profileId: profile,
+                changes: changes,
+              ),
+            ),
+          );
+      await tester.pumpWidget(view(first, 'w', 'p'));
+      await tester.pumpAndSettle();
+      first.current = status(
+        FnisStatusPhase.ready,
+        output: FnisOutputStatusPhase.running,
+        runId: 'replacement',
+      );
+      changes.value++;
+      await tester.pumpAndSettle();
+      expect(first.observations, 2);
+      expect(first.cancelledListeners, 1);
+      first.events.add(
+        status(
+          FnisStatusPhase.ready,
+          runId: 'old',
+          outputStatus: 'Late old run',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Late old run'), findsNothing);
+      final pending = Completer<FnisStatus>();
+      first.pendingRead = pending;
+      first.events.addError(StateError('old stream failed'));
+      await tester.pump();
+      await tester.pumpWidget(view(second, 'other-workspace', 'other-profile'));
+      await tester.pumpAndSettle();
+      pending.complete(
+        status(
+          FnisStatusPhase.ready,
+          runId: 'replacement',
+          outputStatus: 'Late recovery',
+        ),
+      );
+      first.events.add(
+        status(
+          FnisStatusPhase.ready,
+          runId: 'replacement',
+          outputStatus: 'Late old profile',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Late recovery'), findsNothing);
+      expect(find.text('Late old profile'), findsNothing);
+      expect(second.observedRun, 'new-profile');
+      expect(first.runs + second.runs, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      expect(second.cancelledListeners, 1);
+      second.events.add(status(FnisStatusPhase.ready, runId: 'new-profile'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'setup changes received during a read show installed FNIS without manual refresh',
     (tester) async {
@@ -268,6 +437,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Old profile result'), findsNothing);
   });
+
+  testWidgets(
+    'stream recovery observes a different authoritative running run without admission',
+    (tester) async {
+      final fnis = FakeFnis()
+        ..current = status(
+          FnisStatusPhase.ready,
+          output: FnisOutputStatusPhase.running,
+          runId: 'setup-first',
+        );
+      addTearDown(fnis.events.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FnisTool(client: fnis, workspaceId: 'w', profileId: 'p'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      fnis.current = status(
+        FnisStatusPhase.ready,
+        output: FnisOutputStatusPhase.running,
+        runId: 'setup-next',
+      );
+      fnis.events.addError(StateError('first stream ended'));
+      await tester.pumpAndSettle();
+      expect(fnis.observedRun, 'setup-next');
+      expect(fnis.observations, 2);
+      expect(fnis.runs, 0);
+      fnis.events.add(
+        status(
+          FnisStatusPhase.ready,
+          runId: 'setup-first',
+          outputStatus: 'Late first result',
+        ),
+      );
+      fnis.events.add(
+        status(
+          FnisStatusPhase.ready,
+          runId: 'setup-next',
+          outputStatus: 'Next run completed',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Late first result'), findsNothing);
+      expect(find.text('Next run completed'), findsOneWidget);
+      expect(fnis.cancelledListeners, 2);
+    },
+  );
 
   testWidgets('stream failure reads the finished FNIS run once', (
     tester,

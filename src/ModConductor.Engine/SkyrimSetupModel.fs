@@ -72,6 +72,10 @@ type internal SkyrimSetupDependencies =
           ModConductor.Fnis.FnisRunRequest
               -> CancellationToken
               -> System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
+      WaitForFnisRun:
+          ModConductor.Fnis.FnisRunRequest
+              -> CancellationToken
+              -> System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
       CancelFnisRun:
           Guid -> Guid -> System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
       ReadLaunch:
@@ -118,6 +122,7 @@ module internal SkyrimSetupDependencies =
           RecoverFnis = fun workspace profile token -> fnis.Recover(workspace, profile, token)
           InspectFnis = fun workspace profile token -> execution.Inspect(workspace, profile, token)
           RunFnis = fun request token -> execution.Run(request, token)
+          WaitForFnisRun = fun request token -> execution.WaitForRun(request, token)
           CancelFnisRun = fun workspace profile -> execution.Cancel(workspace, profile)
           ReadLaunch = fun workspace profile -> launches.Read(workspace, profile)
           PluginPreflight =

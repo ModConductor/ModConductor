@@ -255,7 +255,8 @@ type private SkyrimSetupPending
                     | _ -> SkyrimSetupPhase.SettingUpEnb, "ENBSeries", "Setting up", ""
 
                 let workerComponent =
-                    componentView workerName workerStatus workerDetail false true false
+                    { componentView workerName workerStatus workerDetail false true false with
+                        Id = if stage = "fnis-run" then "fnis" else "enb" }
 
                 return
                     view
@@ -384,18 +385,33 @@ type internal SkyrimSetupInspection
         task {
             let! current = inspect workspace profile selection intent token
 
+            let! current =
+                if current.Phase = SkyrimSetupPhase.Unavailable then
+                    Task.FromResult current
+                else
+                    preview.WithInstalledComponents workspace profile current
+
             match
                 intent
                 |> Option.exists (fun value -> not value.Cancelled && not value.Completed),
                 failureDetail (workspace, profile)
             with
             | true, Some detail when current.Phase <> SkyrimSetupPhase.Unavailable ->
+                let fnisFailure = intent |> Option.exists (fun value -> value.Stage = "fnis-run")
+                let componentId = if fnisFailure then "fnis" else "skse"
+
+                let status =
+                    if fnisFailure then
+                        "FNIS could not run"
+                    else
+                        "SKSE removal failed"
+
                 let components =
                     current.Components
                     |> List.map (fun item ->
-                        if item.Id = "skse" then
+                        if item.Id = componentId then
                             { item with
-                                Status = "Removal failed"
+                                Status = if fnisFailure then status else "Removal failed"
                                 Detail = detail
                                 Active = false
                                 Blocked = true }
@@ -405,7 +421,7 @@ type internal SkyrimSetupInspection
                 return
                     { current with
                         Phase = SkyrimSetupPhase.Failed
-                        Status = "SKSE removal failed"
+                        Status = status
                         Detail = detail
                         Components = components
                         CanContinue = false

@@ -14,12 +14,64 @@ type internal SkyrimSetupActions
         dependencies: SkyrimSetupDependencies,
         inspection: SkyrimSetupInspection,
         recovery: SkyrimSetupRecovery,
-        startWorker: Guid -> Guid -> (CancellationToken -> Task) -> bool
+        startWorker: Guid -> Guid -> (CancellationToken -> Task) -> bool,
+        recordFailure: Guid * Guid -> string -> unit
     ) =
     let inspect = inspection.Inspect
     let deploymentError = SkyrimSetupDeployment.error
     let initialDeployment = recovery.Initial
     let recoverPending = recovery.Pending
+
+    let recordFnisResult workspace profile =
+        function
+        | Ok _ -> ()
+        | Error error ->
+            let detail =
+                match error with
+                | FnisExecutionError.Invalid detail
+                | FnisExecutionError.Unavailable detail
+                | FnisExecutionError.SourceInspectionFailed detail -> detail
+                | FnisExecutionError.NotFound -> "The FNIS generator or run was not found."
+                | FnisExecutionError.Busy -> "Another FNIS operation owns this profile."
+                | FnisExecutionError.IdentityConflict -> "The FNIS run identity is already in use."
+                | FnisExecutionError.Stale -> "The FNIS inputs changed. Select Apply to try again."
+                | FnisExecutionError.Cancelled -> "FNIS was cancelled."
+
+            recordFailure (workspace, profile) detail
+
+    let waitForFnis (request: ModConductor.Fnis.FnisRunRequest) token =
+        task {
+            let! result = dependencies.WaitForFnisRun request token
+            recordFnisResult request.WorkspaceId request.ProfileId result
+        }
+
+    let startFnisRun workspace profile (intent: StoredSkyrimSetupIntent) token =
+        task {
+            let request =
+                { Id = Guid.NewGuid()
+                  WorkspaceId = workspace
+                  ProfileId = profile }
+
+            let running =
+                { intent with
+                    Stage = "fnis-run"
+                    ActionId = Some request.Id }
+
+            do! store.SkyrimSetups.Save running
+
+            startWorker workspace profile (fun childToken ->
+                task {
+                    let! admitted = dependencies.RunFnis request childToken
+
+                    match admitted with
+                    | Ok value when value.Phase = ModConductor.Fnis.FnisOutputPhase.Running ->
+                        do! waitForFnis request childToken
+                    | result -> recordFnisResult workspace profile result
+                })
+            |> ignore
+
+            return! inspect workspace profile intent.Selection (Some running) token
+        }
 
     let startEnbSelection workspace profile (intent: StoredSkyrimSetupIntent) token =
         task {
@@ -166,25 +218,7 @@ type internal SkyrimSetupActions
 
                 return! success (inspect workspace profile running.Selection (Some running) token)
             | SkyrimSetupPhase.FnisStale when before.CanContinue ->
-                let run = Guid.NewGuid()
-
-                let running =
-                    { intent with
-                        Stage = "fnis-run"
-                        ActionId = Some run }
-
-                do! store.SkyrimSetups.Save running
-
-                startWorker workspace profile (fun childToken ->
-                    dependencies.RunFnis
-                        { Id = run
-                          WorkspaceId = workspace
-                          ProfileId = profile }
-                        childToken
-                    :> Task)
-                |> ignore
-
-                return! success (inspect workspace profile intent.Selection (Some running) token)
+                return! success (startFnisRun workspace profile intent token)
             | SkyrimSetupPhase.Failed when before.CanContinue ->
                 let! deployment = store.Deployments.Read profile
 
@@ -208,26 +242,7 @@ type internal SkyrimSetupActions
                         || value.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
                         || value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned)
                 then
-                    let run = Guid.NewGuid()
-
-                    let running =
-                        { intent with
-                            Stage = "fnis-run"
-                            ActionId = Some run }
-
-                    do! store.SkyrimSetups.Save running
-
-                    startWorker workspace profile (fun childToken ->
-                        dependencies.RunFnis
-                            { Id = run
-                              WorkspaceId = workspace
-                              ProfileId = profile }
-                            childToken
-                        :> Task)
-                    |> ignore
-
-                    return!
-                        success (inspect workspace profile intent.Selection (Some running) token)
+                    return! success (startFnisRun workspace profile intent token)
                 elif
                     deployment |> Result.toOption |> Option.bind _.PendingReceipt |> Option.isSome
                     && (enbState.Phase = EnbPhase.Failed || enbState.Phase = EnbPhase.Conflict)
@@ -279,3 +294,12 @@ type internal SkyrimSetupActions
 
     member _.Advance workspace profile intent retryFailed token =
         advance workspace profile intent retryFailed token
+
+    member _.ObserveFnisRun(workspace, profile, run) =
+        startWorker workspace profile (fun token ->
+            waitForFnis
+                { Id = run
+                  WorkspaceId = workspace
+                  ProfileId = profile }
+                token)
+        |> ignore

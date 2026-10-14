@@ -28,6 +28,10 @@ class _FnisToolState extends State<FnisTool> {
   int epoch = 0;
   bool readPending = false;
   StreamSubscription<FnisStatus>? runSubscription;
+  String? observedRun;
+  int observation = 0;
+  int statusRevision = 0;
+  bool recoveringRun = false;
 
   @override
   void initState() {
@@ -57,9 +61,7 @@ class _FnisToolState extends State<FnisTool> {
       return;
     }
     epoch++;
-    final previous = runSubscription;
-    if (previous != null) unawaited(previous.cancel());
-    runSubscription = null;
+    _stopObserving();
     status = null;
     problem = null;
     busy = false;
@@ -67,59 +69,87 @@ class _FnisToolState extends State<FnisTool> {
     unawaited(_read());
   }
 
-  Future<void> _read() =>
-      _request(() => widget.client.read(widget.workspaceId, widget.profileId));
+  Future<void> _read() => _request(
+    () => widget.client.read(widget.workspaceId, widget.profileId),
+    reading: true,
+  );
 
-  Future<void> _run() async {
-    final id = newOperationId();
-    await _request(
-      () => widget.client.run(widget.workspaceId, widget.profileId, id),
-      onResult: (value) {
-        if (value.outputPhase != FnisOutputStatusPhase.running ||
-            value.runId != id) {
-          return;
-        }
-        final current = epoch;
-        runSubscription = widget.client
-            .observeRun(widget.workspaceId, widget.profileId, id)
-            .listen(
-              (event) {
-                if (!mounted || current != epoch || event.runId != id) return;
-                setState(() => status = event);
-              },
-              onError: (Object _) {
-                unawaited(_recoverRun(current, id));
-              },
-            );
-      },
-    );
+  Future<void> _run() => _request(
+    () => widget.client.run(
+      widget.workspaceId,
+      widget.profileId,
+      newOperationId(),
+    ),
+  );
+
+  void _stopObserving() {
+    observation++;
+    final previous = runSubscription;
+    runSubscription = null;
+    observedRun = null;
+    recoveringRun = false;
+    if (previous != null) unawaited(previous.cancel());
   }
 
-  bool _awaitingRun(int current, String id) =>
+  void _accept(FnisStatus value) {
+    statusRevision++;
+    setState(() => status = value);
+    final id = value.outputPhase == FnisOutputStatusPhase.running
+        ? value.runId
+        : null;
+    if (id == observedRun) return;
+    _stopObserving();
+    if (id == null) return;
+    observedRun = id;
+    final current = epoch;
+    final watching = observation;
+    runSubscription = widget.client
+        .observeRun(widget.workspaceId, widget.profileId, id)
+        .listen(
+          (event) {
+            if (!_awaitingRun(current, watching, id) || event.runId != id) {
+              return;
+            }
+            _accept(event);
+          },
+          onError: (Object _) {
+            unawaited(_recoverRun(current, watching, id));
+          },
+          onDone: () {
+            unawaited(_recoverRun(current, watching, id));
+          },
+          cancelOnError: true,
+        );
+  }
+
+  bool _awaitingRun(int current, int watching, String id) =>
       mounted &&
       current == epoch &&
+      watching == observation &&
+      observedRun == id &&
       status?.runId == id &&
       status?.outputPhase == FnisOutputStatusPhase.running;
 
-  Future<void> _recoverRun(int current, String id) async {
-    if (!_awaitingRun(current, id)) return;
+  Future<void> _recoverRun(int current, int watching, String id) async {
+    if (!_awaitingRun(current, watching, id) || recoveringRun) return;
+    recoveringRun = true;
     try {
       final recovered = await widget.client.read(
         widget.workspaceId,
         widget.profileId,
       );
-      if (!_awaitingRun(current, id)) return;
-      if (recovered.runId == id &&
+      if (!_awaitingRun(current, watching, id)) return;
+      if (recovered.runId != id ||
           recovered.outputPhase != FnisOutputStatusPhase.running) {
-        setState(() {
-          status = recovered;
-          problem = null;
-        });
+        _accept(recovered);
+        setState(() => problem = null);
         return;
       }
     } on Object {
-      if (!_awaitingRun(current, id)) return;
+      if (!_awaitingRun(current, watching, id)) return;
     }
+    _stopObserving();
+    statusRevision++;
     setState(() {
       status = null;
       problem = 'FNIS run status is unavailable.';
@@ -128,10 +158,11 @@ class _FnisToolState extends State<FnisTool> {
 
   Future<void> _request(
     Future<FnisStatus> Function() action, {
-    void Function(FnisStatus)? onResult,
+    bool reading = false,
   }) async {
     if (busy) return;
     final current = epoch;
+    final revision = statusRevision;
     setState(() {
       busy = true;
       problem = null;
@@ -139,8 +170,7 @@ class _FnisToolState extends State<FnisTool> {
     try {
       final value = await action();
       if (mounted && current == epoch) {
-        setState(() => status = value);
-        onResult?.call(value);
+        if (!reading || revision == statusRevision) _accept(value);
       }
     } on Object {
       if (mounted && current == epoch && status != null) {
@@ -162,8 +192,7 @@ class _FnisToolState extends State<FnisTool> {
   @override
   void dispose() {
     widget.changes?.removeListener(_changed);
-    final previous = runSubscription;
-    if (previous != null) unawaited(previous.cancel());
+    _stopObserving();
     super.dispose();
   }
 

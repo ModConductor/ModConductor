@@ -65,3 +65,25 @@ type SkyrimSetupTests() =
         flag "finishedSkseGenerationCompletesParentSetup" |> should equal true
         flag "activeEnbGenerationDoesNotTriggerParentRecovery" |> should equal true
         flag "finishedEnbGenerationCompletesParentSetup" |> should equal true
+
+    [<Test>]
+    member _.``admitted FNIS runs should keep setup active until terminal notification without retry``
+        ()
+        =
+        for outcome in [ "success"; "failure"; "cancelled" ] do
+            flag ("admittedFnisStaysActive-" + outcome) |> should equal true
+            flag ("terminalFnisNotifiesWithoutRetry-" + outcome) |> should equal true
+
+        flag "savedFnisRunResumesObservationWithoutReadmission" |> should equal true
+
+    [<Test>]
+    member _.``FNIS admission refusals should remain visible until explicit Apply``() =
+        flag "fnisAdmissionRefusalIsVisibleWithoutRetry" |> should equal true
+        flag "explicitApplyRetriesFnisWithoutReinstalling" |> should equal true
+
+    [<Test>]
+    member _.``installing FNIS after cancellation should retain installed SKSE records and owned bytes``
+        ()
+        =
+        flag "cancelThenFnisRetainsInstalledSkseDuringGeneration" |> should equal true
+        flag "cancelThenFnisRetainsOwnedSkseBytesAndRecords" |> should equal true

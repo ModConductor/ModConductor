@@ -43,7 +43,7 @@ type internal SkyrimSetupCoordinator
     let recovery = SkyrimSetupRecovery(store, dependencies)
 
     let actions =
-        SkyrimSetupActions(store, dependencies, inspection, recovery, workers.Start)
+        SkyrimSetupActions(store, dependencies, inspection, recovery, workers.Start, recordFailure)
 
     let cancellation =
         SkyrimSetupCancellation(store, dependencies, inspection, recovery, workers.Cancel)
@@ -107,6 +107,16 @@ type internal SkyrimSetupCoordinator
                 |> Option.defaultValue selection
 
             let! current = inspect workspace profile selected intent token
+
+            match intent with
+            | Some value when
+                current.Phase = SkyrimSetupPhase.FnisRunning
+                && value.Stage = "fnis-run"
+                && not value.CancelRequested
+                ->
+                value.ActionId
+                |> Option.iter (fun run -> actions.ObserveFnisRun(workspace, profile, run))
+            | _ -> ()
 
             if
                 (intent

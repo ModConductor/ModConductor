@@ -213,6 +213,7 @@ module FnisFixtures =
           RecoverFnis = fun _ _ _ -> unusedCombinedDependency ()
           InspectFnis = fun workspace profile token -> execution.Inspect(workspace, profile, token)
           RunFnis = fun request token -> execution.Run(request, token)
+          WaitForFnisRun = fun request token -> execution.WaitForRun(request, token)
           CancelFnisRun = fun workspace profile -> execution.Cancel(workspace, profile)
           ReadLaunch = fun _ _ -> unusedCombinedDependency ()
           PluginPreflight = fun _ _ _ -> unusedCombinedDependency () }

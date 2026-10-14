@@ -118,6 +118,7 @@ module EnbFixtures =
           RecoverFnis = fun _ _ _ -> unusedCombinedDependency ()
           InspectFnis = fun _ _ _ -> unusedCombinedDependency ()
           RunFnis = fun _ _ -> unusedCombinedDependency ()
+          WaitForFnisRun = fun _ _ -> unusedCombinedDependency ()
           CancelFnisRun = fun _ _ -> unusedCombinedDependency ()
           ReadLaunch = fun _ _ -> unusedCombinedDependency ()
           PluginPreflight = fun _ _ _ -> unusedCombinedDependency () }

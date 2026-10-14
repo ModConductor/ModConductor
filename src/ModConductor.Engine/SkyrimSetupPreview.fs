@@ -9,13 +9,7 @@ open ModConductor.Protocol.V1
 open SkyrimSetupViews
 
 type internal SkyrimSetupPreview(store: OperationStore, dependencies: SkyrimSetupDependencies) =
-    let preview
-        workspace
-        profile
-        (selection: ModConductor.Persistence.SetupSelection)
-        (deployed: DeploymentStatus)
-        token
-        =
+    let readComponents workspace profile (deployed: DeploymentStatus) =
         task {
             let! skse = store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
@@ -36,10 +30,34 @@ type internal SkyrimSetupPreview(store: OperationStore, dependencies: SkyrimSetu
             let! enb = store.EnbSetups.Components(workspace, profile, deployed.ActiveGeneration)
             let! fnis = store.FnisSetups.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
-            let installed =
-                [ skse.IsSome
-                  enb |> List.exists (fun item -> item.Kind = "runtime")
-                  fnis.IsSome ]
+            return
+                [ "SKSE", "skse", skse.IsSome
+                  "ENBSeries", "enb", (enb |> List.exists (fun item -> item.Kind = "runtime"))
+                  "FNIS", "fnis", fnis.IsSome ]
+                |> List.map (fun (name, id, present) ->
+                    { Id = id
+                      Name = name
+                      Status = if present then "Installed" else "Not installed"
+                      Detail = ""
+                      UpdateVersion = if id = "skse" then skseUpdateVersion else None
+                      Installed = present
+                      Ready = present
+                      Active = false
+                      Blocked = false })
+
+        }
+
+    let preview
+        workspace
+        profile
+        (selection: ModConductor.Persistence.SetupSelection)
+        (deployed: DeploymentStatus)
+        token
+        =
+        task {
+            let! components = readComponents workspace profile deployed
+            let installed = components |> List.map _.Installed
+            let skseUpdateVersion = components.Head.UpdateVersion
 
             let actions = [ selection.Skse; selection.Enb; selection.Fnis ]
 
@@ -70,7 +88,7 @@ type internal SkyrimSetupPreview(store: OperationStore, dependencies: SkyrimSetu
                     || actions |> List.exists (fun action -> action = SetupAction.Install))
 
             let! output =
-                if fnis.IsSome then
+                if installed[2] then
                     task {
                         let! inspected = dependencies.InspectFnis workspace profile token
                         return Result.toOption inspected
@@ -86,20 +104,6 @@ type internal SkyrimSetupPreview(store: OperationStore, dependencies: SkyrimSetu
                 else
                     fnisExitWarning output |> Option.defaultValue ("", "")
 
-            let components =
-                [ "SKSE", "skse", installed[0]
-                  "ENBSeries", "enb", installed[1]
-                  "FNIS", "fnis", installed[2] ]
-                |> List.map (fun (name, id, present) ->
-                    { Id = id
-                      Name = name
-                      Status = if present then "Installed" else "Not installed"
-                      Detail = ""
-                      UpdateVersion = if id = "skse" then skseUpdateVersion else None
-                      Installed = present
-                      Ready = present
-                      Active = false
-                      Blocked = false })
 
             return
                 view
@@ -118,3 +122,39 @@ type internal SkyrimSetupPreview(store: OperationStore, dependencies: SkyrimSetu
 
     member _.Preview workspace profile selection deployed token =
         preview workspace profile selection deployed token
+
+    member _.WithInstalledComponents workspace profile (current: SkyrimSetupView) =
+        task {
+            if
+                [ "skse"; "enb"; "fnis" ]
+                |> List.forall (fun id ->
+                    current.Components |> List.exists (fun item -> item.Id = id))
+            then
+                return current
+            else
+                let! deployed = store.Deployments.Read profile
+
+                match deployed with
+                | Error _ -> return current
+                | Ok deployed ->
+                    let! stored = readComponents workspace profile deployed
+
+                    let components =
+                        stored
+                        |> List.map (fun installed ->
+                            current.Components
+                            |> List.tryFind (fun item -> item.Id = installed.Id)
+                            |> Option.map (fun item ->
+                                { item with
+                                    Installed = installed.Installed })
+                            |> Option.defaultValue installed)
+
+                    let other =
+                        current.Components
+                        |> List.filter (fun item ->
+                            stored |> List.exists (fun installed -> installed.Id = item.Id) |> not)
+
+                    return
+                        { current with
+                            Components = components @ other }
+        }
