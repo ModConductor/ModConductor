@@ -21,6 +21,7 @@ class InstallationRow {
 }
 
 class InstallationTree {
+  final _initializedBranches = <String>{};
   final model = McCollectionModel<String, InstallationRow>(
     idOf: (r) => r.path,
     labelOf: (r) => r.name,
@@ -89,7 +90,10 @@ class InstallationTree {
       evicted: model.ids.where((id) => !rows.containsKey(id)).toList(),
     );
     for (final r in rows.values) {
-      if (r.directory && !model.expanded(r.path)) model.toggle(r.path);
+      if (r.directory &&
+          _initializedBranches.add(r.path) &&
+          !model.expanded(r.path))
+        model.toggle(r.path);
     }
   }
 

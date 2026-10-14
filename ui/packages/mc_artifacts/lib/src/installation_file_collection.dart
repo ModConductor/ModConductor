@@ -180,6 +180,21 @@ class InstallationFileCollection extends StatelessWidget {
         ? 'Excluded archive files'
         : 'Files in new mod',
     showTitle: !narrow,
+    actions: [
+      if (manual)
+        McAction(
+          label: 'Select all',
+          onPressed:
+              controller.canEdit &&
+                  draft.manifest.entries.any((entry) => !entry.directory)
+              ? () => unawaited(
+                  controller.change(
+                    const InstallationInclusionChange([], true),
+                  ),
+                )
+              : null,
+        ),
+    ],
     showTree: true,
     filterLabel: 'Filter files',
     filterEnabled: !controller.busy,
