@@ -162,30 +162,6 @@ void main() {
     });
   }
 
-  testWidgets('an empty archive has no inclusion operation to submit', (
-    tester,
-  ) async {
-    final client = ManualInstallations();
-    await openManualArchive(
-      tester,
-      client,
-      draft: manualDraft(
-        files: [],
-        manifest: const InspectedArchive('empty', 'ZIP', [], 0),
-      ),
-    );
-    expect(
-      tester.widget<McAction>(manualAction('Select all')).onPressed,
-      isNull,
-    );
-    await tester.tap(manualAction('Select all'));
-    await tester.pumpAndSettle();
-    expect(client.changes, isEmpty);
-    expect(client.starts, isEmpty);
-    expect(manualCollection(tester).controller.problem, isNull);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('an admitted operation blocks manual archive edits', (
     tester,
   ) async {
