@@ -76,15 +76,24 @@ module internal FnisRunLogs =
         if Directory.Exists before.Directory then
             restoreMetadata before.Directory before.DirectoryMetadata
 
+    let private logLike (path: string) =
+        Path.GetFileName(path).Contains("log", StringComparison.OrdinalIgnoreCase)
+
+    let private logPriority (path: string) =
+        let extension = Path.GetExtension path
+
+        if String.Equals(extension, ".xml", StringComparison.OrdinalIgnoreCase) then
+            1
+        elif
+            logLike path
+            || String.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase)
+        then
+            0
+        else
+            1
+
     let private logPaths (generator: string) =
         let directory = Path.GetDirectoryName generator
-
-        let logLike (path: string) =
-            let name = Path.GetFileName path
-            let extension = Path.GetExtension path
-
-            name.Contains("log", StringComparison.OrdinalIgnoreCase)
-            || String.Equals(extension, ".log", StringComparison.OrdinalIgnoreCase)
 
         let direct =
             Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
@@ -102,7 +111,13 @@ module internal FnisRunLogs =
 
         direct @ nested
         |> List.distinct
-        |> List.sortWith (fun left right -> StringComparer.OrdinalIgnoreCase.Compare(left, right))
+        |> List.sortWith (fun left right ->
+            let priority = compare (logPriority left) (logPriority right)
+            let pathOrder = StringComparer.OrdinalIgnoreCase.Compare(left, right)
+
+            if priority <> 0 then priority
+            elif pathOrder <> 0 then pathOrder
+            else StringComparer.Ordinal.Compare(left, right))
 
     let private readBounded path limit =
         use stream =
@@ -197,12 +212,26 @@ module internal FnisRunLogs =
             temporaryMetadata |> Option.iter (fun value -> restoreMetadata temporary value)
             restoreMetadata directory directoryMetadata
 
+    let private utf8PrefixLength (bytes: byte array) limit =
+        let mutable count = min bytes.Length limit
+
+        while count > 0 && count < bytes.Length && bytes[count] &&& 0xC0uy = 0x80uy do
+            count <- count - 1
+
+        count
+
     let captureAndRestoreLogs (generator: string) (before: FnisLogSnapshot) =
         let temporary = Path.Combine(before.Directory, "temporary_logs")
-        let builder = StringBuilder()
-        let mutable remaining = logLimit
+        use builder = new MemoryStream()
+        let mutable truncated = false
         let mutable afterPaths = []
         let mutable cleanupError: exn option = None
+
+        let append (value: string) =
+            let bytes = Encoding.UTF8.GetBytes value
+            let count = utf8PrefixLength bytes (logLimit - int builder.Length)
+            builder.Write(bytes, 0, count)
+            truncated <- truncated || count < bytes.Length
 
         let attempt action =
             try
@@ -222,30 +251,28 @@ module internal FnisRunLogs =
             for path in afterPaths do
                 makeWritable path false
 
-            for path in afterPaths |> List.truncate 32 do
-                let existing = before.Files |> Map.tryFind path
-                let length = FileInfo(path).Length
-                let count = min remaining (int (min (int64 remaining) length))
-                let content = readPrefix path count
+            let changedPaths =
+                afterPaths
+                |> List.filter (fun path ->
+                    before.Files
+                    |> Map.tryFind path
+                    |> Option.forall (fun prior ->
+                        FileInfo(path).Length <> int64 prior.Content.Length
+                        || readBounded path prior.Content.Length <> prior.Content))
 
-                let changed =
-                    existing
-                    |> Option.forall (fun value ->
-                        length <> int64 value.Content.Length
-                        || readBounded path value.Content.Length <> value.Content)
+            for path in changedPaths |> List.truncate 32 do
+                if not truncated then
+                    if builder.Length > 0L then
+                        append "\n"
 
-                if changed && remaining > 0 then
-                    let header = Encoding.UTF8.GetBytes("== " + Path.GetFileName path + " ==\n")
-                    let headerCount = min remaining header.Length
-                    builder.Append(Encoding.UTF8.GetString(header, 0, headerCount)) |> ignore
-                    remaining <- remaining - headerCount
+                    append ("== " + Path.GetFileName path + " ==\n")
 
-                    let contentCount = min remaining content.Length
+                    if not truncated then
+                        let content = readPrefix path logLimit
+                        append (Encoding.UTF8.GetString content)
+                        truncated <- truncated || int64 content.Length < FileInfo(path).Length
 
-                    builder.Append(Encoding.UTF8.GetString(content, 0, contentCount)).Append('\n')
-                    |> ignore
-
-                    remaining <- remaining - contentCount
+            truncated <- truncated || changedPaths.Length > 32
         finally
             for path in afterPaths do
                 match before.Files |> Map.tryFind path with
@@ -281,9 +308,13 @@ module internal FnisRunLogs =
 
         cleanupError |> Option.iter raise
 
-        let bytes = Encoding.UTF8.GetBytes(builder.ToString())
+        let bytes = builder.ToArray()
 
-        if bytes.Length <= logLimit then
-            bytes
+        if truncated then
+            let notice =
+                Encoding.UTF8.GetBytes "\n[FNIS run log truncated: byte or file limit reached.]\n"
+
+            let count = utf8PrefixLength bytes (logLimit - notice.Length)
+            Array.append bytes[.. count - 1] notice
         else
-            bytes[.. logLimit - 1]
+            bytes

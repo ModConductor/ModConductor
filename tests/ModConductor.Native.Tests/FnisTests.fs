@@ -165,6 +165,26 @@ type FnisTests() =
         |> should equal true
 
     [<Test>]
+    member _.``diagnostic logs should survive capture limits while restoring original state``() =
+        if not (OperatingSystem.IsLinux()) then
+            Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
+
+        flag "diagnosticTextPrecedesOversizedIntermediateAndRetainsWarningExit"
+        |> should equal true
+
+        flag "diagnosticPriorityPrecedesFileLimitWithDeterministicOrdering"
+        |> should equal true
+
+        flag "replacementDecodingFitsSharedLogBudgetWithVisibleTruncation"
+        |> should equal true
+
+        flag "oversizedUnicodeDiagnosticsFitSharedLogBudgetWithVisibleTruncation"
+        |> should equal true
+
+        flag "budgetLimitedCaptureRestoresOriginalLogTreeAndMetadata"
+        |> should equal true
+
+    [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =
         flag "removalPublishesOwnedGenerationAndPreservesForeignFiles"
         |> should equal true

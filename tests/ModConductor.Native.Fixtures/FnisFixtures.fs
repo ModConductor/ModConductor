@@ -765,6 +765,7 @@ module FnisFixtures =
             "malformedTemporaryLogIsCapturedBoundedInOwnedState"
             (logged.RunLog.Contains("malformed FNIS log")
              && logged.RunLog.Contains("new temporary log")
+             && not (logged.RunLog.Contains("truncated", StringComparison.OrdinalIgnoreCase))
              && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024
              && File.ReadAllText(existingLog) = "original temporary log"
              && not (File.Exists newLog))
@@ -799,6 +800,95 @@ module FnisFixtures =
 
         let missingLog = waitForRun missingLogId ModConductor.Fnis.FnisOutputPhase.Current
         check writer "missingTemporaryLogIsAnEmptyOwnedRecord" (missingLog.RunLog = "")
+
+        let captureBudgetLog (selectedMode: string) =
+            let parentMetadata = pathMetadata generatorDirectory
+            let directoryMetadata = pathMetadata temporaryLogs
+            let fileMetadata = pathMetadata existingLog
+            File.WriteAllText(mode, selectedMode)
+            let id = Guid.NewGuid()
+
+            execution.Run(
+                { Id = id
+                  WorkspaceId = workspace
+                  ProfileId = profile },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            let captured = waitForRun id ModConductor.Fnis.FnisOutputPhase.Current
+            let restoredParent = pathMetadata generatorDirectory
+            let restoredDirectory = pathMetadata temporaryLogs
+            let restoredFile = pathMetadata existingLog
+            let restoredTree = treeContents generatorDirectory
+
+            writer.WriteNumber(
+                selectedMode + "Utf8Bytes",
+                Encoding.UTF8.GetByteCount captured.RunLog
+            )
+
+            captured,
+            (sameParentMetadata restoredParent parentMetadata
+             && restoredDirectory = directoryMetadata
+             && restoredFile = fileMetadata
+             && restoredTree = expectedGeneratorTree)
+
+        let diagnosticsInOrder (text: string) =
+            let upper = text.IndexOf("diagnostic upper", StringComparison.Ordinal)
+            let lower = text.IndexOf("diagnostic lower", StringComparison.Ordinal)
+            let warning = text.IndexOf("meaningful warning", StringComparison.Ordinal)
+            upper >= 0 && lower > upper && warning > lower
+
+        let boundedAndTruncated (text: string) =
+            Encoding.UTF8.GetByteCount text <= 256 * 1024
+            && text.Contains("truncated", StringComparison.OrdinalIgnoreCase)
+
+        let byteLimited, byteRestored = captureBudgetLog "logbytebudget"
+
+        check
+            writer
+            "diagnosticTextPrecedesOversizedIntermediateAndRetainsWarningExit"
+            (diagnosticsInOrder byteLimited.RunLog
+             && byteLimited.RunLog.IndexOf("intermediate-0", StringComparison.Ordinal) > byteLimited
+                 .RunLog
+                 .IndexOf("meaningful warning", StringComparison.Ordinal)
+             && boundedAndTruncated byteLimited.RunLog
+             && byteLimited.ExitCode = Some 7)
+
+        let fileLimited, filesRestored = captureBudgetLog "logfilebudget"
+
+        check
+            writer
+            "diagnosticPriorityPrecedesFileLimitWithDeterministicOrdering"
+            (diagnosticsInOrder fileLimited.RunLog
+             && fileLimited.RunLog.Contains("intermediate-0")
+             && not (fileLimited.RunLog.Contains("intermediate-39"))
+             && boundedAndTruncated fileLimited.RunLog)
+
+        let malformed, malformedRestored = captureBudgetLog "logmalformedbudget"
+
+        check
+            writer
+            "replacementDecodingFitsSharedLogBudgetWithVisibleTruncation"
+            (malformed.RunLog.Contains("meaningful warning Ω🙂")
+             && malformed.RunLog.Contains("�")
+             && boundedAndTruncated malformed.RunLog)
+
+        let unicode, unicodeRestored = captureBudgetLog "logunicodebudget"
+
+        check
+            writer
+            "oversizedUnicodeDiagnosticsFitSharedLogBudgetWithVisibleTruncation"
+            (unicode.RunLog.Contains("meaningful warning Ω🙂")
+             && not (unicode.RunLog.Contains("�"))
+             && boundedAndTruncated unicode.RunLog)
+
+        check
+            writer
+            "budgetLimitedCaptureRestoresOriginalLogTreeAndMetadata"
+            (byteRestored && filesRestored && malformedRestored && unicodeRestored)
 
         File.SetUnixFileMode(generatorDirectory, originalParentMode ||| UnixFileMode.UserWrite)
 
@@ -1299,7 +1389,7 @@ module FnisFixtures =
             "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
             + "r'"
             + mode.Replace("'", "\\'")
-            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='retainedview':\n game=os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(generator))))\n animation=os.path.join(game,'Data','meshes','actors','character','animations','added.hkx')\n if open(animation).read() != 'FNIS-input-race': sys.exit(19)\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nif mode=='outputcollision':\n os.makedirs(os.path.join(target,'foreign-fnis'),exist_ok=True)\n open(os.path.join(target,'foreign-fnis','keep.txt'),'wb').write(b'generated-collision')\nprint(' '.join(sys.argv[1:]))\nif mode=='warn': sys.exit(7)\n"
+            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='retainedview':\n game=os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(generator))))\n animation=os.path.join(game,'Data','meshes','actors','character','animations','added.hkx')\n if open(animation).read() != 'FNIS-input-race': sys.exit(19)\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nif mode in ('logbytebudget','logfilebudget'):\n os.makedirs(logs,exist_ok=True)\n for name,text in [('z-warning.txt','meaningful warning'),('a-status.log','diagnostic lower'),('A-status.log','diagnostic upper')]:\n  open(os.path.join(logs,name),'w').write(text)\n for index in range(1 if mode=='logbytebudget' else 40):\n  content=('intermediate-'+str(index)+'\\n').encode()\n  if mode=='logbytebudget': content+=b'x'*300000\n  open(os.path.join(logs,str(index).zfill(2)+'_master.xml'),'wb').write(content)\nif mode in ('logmalformedbudget','logunicodebudget'):\n os.makedirs(logs,exist_ok=True)\n warning='meaningful warning Ω🙂\\n'.encode()\n content=warning+bytes([255])*100000 if mode=='logmalformedbudget' else warning*30000\n open(os.path.join(logs,'diagnostic-Ω.log'),'wb').write(content)\n\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nif mode=='outputcollision':\n os.makedirs(os.path.join(target,'foreign-fnis'),exist_ok=True)\n open(os.path.join(target,'foreign-fnis','keep.txt'),'wb').write(b'generated-collision')\nprint(' '.join(sys.argv[1:]))\nif mode in ('warn','logbytebudget'): sys.exit(7)\n"
         )
 
         File.SetUnixFileMode(
