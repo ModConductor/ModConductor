@@ -39,6 +39,10 @@ void main() {
       expect(seed.exitCode, 0, reason: '${seed.stderr}');
       final library = '$inputs/Second library';
       final game = '$library/steamapps/common/Skyrim Special Edition';
+      final baseSettings = File('$game/Data/settings.txt');
+      final baseSettingsBefore = await baseSettings.exists()
+          ? await baseSettings.readAsBytes()
+          : null;
       final owner = EngineOwner(
         engine,
         launch: (path) =>
@@ -345,7 +349,13 @@ void main() {
         );
         await capture('active-light');
         await tap(action('Close'));
-        await File('$game/Data/settings.txt').writeAsString('Working settings');
+        final writable = (await owner.outputs!.read(workspace, profile))
+            .locations
+            .singleWhere(
+              (location) => location.kind == OutputLocationKind.writableFile,
+            );
+        final workingSettings = File(writable.physicalPath);
+        await workingSettings.writeAsString('Working settings');
         await tap(icon('Refresh $currentView'));
         await until(
           () =>
@@ -376,13 +386,27 @@ void main() {
               !outputs().changing &&
               find.byType(OutputPromotionDialog).evaluate().isEmpty,
         );
-        expect(
-          await File('$game/Data/settings.txt').readAsString(),
-          'Working settings',
-        );
+        expect(await workingSettings.readAsString(), 'Working settings');
         expect(
           await File('${source.path}/settings.txt').readAsString(),
           'Immutable settings',
+        );
+        final copied = (await owner.modOrganization!.query(
+          profile,
+          const ModQuery(),
+        )).entries.singleWhere((entry) => entry.mod.id == mod);
+        final copiedVersion = await owner.modLibrary!.version(
+          copied.mod.currentVersionId!,
+        );
+        final copiedSettings = copiedVersion.entries.singleWhere(
+          (entry) => entry.path.join('/') == 'settings.txt',
+        );
+        expect(
+          await owner.modLibrary!.readPayload(
+            copiedVersion.id,
+            copiedSettings.payload.id,
+          ),
+          orderedEquals(utf8.encode('Working settings')),
         );
         await tap(icon('Refresh $currentView'));
         await until(() => !outputs().loading && !outputs().writable.loading);
@@ -393,7 +417,7 @@ void main() {
         await until(() => !outputs().changing);
         await tap(icon('Refresh $currentView'));
         await until(() => !outputs().loading && !outputs().writable.loading);
-        expect(await File('$game/Data/settings.txt').exists(), isFalse);
+        expect(await workingSettings.exists(), isFalse);
         await capture('absent-light');
         await tap(icon('Writable game files'));
         await tap(action('Stop using…'));
@@ -431,9 +455,12 @@ void main() {
               deployment().state?.active?.profile?.id == profile,
         );
         expect(
-          await File('$game/Data/settings.txt').readAsString(),
+          await File(
+            '${root.path}/.mc-game-views/${profile.replaceAll('-', '')}/game/Data/settings.txt',
+          ).readAsString(),
           'Immutable settings',
         );
+        expect(await workingSettings.exists(), isFalse);
         await tap(action('Close'));
 
         await tap(
@@ -462,12 +489,19 @@ void main() {
               .currentVersionId,
           isNot(version),
         );
+        expect(await workingSettings.exists(), isFalse);
+        expect(
+          await baseSettings.exists() ? await baseSettings.readAsBytes() : null,
+          baseSettingsBefore,
+        );
         await File('$output/result.json').writeAsString(
           jsonEncode({
             'createMovedAfterPublication': true,
             'createdDisabled': true,
             'saveCopyKeepsWorkingBytes': true,
+            'savedCopyContainsWorkingBytes': true,
             'registeredSourceUnchanged': true,
+            'baseInstallationUnchanged': true,
             'discardedAbsent': true,
             'configuredProfileUnchanged': true,
             'deactivated': true,
