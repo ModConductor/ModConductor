@@ -2,7 +2,7 @@
   description = "Mod Conductor Linux desktop build";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/6774f7bc253789b113a4f39285dc0fa100abeacc";
+    nixpkgs.url = "github:NixOS/nixpkgs/e7439b6b14ad3cc35d05608ebca9bce01a25f5f8";
     nixpkgs-dotnet.url = "github:NixOS/nixpkgs/fb230d1646d7c577387fcbbf2866d10c69d1badd";
   };
 
