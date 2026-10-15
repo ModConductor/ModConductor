@@ -62,6 +62,10 @@ let internal configureGrpc (services: IServiceCollection) =
         .AddServiceOptions<ModConductor.Engine.ExecutableService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.FnisService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 4096
+            // Two 256 KiB raw streams can each decode to 768 KiB, plus a 256 KiB run log.
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.OutputService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))

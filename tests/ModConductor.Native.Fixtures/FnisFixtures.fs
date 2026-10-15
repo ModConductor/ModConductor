@@ -323,6 +323,79 @@ module FnisFixtures =
 
         deployment.ActiveGeneration, enabled store profile, generator
 
+    let prepareWireState (writer: Utf8JsonWriter) area =
+        Directory.CreateDirectory area |> ignore
+        use server = new NexusServer()
+        server.Premium <- true
+        use credentials = new CredentialSession(NexusMemoryStore())
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn session
+
+        use store =
+            new OperationStore(
+                Path.Combine(area, "state"),
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy = policy
+            )
+
+        let workspace, profile, _ = createWorkspace store area
+        configure server 751L (archive "wire" true 0)
+
+        use coordinator =
+            new FnisCoordinator(session, store.Downloads, store, server.Handoff)
+
+        coordinator.Install(workspace, profile) |> wait |> ignore
+        waitForPhase coordinator workspace profile FnisPhase.Ready |> ignore
+        let generation, _, generator = active store workspace profile
+        let generator = generator.Value
+
+        let inspected =
+            store.FnisExecution.Inspect(workspace, profile, generation.Value) |> wait |> result
+
+        let request =
+            { Id = Guid.NewGuid()
+              WorkspaceId = workspace
+              ProfileId = profile }
+
+        store.FnisExecution.Begin(request, generator, inspected.Fingerprint)
+        |> wait
+        |> result
+        |> ignore
+
+        let limit = 256 * 1024
+
+        let stream name =
+            let prefix = Encoding.UTF8.GetBytes(name + "\n")
+            Array.append prefix (Array.create (limit - prefix.Length) 0xffuy)
+
+        let logPrefix = "FNIS diagnostic\n"
+        let runLog = logPrefix + String.replicate (limit - logPrefix.Length) "L"
+
+        store.FnisExecution.Fail(
+            request.Id,
+            ModConductor.Fnis.FnisOutputPhase.Failed,
+            Some 255,
+            stream "stdout",
+            stream "stderr",
+            Encoding.UTF8.GetBytes runLog,
+            "Synthetic FNIS diagnostic failure."
+        )
+        |> wait
+
+        store.FnisExecution.CleanupStage request.Id
+        writer.WriteString("workspaceId", workspace.ToString("N"))
+        writer.WriteString("profileId", profile.ToString("N"))
+        writer.WriteString("runId", request.Id.ToString("N"))
+
     let private layoutEvidence writer =
         let manifest (bytes: byte array) : ModConductor.ArchiveInspection.ArchiveManifest =
             use input = new MemoryStream(bytes)

@@ -108,6 +108,8 @@ let private run (args: string array) =
             NxmFixtures.setup writer (Path.Combine(path, "link-setup")))
     | [| "--desktop-engine"; path |] ->
         ModConductor.Engine.Program.run [| "--state-directory"; path |]
+    | [| "--fnis-wire-files"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> FnisFixtures.prepareWireState writer path)
     | [| "--skyrim-setup"; path |] ->
         writeJson true (fun writer -> SkyrimSetupFixtures.observe writer path)
     | [| "--desktop-lease"; path |] -> DesktopFixtures.tryLease path
