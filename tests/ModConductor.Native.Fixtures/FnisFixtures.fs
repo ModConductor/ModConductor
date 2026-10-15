@@ -359,7 +359,9 @@ module FnisFixtures =
         let generator = generator.Value
 
         let inspected =
-            store.FnisExecution.Inspect(workspace, profile, generation.Value) |> wait |> result
+            store.FnisExecution.Inspect(workspace, profile, generation.Value)
+            |> wait
+            |> result
 
         let request =
             { Id = Guid.NewGuid()
