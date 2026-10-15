@@ -322,6 +322,10 @@ type WorkbenchTests() =
             store <- new OperationStore(state)
             readFrom (store.ModOrganization :> IModOrganization) |> should equal saved
         finally
+            if OperatingSystem.IsWindows() then
+                for file in Directory.EnumerateFiles(area, "*.payload", SearchOption.AllDirectories) do
+                    File.SetAttributes(file, FileAttributes.Normal)
+
             Directory.Delete(area, true)
 
     [<Test>]

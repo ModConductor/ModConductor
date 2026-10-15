@@ -35,6 +35,19 @@ void main() {
       final files = '${area.path}/archives';
       final made = await Process.run(fixture, ['--inspection-files', files]);
       expect(made.exitCode, 0, reason: '${made.stderr}');
+      final gameFiles = '${area.path}/game';
+      final gameMade = await Process.run(fixture, [
+        '--proton-files',
+        gameFiles,
+      ]);
+      expect(gameMade.exitCode, 0, reason: '${gameMade.stderr}');
+      final steam = '$gameFiles/Steam', library = '$gameFiles/Second library';
+      final runtime = '$steam/compatibilitytools.d/Custom Ω Proton';
+      await File('$runtime/proton').writeAsString('#!/bin/sh\nexit 0\n');
+      final executable = await Process.run('chmod', ['700', '$runtime/proton']);
+      expect(executable.exitCode, 0, reason: '${executable.stderr}');
+      await File('$runtime/toolmanifest.vdf')
+          .writeAsString('manifest { version 2 commandline "/proton %verb%" }');
       final owner = EngineOwner(
         engine,
         launch: (path) =>
@@ -92,6 +105,21 @@ void main() {
           0,
           ProfileInfo(profile, 'Everyday'),
         );
+        final context = await owner.gameContexts!.save(
+          workspace,
+          profile,
+          'skyrim-se-steam',
+          0,
+          '$library/steamapps/common/Skyrim Special Edition',
+          proton: ProtonSelection(
+            appId: 489830,
+            association: SteamProtonAssociation(steam, library),
+            compatData: '$library/steamapps/compatdata/489830',
+            runtimeDirectory: runtime,
+            toolId: 'fixture_tool',
+          ),
+        );
+        expect(context.binding!.evidence.runtimeReady, isTrue);
         await tester.pumpWidget(
           RepaintBoundary(
             key: boundary,

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -178,7 +179,7 @@ void main() {
         final bad = await owner.artifacts!.add(
           workspace,
           newOperationId(),
-          '$files/wrong-size.zip',
+          '$files/corrupt-payload.zip',
           ArtifactStorage.reference,
         );
         final direct = await owner.artifacts!.add(
@@ -277,6 +278,26 @@ void main() {
           saved?.phase,
           InstallationPhase.complete,
           reason: saved?.problem,
+        );
+        final manualVersion = await owner.modLibrary!.version(
+          saved!.versionId!,
+        );
+        expect(
+          manualVersion.entries.map((entry) => entry.path.join('/')),
+          unorderedEquals([
+            'textures/renamed.dds',
+            'textures/landscape/river.dds',
+          ]),
+        );
+        final remapped = manualVersion.entries.singleWhere(
+          (entry) => entry.path.join('/') == 'textures/renamed.dds',
+        );
+        expect(
+          await owner.modLibrary!.readPayload(
+            manualVersion.id,
+            remapped.payload.id,
+          ),
+          orderedEquals(utf8.encode('water')),
         );
         await tester.tap(find.text('Archives').first);
         await until(() => action('Open Mods').evaluate().isNotEmpty);
