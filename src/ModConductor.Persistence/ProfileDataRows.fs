@@ -26,6 +26,34 @@ module internal ProfileDataRows =
         else
             None
 
+    let forDocuments connection transaction workspace path =
+        use query =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT body,length(body) FROM profile_data_contexts WHERE workspace_id=$workspace"
+                [ "$workspace", box (string workspace) ]
+
+        use reader = query.ExecuteReader()
+
+        let matches =
+            [ while reader.Read() do
+                  let value = ProfileDataEncoding.readContext (bytes reader 0)
+
+                  if value.Documents.Path = path then
+                      yield value ]
+
+        match matches with
+        | [] -> None
+        | [ value ] -> Some value
+        | _ ->
+            raise (
+                ProfileDataException(
+                    ProfileDataError.Conflict
+                        "More than one saved settings context uses this folder."
+                )
+            )
+
     let saveContext connection transaction (value: ProfileDataContext) =
         Sqlite.execute
             connection
@@ -109,11 +137,11 @@ module internal ProfileDataRows =
 
             let samePlugins =
                 match expected.PluginRoot, other.PluginRoot with
-                | Some expected, Some other -> expected.Identity = other.Identity
+                | Some expected, Some other -> expected.Path = other.Path
                 | _ -> false
 
             conflict <-
-                (other.Documents.Identity = expected.Documents.Identity || samePlugins)
+                (other.Documents.Path = expected.Documents.Path || samePlugins)
                 && (other.Applied.IsSome || other.Pending.IsSome)
 
         if conflict then

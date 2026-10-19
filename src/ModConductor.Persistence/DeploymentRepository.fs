@@ -166,27 +166,65 @@ type internal DeploymentRepository(database: StateDatabase) =
             database.Enqueue(fun () -> DeploymentRows.pending connection after)
 
         member _.Begin(previous, receipt, generation, expectedSources) =
-            database.Enqueue(fun () ->
-                use transaction = connection.BeginTransaction(deferred = false)
+            task {
+                let! recorded =
+                    database.Enqueue(fun () ->
+                        previous
+                        |> Option.bind _.Active
+                        |> Option.bind (
+                            DeploymentRows.generation connection null receipt.Context.Id
+                        ))
 
-                match checkBegin transaction previous receipt generation expectedSources with
-                | Error error -> Error error
-                | Ok() ->
-                    DeploymentRows.writeContext
-                        connection
-                        transaction
-                        { receipt.Context with
-                            Pending = Some receipt.Id }
+                let! captured =
+                    System.Threading.Tasks.Task.Run(fun () ->
+                        recorded |> Option.map (CompletedState.generation receipt.Context))
 
-                    DeploymentRows.writeGeneration
-                        connection
-                        transaction
-                        receipt.Context.Id
-                        generation
+                return!
+                    database.Enqueue(fun () ->
+                        use transaction = connection.BeginTransaction(deferred = false)
 
-                    DeploymentRows.insert connection transaction owner receipt
-                    transaction.Commit()
-                    Ok receipt)
+                        match
+                            checkBegin transaction previous receipt generation expectedSources
+                        with
+                        | Error error -> Error error
+                        | Ok() ->
+                            if
+                                recorded
+                                <> (previous
+                                    |> Option.bind _.Active
+                                    |> Option.bind (
+                                        DeploymentRows.generation
+                                            connection
+                                            transaction
+                                            receipt.Context.Id
+                                    ))
+                            then
+                                Error RecoveryError.Stale
+                            else
+                                DeploymentRows.writeContext
+                                    connection
+                                    transaction
+                                    { receipt.Context with
+                                        Pending = Some receipt.Id }
+
+                                captured
+                                |> Option.iter (
+                                    DeploymentRows.captureGeneration
+                                        connection
+                                        transaction
+                                        receipt.Context.Id
+                                )
+
+                                DeploymentRows.writeGeneration
+                                    connection
+                                    transaction
+                                    receipt.Context.Id
+                                    generation
+
+                                DeploymentRows.insert connection transaction owner receipt
+                                transaction.Commit()
+                                Ok receipt)
+            }
 
         member _.Claim(id, expected) =
             database.Enqueue(fun () ->
@@ -327,7 +365,9 @@ type internal DeploymentRepository(database: StateDatabase) =
                     retired
                     |> Option.iter (fun generation ->
                         try
-                            GenerationFiles.removeOwned generation
+                            GenerationFiles.removeOwned (
+                                CompletedState.retiredGeneration generation
+                            )
                         with
                         | :? IOException as error ->
                             Diagnostics.Trace.TraceWarning(

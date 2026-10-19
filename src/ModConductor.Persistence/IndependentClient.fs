@@ -15,12 +15,11 @@ module internal IndependentClient =
 
             use source =
                 HeldDirectory.Open(
-                    HostPath.create evidence.RootPath |> Result.defaultWith invalidOp,
-                    evidence.RootIdentity.Value
+                    HostPath.create evidence.RootPath |> Result.defaultWith invalidOp
                 )
 
             use owned = HeldDirectory.Open(target.Path, target.Identity)
-            let observed = source.InspectFile(name, Some selected.Identity)
+            let observed = source.InspectFile(name, None)
             let destination = Path.Combine(HostPath.value target.Path, name)
 
             let unchanged =
@@ -41,7 +40,7 @@ module internal IndependentClient =
                     if OperatingSystem.IsLinux() then
                         File.SetUnixFileMode(staged, File.GetUnixFileMode selected.Path)
 
-                    let current = source.InspectFile(name, Some selected.Identity)
+                    let current = source.InspectFile(name, Some observed.Identity)
 
                     if
                         current.Length <> observed.Length || current.Modified <> observed.Modified

@@ -144,12 +144,12 @@ type LibraryTests() =
         after.GetProperty("notes").GetString() |> should equal "After"
 
     [<Test>]
-    member _.``replacements and library overlap should refuse without adopting or deleting data``
+    member _.``source replacement should publish while library overlap and changed immutable payloads refuse without deletion``
         ()
         =
         let data = NativeObservations.report.RootElement.GetProperty("libraryIdentity")
         data.GetProperty("storeOverlapRefused").GetBoolean() |> should equal true
-        data.GetProperty("replacementPublishRefused").GetBoolean() |> should equal true
+        data.GetProperty("replacementPublished").GetBoolean() |> should equal true
         data.GetProperty("replacementPreserved").GetBoolean() |> should equal true
         data.GetProperty("oldVersionRetained").GetBoolean() |> should equal true
         data.GetProperty("changedPayloadRefused").GetBoolean() |> should equal true

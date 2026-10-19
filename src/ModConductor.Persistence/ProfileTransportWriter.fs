@@ -37,8 +37,7 @@ type ProfileTransportWriter
             | Error problem -> return Error problem
             | Ok(library, item) ->
                 use folder = LibraryFiles.openLibrary root library
-                LibraryFiles.verify folder item
-                let source, _ = folder.Read(LibraryFiles.payloadName payload.Id, Some item.Identity)
+                let source, _ = LibraryFiles.readPayload folder item
                 use source = source
 
                 use target =

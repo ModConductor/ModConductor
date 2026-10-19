@@ -17,10 +17,7 @@ module internal OutputRows =
     let contextId workspace profile (state: ModConductor.GameContexts.GameContextState) =
         state.Binding
         |> Option.map (fun binding ->
-            DeploymentContextId.create
-                workspace
-                profile
-                (DeploymentContextId.fingerprint binding.Evidence))
+            DeploymentContextId.create workspace profile (DeploymentContextId.fingerprint binding))
         |> Option.defaultWith (fun () ->
             raise (InvalidDataException "The game context has no bound installation."))
 
@@ -183,12 +180,15 @@ module internal OutputRows =
 
     let backing (root: WorkspaceRoot) (location: StoredOutputLocation) =
         location.RootIdentity
-        |> Option.map (fun identity ->
+        |> Option.map (fun _ ->
+            use parent = HeldDirectory.Open(root.Path, root.Identity)
+            use directory = parent.Directory(location.RootName, None)
+
             { Location = location.View
               Root =
                 HostPath.create (Path.Combine(HostPath.value root.Path, location.RootName))
                 |> Result.defaultWith invalidOp
-              RootIdentity = identity
+              RootIdentity = directory.Identity
               Path =
                 match location.View.Purpose with
                 | OutputPurpose.ToolFolder -> None

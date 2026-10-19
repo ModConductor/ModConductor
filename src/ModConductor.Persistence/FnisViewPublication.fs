@@ -81,8 +81,7 @@ type internal FnisViewPublication(database: StateDatabase, access: LibraryAccess
                         (ModConductor.Deployment.DeploymentContextId.create
                             workspace
                             profile
-                            (ModConductor.Deployment.DeploymentContextId.fingerprint
-                                binding.Evidence)))
+                            (ModConductor.Deployment.DeploymentContextId.fingerprint binding)))
 
             match context with
             | None -> Error FnisExecutionError.Stale

@@ -86,8 +86,9 @@ module internal WorkspaceRows =
         let result =
             match find connection transaction id, (RootSelection.facts root).File with
             | Some row, Known identity when
-                row.Receipt.Workspace.Identity = identity
-                && row.Receipt.Workspace.Path = RootSelection.path root
+                row.Receipt.Workspace.Path = RootSelection.path root
+                && (row.Receipt.Phase = RootCreationPhase.Complete
+                    || row.Receipt.Workspace.Identity = identity)
                 ->
                 if expected = 0L then
                     Ok row.Receipt
@@ -112,7 +113,7 @@ module internal WorkspaceRows =
                     Sqlite.number
                         connection
                         transaction
-                        "SELECT count(*) FROM workspace_roots WHERE device_kind=$kind AND device=$device AND file_low=$low AND file_high=$high"
+                        "SELECT count(*) FROM workspace_roots WHERE path=$path"
                         parameters
 
                 if existing <> 0L then
@@ -143,24 +144,16 @@ module internal WorkspaceRows =
         result
 
     let findSelected connection transaction root =
-        match (RootSelection.facts root).File with
-        | Unknown _ -> None
-        | Known identity ->
-            let kind, value = device identity.Device
+        use statement =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT id FROM workspace_roots WHERE path=$path"
+                [ "$path", box (HostPath.value (RootSelection.path root)) ]
 
-            use statement =
-                Sqlite.command
-                    connection
-                    transaction
-                    "SELECT id FROM workspace_roots WHERE device_kind=$kind AND device=$device AND file_low=$low AND file_high=$high"
-                    [ "$kind", box kind
-                      "$device", box value
-                      "$low", box (string identity.Low)
-                      "$high", box (string identity.High) ]
-
-            match statement.ExecuteScalar() with
-            | :? string as id -> find connection transaction (Guid.Parse id)
-            | _ -> None
+        match statement.ExecuteScalar() with
+        | :? string as id -> find connection transaction (Guid.Parse id)
+        | _ -> None
 
     let claim (connection: SqliteConnection) owner id expected recovery phase =
         use transaction = connection.BeginTransaction(deferred = false)

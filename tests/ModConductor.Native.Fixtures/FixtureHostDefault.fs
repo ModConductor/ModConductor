@@ -56,6 +56,7 @@ let private observeFull writer primary secondary =
     Fixtures.observe writer primary secondary
     StorageFixtures.observe writer primary
     WorkspaceFixtures.observe writer primary
+    WorkspaceReopenFixtures.observe writer primary
     LibraryFixtures.observe writer primary
     LibraryRecoveryFixtures.observe writer primary
     LibraryIdentityFixtures.observe writer primary
@@ -82,7 +83,9 @@ let run args =
     match fixtureSet with
     | Full -> observeFull writer primary secondary
     | Platform -> Fixtures.observe writer primary secondary
-    | Workspaces -> WorkspaceFixtures.observe writer primary
+    | Workspaces ->
+        WorkspaceFixtures.observe writer primary
+        WorkspaceReopenFixtures.observe writer primary
     | Library ->
         LibraryFixtures.observe writer primary
         LibraryRecoveryFixtures.observe writer primary

@@ -32,15 +32,13 @@ type internal ArtifactCapture(operations: ArtifactAccess) =
             token.ThrowIfCancellationRequested()
 
             if row.Artifact.Storage = ArtifactStorage.Reference then
-                let file, _ = ArtifactFiles.openExternal row.Artifact.Path row.SourceIdentity
+                let file, _ = ArtifactFiles.openExternal row.Artifact.Path None
                 use file = file
 
                 if row.Artifact.Sha256.IsNone then
                     Ok row
                 else if row.Phase = 2 then
-                    if Some file.Length <> row.Artifact.Length then
-                        raise (IOException "The archive does not match the saved file.")
-
+                    ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
                     Ok row
                 else
                     ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
@@ -77,17 +75,23 @@ type internal ArtifactCapture(operations: ArtifactAccess) =
                     else
                         match directory.InspectEntry final with
                         | Some _ ->
-                            let file, identity = directory.Read(final, row.StoredIdentity)
+                            let file, identity =
+                                directory.Read(
+                                    final,
+                                    if row.Phase = 2 then None else row.StoredIdentity
+                                )
+
                             use file = file
 
                             if row.StoredIdentity.IsNone then
                                 raise (IOException "The library file has no saved identity.")
 
                             if row.Phase = 2 then
-                                if Some file.Length <> row.Artifact.Length then
-                                    raise (
-                                        IOException "The archive does not match the saved file."
-                                    )
+                                ArtifactFiles.verify
+                                    token
+                                    row.Artifact.Length
+                                    row.Artifact.Sha256
+                                    file
 
                                 row
                             else

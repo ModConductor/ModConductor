@@ -39,16 +39,14 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
 
             let! captured =
                 Task.Run(fun () ->
+                    use destination = LibraryFiles.openLibrary root library
+
                     match
-                        LibraryFiles.openSource
-                            root
-                            row
-                            (library.Identity |> Option.toList |> Set.ofList)
+                        LibraryFiles.openSource root row (Set.singleton destination.Identity)
                     with
                     | Error error -> Error error
                     | Ok source ->
                         use source = source
-                        use destination = LibraryFiles.openLibrary root library
                         let check = checkCancelled version
 
                         match

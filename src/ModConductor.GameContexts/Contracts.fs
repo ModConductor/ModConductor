@@ -173,6 +173,8 @@ module ContextRuntime =
 
 type GameBinding =
     { Id: Guid
+      DeploymentKey: string
+      ComponentRoot: Guid
       GameId: GameId
       Path: string
       Proton: ProtonSelection option

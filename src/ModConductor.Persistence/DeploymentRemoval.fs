@@ -111,7 +111,11 @@ module internal DeploymentRemoval =
     let removeContexts (database: StateDatabase) (contexts: Context list) token =
         task {
             for context in contexts do
-                do! Task.Run(fun () -> remove context token)
+                let! context =
+                    Task.Run(fun () ->
+                        let current = CompletedState.context context
+                        remove current token
+                        current)
 
                 do!
                     database.Enqueue(fun () ->

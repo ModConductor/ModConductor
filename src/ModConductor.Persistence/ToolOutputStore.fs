@@ -24,17 +24,12 @@ type internal ToolOutputStore
                         OutputRows.find database.Connection null root location.Id)
 
                 try
-                    match stored |> Option.bind _.RootIdentity with
+                    match stored |> Option.bind (OutputRows.backing root) with
                     | None -> return Error failure
-                    | Some identity ->
-                        use directory =
-                            HeldDirectory.Open(
-                                HostPath.create location.PhysicalPath
-                                |> Result.defaultWith invalidOp,
-                                identity
-                            )
-
+                    | Some backing ->
+                        use directory = HeldDirectory.Open(backing.Root, backing.RootIdentity)
                         return Ok()
+
                 with
                 | :? IO.IOException
                 | :? UnauthorizedAccessException -> return Error failure

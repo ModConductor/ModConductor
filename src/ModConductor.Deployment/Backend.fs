@@ -243,7 +243,8 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                 | Ok evidence ->
                                     if
                                         context.Fingerprint
-                                        <> DeploymentContextId.fingerprint evidence
+                                        <> DeploymentContextId.fingerprint
+                                            sources.Context.Binding.Value
                                     then
                                         return Error DeploymentError.Stale
                                     else
@@ -343,12 +344,14 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                         let contextCheck =
                                             contextResult
                                             |> Result.mapError DeploymentReports.error
-                                            |> Result.bind checkedContext
+                                            |> Result.bind (fun context ->
+                                                checkedContext context
+                                                |> Result.map (fun _ -> context))
 
                                         match contextCheck with
                                         | Error error -> return Error error
-                                        | Ok evidence when
-                                            DeploymentContextId.fingerprint evidence
+                                        | Ok context when
+                                            DeploymentContextId.fingerprint context.Binding.Value
                                             <> saved.Context.Fingerprint
                                             ->
                                             return Error DeploymentError.Stale

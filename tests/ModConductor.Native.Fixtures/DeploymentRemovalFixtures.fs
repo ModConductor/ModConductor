@@ -183,7 +183,7 @@ module DeploymentRemovalFixtures =
             ((store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result)
                 .Binding.Value.Evidence
 
-        let fingerprint = DeploymentContextId.fingerprint evidence
+        let fingerprint = DeploymentContextId.physicalFingerprint evidence
         let contextId = DeploymentContextId.create workspace profile fingerprint
 
         let target path =

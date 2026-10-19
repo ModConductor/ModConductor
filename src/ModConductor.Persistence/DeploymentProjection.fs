@@ -74,8 +74,7 @@ module internal DeploymentProjection =
                             fingerprint
 
                     let current =
-                        ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence
-                        |> id
+                        ModConductor.Deployment.DeploymentContextId.fingerprint binding |> id
 
                     activeShared connection transaction binding.Evidence
                     |> Option.orElseWith (fun () ->
@@ -89,7 +88,9 @@ module internal DeploymentProjection =
             match context with
             | None -> Ok GameProjection.empty
             | Some context when context.Pending.IsSome -> Error FilePlanError.Blocked
-            | Some context ->
+            | Some recorded ->
+                let context = CompletedState.context recorded
+
                 match
                     GameContextRows.read
                         connection
@@ -125,8 +126,7 @@ module internal DeploymentProjection =
                         // separate profile root and must not enter its source inventory.
                         Ok GameProjection.empty
                     | Some evidence, Some root when
-                        (evidence.DataIdentity = Some root.Directory.Identity
-                         && evidence.DataPath = Some(HostPath.value root.Directory.Path))
+                        evidence.DataPath = Some(HostPath.value root.Directory.Path)
                         || (evidence.DefinitionId = ModConductor.GameContexts.GameId.StarfieldSteam
                             && match evidence.Locations.Documents with
                                | ModConductor.GameContexts.Location.Located(path, _) ->
@@ -139,6 +139,7 @@ module internal DeploymentProjection =
                             DeploymentRows.generation connection transaction context.Id id
                             |> Option.defaultWith (fun () ->
                                 RecoveryFiles.fail "The active generation is unavailable.")
+                            |> CompletedState.generation context
                             |> RecoveryFiles.verifyGenerationWith token
                         | _ -> ()
 

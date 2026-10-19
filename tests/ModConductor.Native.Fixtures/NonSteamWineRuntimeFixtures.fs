@@ -37,6 +37,8 @@ module NonSteamWineRuntimeFixtures =
               Binding =
                 Some
                     { Id = Guid.NewGuid()
+                      DeploymentKey = "fixture"
+                      ComponentRoot = Guid.NewGuid()
                       GameId = GameId.SkyrimSpecialEditionDirect
                       Path = game
                       Proton = None

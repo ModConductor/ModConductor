@@ -48,6 +48,10 @@ module internal DeploymentPreparation =
         token
         =
         task {
+            let! existing =
+                System.Threading.Tasks.Task.Run(fun () ->
+                    existing |> Option.map CompletedState.context)
+
             let withComponents (components: ReviewedComponent list) =
                 task {
                     let duplicateComponent =
@@ -118,15 +122,18 @@ module internal DeploymentPreparation =
                                           Identity = observation.Identity }
 
                                     let sourceGame: Location =
-                                        { Path =
+                                        let path =
                                             HostPath.create evidence.RootPath
                                             |> Result.defaultWith invalidOp
-                                          Identity = evidence.RootIdentity.Value }
+
+                                        use held = HeldDirectory.Open path
+
+                                        { Path = path
+                                          Identity = held.Identity }
 
                                     let gameRoot =
-                                        ModConductor.GameContexts.ComponentRoots.gameRootId
-                                            sources.Stamp.WorkspaceId
-                                            evidence
+                                        ModConductor.GameContexts.ComponentRoots.registeredRootId
+                                            sources.Context.Binding.Value
                                         |> Result.defaultWith (fun text ->
                                             raise (System.IO.IOException text))
 
@@ -261,11 +268,16 @@ module internal DeploymentPreparation =
                                                                 existing |> Option.bind _.Active
                                                             with
                                                             | Some previous ->
-                                                                return!
+                                                                let! previous =
                                                                     recovery.Generation(
                                                                         contextId,
                                                                         previous
                                                                     )
+
+                                                                return
+                                                                    previous
+                                                                    |> Option.map
+                                                                        (CompletedState.generation existing.Value)
                                                             | None -> return None
                                                         }
 
@@ -537,7 +549,8 @@ module internal DeploymentPreparation =
                                     { Path = workspace.Path
                                       Identity = workspace.Identity }
 
-                                let ownership = DeploymentContextId.fingerprint evidence
+                                let ownership =
+                                    DeploymentContextId.fingerprint sources.Context.Binding.Value
 
                                 let contextId =
                                     DeploymentContextId.create

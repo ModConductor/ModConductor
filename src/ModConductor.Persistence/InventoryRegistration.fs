@@ -71,12 +71,11 @@ module internal InventoryRegistration =
         SelectionRows.registered connection transaction workspace id kind
         Ok((LibraryRows.find connection transaction id |> Option.get).Entry)
 
-    let private matches workspace kind metadata path identity version (row: StoredMod) =
+    let private matches workspace kind metadata path version (row: StoredMod) =
         row.Entry.WorkspaceId = workspace
         && row.Entry.Kind = kind
         && row.Entry.Metadata = metadata
         && row.Entry.SourcePath = path
-        && row.SourceIdentity = identity
         && row.Entry.CurrentVersion = version
 
     let private decide
@@ -98,7 +97,7 @@ module internal InventoryRegistration =
 
         match canonical, existing with
         | Error error, _ -> Error error
-        | Ok metadata, Some row when matches workspace kind metadata path identity version row ->
+        | Ok metadata, Some row when matches workspace kind metadata path version row ->
             Ok row.Entry
         | Ok _, Some _ -> Error LibraryError.IdentityConflict
         | Ok _, None when not valid -> Error LibraryError.NotFound
@@ -147,7 +146,9 @@ module internal InventoryRegistration =
 
                 match libraryResult with
                 | Error error -> return Error error
-                | Ok library -> return! admitSource root library.Identity registration
+                | Ok library ->
+                    use directory = LibraryFiles.openLibrary root library
+                    return! admitSource root (Some directory.Identity) registration
         }
 
     let register

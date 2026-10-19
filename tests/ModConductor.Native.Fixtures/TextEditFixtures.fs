@@ -217,7 +217,7 @@ module TextEditFixtures =
             DeploymentContextId.create
                 workspace
                 profile
-                (DeploymentContextId.fingerprint context.Binding.Value.Evidence)
+                (DeploymentContextId.fingerprint context.Binding.Value)
 
         let retainedBefore =
             store.Deployment.Generation(contextId, generationId) |> wait |> Option.get

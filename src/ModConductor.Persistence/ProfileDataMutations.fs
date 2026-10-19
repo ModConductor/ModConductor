@@ -25,7 +25,11 @@ type internal ProfileDataMutations
 
     let completed workspace command (action: ProfileDataActionRecord) =
         database.Enqueue(fun () ->
-            let root = WorkspaceRows.find connection null workspace |> Option.get
+            let root =
+                WorkspaceRows.find connection null workspace
+                |> Option.get
+                |> WorkspaceRootFiles.current
+
             let current = WorkspaceProfiles.summary connection null root.Receipt |> Option.get
 
             match command with

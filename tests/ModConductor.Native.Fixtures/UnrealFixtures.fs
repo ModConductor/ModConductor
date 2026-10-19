@@ -203,6 +203,8 @@ module UnrealFixtures =
               Binding =
                 Some
                     { Id = Guid.NewGuid()
+                      DeploymentKey = "fixture"
+                      ComponentRoot = Guid.NewGuid()
                       GameId = changed.Id
                       Path = game
                       Proton = None

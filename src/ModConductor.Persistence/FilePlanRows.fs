@@ -98,8 +98,7 @@ module internal FilePlanRows =
                             ModConductor.Deployment.DeploymentContextId.create
                                 workspace
                                 profile
-                                (ModConductor.Deployment.DeploymentContextId.fingerprint
-                                    binding.Evidence)
+                                (ModConductor.Deployment.DeploymentContextId.fingerprint binding)
 
                         use command =
                             Sqlite.command

@@ -25,7 +25,11 @@ module internal GameContextRows =
             use row = query.ExecuteReader()
 
             if row.Read() then
-                let evidence = GameContextEncoding.decode (row.GetString 4)
+                let encoded = row.GetString 4
+                let evidence = GameContextEncoding.decode encoded
+
+                let deploymentKey, componentRoot =
+                    GameContextEncoding.association workspace evidence encoded
 
                 let definitionChanged =
                     (GameCatalog.forGame evidence.DefinitionId).Revision
@@ -38,6 +42,8 @@ module internal GameContextRows =
                       Binding =
                         Some
                             { Id = Guid.Parse(row.GetString 1)
+                              DeploymentKey = deploymentKey
+                              ComponentRoot = componentRoot
                               GameId =
                                 GameId.tryParse (row.GetString 0)
                                 |> Option.defaultWith (fun () ->
@@ -77,7 +83,7 @@ module internal GameContextRows =
               "$id", box (string binding.Id)
               "$path", box binding.Path
               "$revision", box revision
-              "$evidence", box (GameContextEncoding.encode binding.Evidence)
+              "$evidence", box (GameContextEncoding.encodeBinding binding)
               "$owner", box owner
               "$proton",
               binding.Proton
@@ -257,13 +263,34 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                             | Ok current when current.Revision <> expected ->
                                                 Error ContextError.StaleRevision
                                             | Ok current ->
+                                                let previous =
+                                                    current.Binding
+                                                    |> Option.filter (fun binding ->
+                                                        binding.GameId = selection.GameId
+                                                        && ((candidate.IsNone
+                                                             && not evidence.Valid)
+                                                            || (binding.Evidence.RootPath = evidence.RootPath
+                                                                && binding.Evidence.DataPath = evidence.DataPath)))
+
                                                 let binding =
                                                     { Id =
-                                                        current.Binding
-                                                        |> Option.filter (fun binding ->
-                                                            binding.GameId = selection.GameId)
+                                                        previous
                                                         |> Option.map _.Id
                                                         |> Option.defaultWith Guid.NewGuid
+                                                      DeploymentKey =
+                                                        previous
+                                                        |> Option.map _.DeploymentKey
+                                                        |> Option.defaultWith (fun () ->
+                                                            ModConductor.Deployment.DeploymentContextId.logicalFingerprint
+                                                                evidence)
+                                                      ComponentRoot =
+                                                        previous
+                                                        |> Option.map _.ComponentRoot
+                                                        |> Option.filter ((<>) Guid.Empty)
+                                                        |> Option.defaultWith (fun () ->
+                                                            ComponentRoots.logicalRootId
+                                                                workspace
+                                                                evidence)
                                                       GameId = selection.GameId
                                                       Path = path
                                                       Proton =

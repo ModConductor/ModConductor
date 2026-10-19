@@ -148,7 +148,7 @@ module internal SkseRows =
                 DeploymentContextId.create
                     workspace
                     profile
-                    (DeploymentContextId.fingerprint binding.Evidence)
+                    (DeploymentContextId.fingerprint binding)
 
             DeploymentRows.context connection transaction id |> Option.bind _.Active)
 

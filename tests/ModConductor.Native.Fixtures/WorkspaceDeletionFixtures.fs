@@ -201,7 +201,7 @@ module WorkspaceDeletionFixtures =
 
         let gameData = Path.Combine(game, "Data")
         let original = write gameData "shared.txt" "displaced game original"
-        let fingerprint = DeploymentContextId.fingerprint binding
+        let fingerprint = DeploymentContextId.physicalFingerprint binding
 
         let request =
             { DeploymentFixtureData.request area (Guid.NewGuid()) 0L generation with

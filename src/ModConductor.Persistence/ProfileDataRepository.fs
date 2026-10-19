@@ -100,48 +100,35 @@ type internal ProfileDataRepository
                                                 transaction
                                                 recorded.Id
                                         | None, Some root ->
-                                            ProfileDataRows.context
+                                            ProfileDataRows.forDocuments
                                                 connection
                                                 transaction
-                                                (DataLocations.id workspace root)
+                                                workspace
+                                                root.Path
                                         | None, None ->
-                                            let selectedPath =
-                                                game.Binding
-                                                |> Option.bind (fun binding ->
-                                                    match
-                                                        binding.Evidence.Locations.Documents
-                                                    with
-                                                    | ModConductor.GameContexts.Location.Located(path,
-                                                                                                 _) ->
-                                                        Some path
-                                                    | _ -> None)
-
-                                            use query =
-                                                Sqlite.command
+                                            game.Binding
+                                            |> Option.bind (fun binding ->
+                                                match binding.Evidence.Locations.Documents with
+                                                | ModConductor.GameContexts.Location.Located(path,
+                                                                                             _) ->
+                                                    HostPath.create path |> Result.toOption
+                                                | ModConductor.GameContexts.Location.Unavailable _ ->
+                                                    None)
+                                            |> Option.bind (
+                                                ProfileDataRows.forDocuments
                                                     connection
                                                     transaction
-                                                    "SELECT body FROM profile_data_contexts WHERE workspace_id=$workspace"
-                                                    [ "$workspace", box (string workspace) ]
+                                                    workspace
+                                            )
 
-                                            use reader = query.ExecuteReader()
-
-                                            let candidates =
-                                                [ while reader.Read() do
-                                                      let value =
-                                                          ProfileDataEncoding.readContext (
-                                                              reader.GetFieldValue<byte array> 0
-                                                          )
-
-                                                      if
-                                                          selectedPath = Some(
-                                                              HostPath.value value.Documents.Path
-                                                          )
-                                                      then
-                                                          yield value ]
-
-                                            match candidates with
-                                            | [ value ] -> Some value
-                                            | _ -> None
+                                    let context =
+                                        context
+                                        |> Option.map (
+                                            ProfileDataSnapshots.context
+                                                connection
+                                                transaction
+                                                game
+                                        )
 
                                     let privateData =
                                         context
@@ -150,7 +137,12 @@ type internal ProfileDataRepository
                                                 connection
                                                 transaction
                                                 value.Id
-                                                profile)
+                                                profile
+                                            |> Option.map (fun stored ->
+                                                if value.Pending.IsSome then
+                                                    stored
+                                                else
+                                                    DataLocations.currentProfile stored))
 
                                     transaction.Commit()
 
@@ -173,7 +165,8 @@ type internal ProfileDataRepository
                 let result =
                     match ProfileDataRows.context connection transaction value.Id with
                     | Some current when
-                        current.Workspace = value.Workspace && current.Documents = value.Documents
+                        current.Workspace.Path = value.Workspace.Path
+                        && current.Documents.Path = value.Documents.Path
                         ->
                         Ok current
                     | Some _ -> Error ProfileDataError.Stale
@@ -298,10 +291,29 @@ type internal ProfileDataRepository
                             else
                                 ProfileDataRows.checkOwnership connection transaction current
                                 |> Result.map (fun () ->
+                                    action.ProfileId
+                                    :: (current.Applied
+                                        |> Option.map _.ProfileId
+                                        |> Option.toList)
+                                    |> List.distinct
+                                    |> List.iter (fun id ->
+                                        ProfileDataRows.profile
+                                            connection
+                                            transaction
+                                            current.Id
+                                            id
+                                        |> Option.map DataLocations.currentProfile
+                                        |> Option.iter (
+                                            ProfileDataRows.saveProfile
+                                                connection
+                                                transaction
+                                                current.Id
+                                        ))
+
                                     ProfileDataRows.saveContext
                                         connection
                                         transaction
-                                        { current with
+                                        { expected with
                                             Pending = Some action.Id }
 
                                     ProfileDataRows.saveAction

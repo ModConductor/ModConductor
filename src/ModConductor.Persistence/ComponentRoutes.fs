@@ -239,7 +239,7 @@ module internal ComponentRoutes =
             match sources.Context.Binding with
             | None -> return Error RecoveryError.Stale
             | Some binding ->
-                match ComponentRoots.gameRootId workspace binding.Evidence with
+                match ComponentRoots.registeredRootId binding with
                 | Error _ -> return Error RecoveryError.Stale
                 | Ok gameRoot ->
                     return! database.Enqueue(fun () -> review binding.Evidence gameRoot)

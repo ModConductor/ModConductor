@@ -33,7 +33,19 @@ module internal WorkspaceDeletionRows =
                     [ "$id", box (string id) ]
                 |> List.choose (ProfileDataRows.profile connection null id)
 
-            ProfileDataRows.context connection null id |> Option.get, profiles)
+            let context = ProfileDataRows.context connection null id |> Option.get
+
+            if context.Pending.IsSome then
+                context, profiles
+            else
+                { context with
+                    Workspace = DataLocations.current context.Workspace
+                    Documents = DataLocations.current context.Documents
+                    Storage = context.Storage |> Option.map DataLocations.current
+                    OriginalsRoot = context.OriginalsRoot |> Option.map DataLocations.current
+                    PluginRoot = context.PluginRoot |> Option.map DataLocations.current
+                    PluginOriginals = context.PluginOriginals |> Option.map DataLocations.current },
+                profiles |> List.map DataLocations.currentProfile)
 
     let private folders connection workspace =
         use query =
@@ -76,7 +88,15 @@ module internal WorkspaceDeletionRows =
 
             match WorkspaceRows.find connection null workspace with
             | None -> Error WorkspaceError.NotFound
-            | Some row ->
+            | Some stored ->
+                let row =
+                    if
+                        System.IO.Directory.Exists(HostPath.value stored.Receipt.Workspace.Path)
+                    then
+                        WorkspaceRootFiles.current stored
+                    else
+                        stored
+
                 match WorkspaceProfiles.summary connection null row.Receipt with
                 | None -> Error WorkspaceError.NotFound
                 | Some value ->
@@ -106,7 +126,33 @@ module internal WorkspaceDeletionRows =
                           Data = data connection workspace
                           DeploymentContexts = contexts
                           Deployments = deployments
-                          Folders = folders connection workspace })
+                          Folders =
+                            folders connection workspace
+                            |> List.choose (fun (name, _) ->
+                                if
+                                    not (
+                                        System.IO.Directory.Exists(
+                                            HostPath.value row.Receipt.Workspace.Path
+                                        )
+                                    )
+                                then
+                                    None
+                                else
+                                    use root =
+                                        HeldDirectory.Open(
+                                            row.Receipt.Workspace.Path,
+                                            row.Receipt.Workspace.Identity
+                                        )
+
+                                    root.InspectEntry name
+                                    |> Option.map (fun entry ->
+                                        if entry.Kind <> EntryKind.Directory then
+                                            raise (
+                                                System.IO.IOException
+                                                    "An owned workspace folder is not a directory."
+                                            )
+
+                                        name, entry.Identity)) })
 
     let idle (database: StateDatabase) (state: WorkspaceDeletionState) =
         database.Enqueue(fun () ->

@@ -43,8 +43,18 @@ module internal DeploymentContextId =
             identity evidence.DataIdentity)
         |> Convert.ToHexStringLower
 
-    let fingerprint evidence =
+    let physicalFingerprint evidence =
         fingerprintFor "mc-profile-game-view-v2" evidence
+
+    let logicalFingerprint (evidence: InstallationEvidence) =
+        encode (fun writer ->
+            writer.Write "mc-profile-game-view-v3"
+            writer.Write(GameId.value evidence.DefinitionId)
+            writer.Write evidence.RootPath
+            writer.Write(defaultArg evidence.DataPath ""))
+        |> Convert.ToHexStringLower
+
+    let fingerprint (binding: GameBinding) = binding.DeploymentKey
 
     let legacyFingerprint evidence =
         fingerprintFor "mc-data-target-v1" evidence

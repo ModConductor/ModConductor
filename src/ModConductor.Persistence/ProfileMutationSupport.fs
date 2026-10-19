@@ -50,8 +50,21 @@ module internal ProfileMutationSupport =
 
             ids
             |> List.map (fun id ->
-                ProfileDataRows.context connection null id |> Option.get,
-                ProfileDataRows.profile connection null id profile |> Option.get))
+                let context = ProfileDataRows.context connection null id |> Option.get
+                let stored = ProfileDataRows.profile connection null id profile |> Option.get
+
+                if context.Pending.IsSome then
+                    context, stored
+                else
+                    { context with
+                        Workspace = DataLocations.current context.Workspace
+                        Documents = DataLocations.current context.Documents
+                        Storage = context.Storage |> Option.map DataLocations.current
+                        OriginalsRoot = context.OriginalsRoot |> Option.map DataLocations.current
+                        PluginRoot = context.PluginRoot |> Option.map DataLocations.current
+                        PluginOriginals =
+                            context.PluginOriginals |> Option.map DataLocations.current },
+                    DataLocations.currentProfile stored))
 
     let initial id (context: ProfileDataContext) profile kind =
         { Id = id

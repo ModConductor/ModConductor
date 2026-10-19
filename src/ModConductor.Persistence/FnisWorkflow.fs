@@ -78,9 +78,7 @@ type internal FnisWorkflow
                 if not (ModConductor.GameContexts.ContextRuntime.ready evidence) then
                     return Error "Select a checked Skyrim runtime before FNIS setup."
                 else
-                    match
-                        ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
-                    with
+                    match ModConductor.GameContexts.ComponentRoots.registeredRootId binding with
                     | Error detail -> return Error detail
                     | Ok gameRoot ->
                         let reviewed =

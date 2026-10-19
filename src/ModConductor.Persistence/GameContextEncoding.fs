@@ -164,3 +164,33 @@ module internal GameContextEncoding =
                     Detail = text p "detail" } ]
           CheckedAt = DateTimeOffset.FromUnixTimeMilliseconds((get root "checkedAt").GetInt64())
           Fingerprint = text root "fingerprint" }
+
+    let association workspace evidence (value: string) =
+        use document = JsonDocument.Parse value
+        let root = document.RootElement
+        let mutable deployment = Unchecked.defaultof<JsonElement>
+        let mutable componentRoot = Unchecked.defaultof<JsonElement>
+
+        if
+            root.TryGetProperty("deploymentKey", &deployment)
+            && root.TryGetProperty("componentRoot", &componentRoot)
+        then
+            deployment.GetString(), componentRoot.GetGuid()
+        else
+            ModConductor.Deployment.DeploymentContextId.physicalFingerprint evidence,
+            ComponentRoots.legacyRootId workspace evidence |> Option.defaultValue Guid.Empty
+
+    let encodeBinding (binding: GameBinding) =
+        use document = JsonDocument.Parse(encode binding.Evidence)
+        use output = new MemoryStream()
+        use writer = new Utf8JsonWriter(output)
+        writer.WriteStartObject()
+
+        for property in document.RootElement.EnumerateObject() do
+            property.WriteTo writer
+
+        writer.WriteString("deploymentKey", binding.DeploymentKey)
+        writer.WriteString("componentRoot", binding.ComponentRoot)
+        writer.WriteEndObject()
+        writer.Flush()
+        System.Text.Encoding.UTF8.GetString(output.ToArray())

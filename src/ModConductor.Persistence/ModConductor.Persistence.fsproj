@@ -83,6 +83,7 @@
     <Compile Include="IndependentClient.fs" />
     <Compile Include="GameViews.fs" />
     <Compile Include="RuntimeDataTarget.fs" /><Compile Include="GameLocalData.fs" />
+    <Compile Include="ProfileDataSnapshots.fs" />
     <Compile Include="ProfileDataRepository.fs" />
     <Compile Include="GenerationProfile.fs" />
     <Compile Include="GenerationSources.fs" />

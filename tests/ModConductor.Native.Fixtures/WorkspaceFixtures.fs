@@ -184,7 +184,7 @@ module WorkspaceFixtures =
                 |> Array.find (fun path -> Path.GetFileName path <> "foreign.txt")
 
             File.Move(marker, marker + ".original")
-            File.Copy(marker + ".original", marker)
+            File.WriteAllText(marker, "another workspace")
 
             writer.WriteBoolean(
                 "changedMarkerRefused",
@@ -193,7 +193,7 @@ module WorkspaceFixtures =
 
             writer.WriteBoolean(
                 "markerReplacementPreserved",
-                File.ReadAllBytes(marker) = File.ReadAllBytes(marker + ".original")
+                File.ReadAllText(marker) = "another workspace"
             )
 
         let freshState =

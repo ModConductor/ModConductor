@@ -246,19 +246,25 @@ type HeldDirectory private (handle: SafeFileHandle) =
             child.Dispose()
             reraise ()
 
-    static member Open(path, expected) =
+    static member Open(path) =
         let handle = Native.readableDirectoryHandle (HostPath.value path)
 
         try
             let directory = new HeldDirectory(handle)
-
-            if directory.Identity <> expected then
-                raise (IOException("The selected root changed."))
-
+            directory.Identity |> ignore
             directory
         with _ ->
             handle.Dispose()
             reraise ()
+
+    static member Open(path, expected) =
+        let directory = HeldDirectory.Open path
+
+        if directory.Identity <> expected then
+            (directory :> IDisposable).Dispose()
+            raise (IOException("The selected root changed."))
+
+        directory
 
     interface IDisposable with
         member _.Dispose() = handle.Dispose()

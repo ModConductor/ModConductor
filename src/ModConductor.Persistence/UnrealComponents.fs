@@ -16,11 +16,12 @@ module internal UnrealComponents =
         (version: ModConductor.ModLibrary.ModVersion)
         =
         let root =
-            (WorkspaceRows.find database.Connection null workspace).Value.Receipt.Workspace
+            (WorkspaceRows.find database.Connection null workspace).Value
+            |> WorkspaceRootFiles.current
+            |> _.Receipt.Workspace
 
         let library = (LibraryRows.library database.Connection null workspace).Value
-        use parent = HeldDirectory.Open(root.Path, root.Identity)
-        use held = parent.Directory(library.Name, library.Identity)
+        use held = LibraryFiles.openLibrary root library
 
         version.Entries
         |> List.filter (fun entry ->
@@ -36,13 +37,7 @@ module internal UnrealComponents =
                     let payload =
                         (LibraryRows.payload database.Connection null entry.Payload.Id).Value
 
-                    LibraryFiles.verify held payload
-
-                    let stream, _ =
-                        held.Read(
-                            LibraryFiles.payloadName entry.Payload.Id,
-                            Some payload.Identity
-                        )
+                    let stream, _ = LibraryFiles.readPayload held payload
 
                     use stream = stream
                     use bytes = new MemoryStream()
@@ -120,16 +115,14 @@ module internal UnrealComponents =
             | _ -> None)
         |> Option.map (fun entry ->
             let root =
-                (WorkspaceRows.find database.Connection null workspace).Value.Receipt.Workspace
+                (WorkspaceRows.find database.Connection null workspace).Value
+                |> WorkspaceRootFiles.current
+                |> _.Receipt.Workspace
 
             let library = (LibraryRows.library database.Connection null workspace).Value
-            use parent = HeldDirectory.Open(root.Path, root.Identity)
-            use held = parent.Directory(library.Name, library.Identity)
+            use held = LibraryFiles.openLibrary root library
             let payload = (LibraryRows.payload database.Connection null entry.Payload.Id).Value
-            LibraryFiles.verify held payload
-
-            let stream, _ =
-                held.Read(LibraryFiles.payloadName entry.Payload.Id, Some payload.Identity)
+            let stream, _ = LibraryFiles.readPayload held payload
 
             use stream = stream
             use reader = new StreamReader(stream)

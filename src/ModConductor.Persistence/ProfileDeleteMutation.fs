@@ -277,7 +277,9 @@ module internal ProfileDeleteMutation =
                         return Error(WorkspaceError.ProfileData(DataErrors.problemMessage error))
                     | Ok() ->
                         for generation in saved do
-                            GenerationFiles.removeOwned generation
+                            GenerationFiles.removeOwned (
+                                CompletedState.retiredGeneration generation
+                            )
 
                         let! fnisOutput =
                             FnisOutputCleanup.removeProfileFiles

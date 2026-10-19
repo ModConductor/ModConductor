@@ -228,13 +228,21 @@ module private DirectDeletion =
                     let privateNames =
                         privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
 
+                    let workspaceRoot =
+                        (WorkspaceRows.find connection transaction workspace)
+                            .Value.Receipt.Workspace.Path
+
+                    let libraryPath =
+                        HostPath.create (Path.Combine(HostPath.value workspaceRoot, stored.Name))
+                        |> Result.defaultWith invalidOp
+
                     let links =
                         [ for context, generation in values do
                               for file in generation.Files do
                                   if
                                       file.Backing
                                       |> Option.exists (fun backing ->
-                                          backing.Directory.Identity = stored.Identity.Value
+                                          backing.Directory.Path = libraryPath
                                           && (match LogicalPath.components backing.Path with
                                               | [ name ] -> privateNames.Contains name
                                               | _ -> false))
@@ -272,7 +280,7 @@ module private DirectDeletion =
     let private unlink (directory: Location) path =
         if Directory.Exists(HostPath.value directory.Path) then
             try
-                use root = HeldDirectory.Open(directory.Path, directory.Identity)
+                use root = HeldDirectory.Open directory.Path
 
                 let rec atParent (parent: HeldDirectory) (host: HostPath) parts =
                     match parts with
@@ -318,7 +326,7 @@ module private DirectDeletion =
         | Some root, Some stored when not names.IsEmpty ->
             try
                 use workspace = HeldDirectory.Open(root.Path, root.Identity)
-                use directory = workspace.Directory(stored.Name, stored.Identity)
+                use directory = workspace.Directory(stored.Name, None)
 
                 for name in names do
                     match directory.InspectEntry name with

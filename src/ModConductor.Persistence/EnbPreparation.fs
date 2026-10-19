@@ -36,7 +36,7 @@ type internal EnbPreparation
             | Some binding ->
                 let evidence = binding.Evidence
 
-                match ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence with
+                match ModConductor.GameContexts.ComponentRoots.registeredRootId binding with
                 | Error detail -> return Error detail
                 | Ok gameRoot ->
                     let! read =

@@ -200,22 +200,8 @@ type FilePlanRepository
                         | Ok(library, payload) ->
                             use folder = LibraryFiles.openLibrary root library
 
-                            let stream, _ =
-                                folder.Read(
-                                    LibraryFiles.payloadName payload.Payload.Id,
-                                    Some payload.Identity
-                                )
-
-                            if stream.Length <> payload.Payload.Length then
-                                stream.Dispose()
-
-                                return
-                                    Error(
-                                        FilePlanError.FileUnavailable
-                                            "The published plugin file changed."
-                                    )
-                            else
-                                return Ok stream
+                            let stream, _ = LibraryFiles.readPayload folder payload
+                            return Ok stream
                 })
 
         member _.PublishText(expected, action, source, bytes, token) =

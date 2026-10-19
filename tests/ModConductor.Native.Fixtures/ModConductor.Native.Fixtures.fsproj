@@ -57,6 +57,9 @@
     <Compile Include="NonSteamWineRuntimeFixtures.fs" />
     <Compile Include="WorkspaceDeletionFixtures.fs" />
     <Compile Include="DeploymentRemovalFixtures.fs" />
+
+
+    <Compile Include="WorkspaceReopenFixtures.fs" />
     <Compile Include="FixtureHostDefault.fs" />
     <Compile Include="ThunderstoreSamples.fs"/>
     <Compile Include="ThunderstoreReaderFixtures.fs"/>

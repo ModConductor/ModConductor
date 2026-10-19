@@ -44,21 +44,34 @@ module RootIdentityFile =
         file.Flush true
         identity EntryKind.RegularFile handle
 
+    let private readMatches (handle: SafeFileHandle) (contents: byte array) =
+        use file = new FileStream(handle, FileAccess.Read)
+        let observed = Array.zeroCreate<byte> (contents.Length + 1)
+        let mutable count = 0
+        let mutable reading = true
+
+        while reading && count < observed.Length do
+            let read = file.Read(observed, count, observed.Length - count)
+            if read = 0 then reading <- false else count <- count + read
+
+        count = contents.Length && observed[0 .. count - 1] = contents
+
+    let observe path (contents: byte array) =
+        checkContents contents
+        use directory = Native.directoryHandle (HostPath.value path)
+        let rootIdentity = identity EntryKind.Directory directory
+        use handle = RelativeFile.openChild directory name false false
+        let markerIdentity = identity EntryKind.RegularFile handle
+
+        if readMatches handle contents then
+            Some(rootIdentity, markerIdentity)
+        else
+            None
+
     let matches path rootIdentity expectedIdentity (contents: byte array) =
         checkContents contents
         use directory = openRoot path rootIdentity
         use handle = RelativeFile.openChild directory name false false
 
-        if identity EntryKind.RegularFile handle <> expectedIdentity then
-            false
-        else
-            use file = new FileStream(handle, FileAccess.Read)
-            let observed = Array.zeroCreate<byte> (contents.Length + 1)
-            let mutable count = 0
-            let mutable reading = true
-
-            while reading && count < observed.Length do
-                let read = file.Read(observed, count, observed.Length - count)
-                if read = 0 then reading <- false else count <- count + read
-
-            count = contents.Length && observed[0 .. count - 1] = contents
+        identity EntryKind.RegularFile handle = expectedIdentity
+        && readMatches handle contents

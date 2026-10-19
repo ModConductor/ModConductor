@@ -37,3 +37,28 @@ type internal RootCreationRow =
       Busy: bool
       Abandoned: bool
       Marker: Guid }
+
+module internal WorkspaceRootFiles =
+    let contents row =
+        System.Text.Encoding.UTF8.GetBytes(
+            "ModConductor root 1\n"
+            + row.Receipt.Workspace.Id.ToString("N")
+            + "\n"
+            + row.Marker.ToString("N")
+            + "\n"
+        )
+
+    let current row =
+        if row.Receipt.Phase <> RootCreationPhase.Complete then
+            row
+        else
+            match RootIdentityFile.observe row.Receipt.Workspace.Path (contents row) with
+            | Some(rootIdentity, markerIdentity) ->
+                { row with
+                    Receipt =
+                        { row.Receipt with
+                            Workspace =
+                                { row.Receipt.Workspace with
+                                    Identity = rootIdentity }
+                            MarkerIdentity = Some markerIdentity } }
+            | None -> raise (System.IO.IOException "The workspace ownership marker changed.")

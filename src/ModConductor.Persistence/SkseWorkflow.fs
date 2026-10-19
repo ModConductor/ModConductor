@@ -53,9 +53,7 @@ type internal SkseWorkflow
                 if currentRuntime <> Some release.RuntimeVersion then
                     return Error "Skyrim changed after the compatibility check. Check SKSE again."
                 else
-                    match
-                        ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
-                    with
+                    match ModConductor.GameContexts.ComponentRoots.registeredRootId binding with
                     | Error detail -> return Error detail
                     | Ok gameRoot ->
                         let reviewedComponent =

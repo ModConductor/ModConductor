@@ -277,6 +277,9 @@ let private run (args: string array) =
     | [| "--storage-worker"; a; b; c; d |] ->
         StorageWorker.run a b c d
         0
+    | [| "--workspace-reopen-worker"; area |] ->
+        WorkspaceReopenFixtures.worker area
+        0
     | [| "--workspace-worker"; a; b; c; d |] ->
         WorkspaceWorker.run a b c d
         0

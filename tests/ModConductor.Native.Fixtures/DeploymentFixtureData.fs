@@ -74,7 +74,11 @@ module internal DeploymentFixtureData =
                             database.Connection
                             null
                             "UPDATE game_contexts SET evidence=$evidence WHERE workspace_id=$workspace AND profile_id=$profile AND revision=$revision"
-                            [ "$evidence", box (GameContextEncoding.encode evidence)
+                            [ "$evidence",
+                              box (
+                                  GameContextEncoding.encodeBinding
+                                      { binding with Evidence = evidence }
+                              )
                               "$workspace", box (string workspace)
                               "$profile", box (string profile)
                               "$revision", box before.Revision ]

@@ -141,12 +141,15 @@ module internal GenerationSources =
 
                         files
                         |> List.map (fun (pin, payload) ->
+                            let stream, identity = LibraryFiles.readPayload held payload
+                            use stream = stream
+
                             pin,
                             { Directory = directory
                               Path =
                                 GenerationFiles.logical
                                     [ LibraryFiles.payloadName payload.Payload.Id ]
-                              Identity = payload.Identity
+                              Identity = identity
                               OwnerGeneration = None })
                     | None, _ -> RecoveryFiles.fail "The recorded library is unavailable."
 

@@ -236,7 +236,7 @@ module internal ComponentFixtures =
             |> result
 
         let gameRoot =
-            ComponentRoots.gameRootId workspace context.Binding.Value.Evidence
+            ComponentRoots.registeredRootId context.Binding.Value
             |> Result.defaultWith invalidOp
 
         let targetGame (prepared: PreparedState) =

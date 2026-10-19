@@ -403,7 +403,6 @@ CREATE INDEX profile_data_contexts_documents ON profile_data_contexts(documents_
 CREATE INDEX profile_data_contexts_workspace ON profile_data_contexts(workspace_id,id);
 CREATE INDEX profiles_by_workspace ON profiles(workspace_id,id);
 CREATE INDEX skse_artifact_compatibility ON skse_artifact_selections(workspace_id,account_id,game_sha256,checked_at DESC);
-CREATE UNIQUE INDEX workspace_root_identity ON workspace_roots(device_kind,device,file_low,file_high);
 CREATE TRIGGER mod_catalogue_insert AFTER INSERT ON mods BEGIN UPDATE workspaces SET catalogue_revision=catalogue_revision+1 WHERE id=NEW.workspace_id; END;
 CREATE TRIGGER mod_catalogue_update AFTER UPDATE ON mods BEGIN UPDATE workspaces SET catalogue_revision=catalogue_revision+1 WHERE id=NEW.workspace_id; END;
 PRAGMA application_id=1296253774;

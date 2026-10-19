@@ -44,7 +44,7 @@ type internal DeploymentBackendRepository
                                     sources.Stamp.WorkspaceId
                                     sources.Stamp.ProfileId
                                     (ModConductor.Deployment.DeploymentContextId.fingerprint
-                                        binding.Evidence)
+                                        binding)
 
                             DeploymentRows.context database.Connection transaction id)
 
@@ -205,7 +205,7 @@ type internal DeploymentBackendRepository
                             DeploymentContextId.create
                                 workspace
                                 profile
-                                (DeploymentContextId.fingerprint binding.Evidence) = context)))
+                                (DeploymentContextId.fingerprint binding) = context)))
                 |> function
                     | [ state ] -> Ok state
                     | _ -> Error RecoveryError.NotFound)

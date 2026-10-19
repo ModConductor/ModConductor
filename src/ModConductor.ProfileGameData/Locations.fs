@@ -29,27 +29,24 @@ module internal DataLocations =
             | Location.Unavailable reason -> Error(ProfileDataError.Unavailable reason)
         | _ -> Error(ProfileDataError.Unavailable "Select and refresh the game installation first.")
 
-    let id (workspace: Guid) (documents: DataRoot) =
-        let physical =
-            match documents.Identity.Device with
-            | LinuxDevice(major, minor) ->
-                "linux:"
-                + major.ToString(Globalization.CultureInfo.InvariantCulture)
-                + ":"
-                + minor.ToString(Globalization.CultureInfo.InvariantCulture)
-            | WindowsVolume serial ->
-                "windows:" + serial.ToString(Globalization.CultureInfo.InvariantCulture)
+    let current (value: DataRoot) =
+        if Directory.Exists(HostPath.value value.Path) then
+            use directory = HeldDirectory.Open value.Path
 
+            { value with
+                Identity = directory.Identity }
+        else
+            value
+
+    let currentProfile (value: PrivateProfileData) =
+        { value with
+            Root = value.Root |> Option.map current
+            Settings = value.Settings |> Option.map current
+            Saves = value.Saves |> Option.map current }
+
+    let id (workspace: Guid) (documents: DataRoot) =
         let key =
-            workspace.ToString("N")
-            + "\n"
-            + GameId.value Skyrim.definition.Id
-            + "\n"
-            + physical
-            + ":"
-            + documents.Identity.Low.ToString(Globalization.CultureInfo.InvariantCulture)
-            + ":"
-            + documents.Identity.High.ToString(Globalization.CultureInfo.InvariantCulture)
+            workspace.ToString("N") + "\nmc-documents-v2\n" + HostPath.value documents.Path
 
         Guid(SHA256.HashData(Encoding.UTF8.GetBytes key) |> Array.take 16)
 

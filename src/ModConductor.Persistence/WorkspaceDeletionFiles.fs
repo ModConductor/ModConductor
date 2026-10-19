@@ -105,7 +105,7 @@ module internal WorkspaceDeletionFiles =
 
     let remove (state: WorkspaceDeletionState) imageFolder =
         for _, generation in state.Deployments |> List.distinctBy (snd >> _.Id) do
-            GenerationFiles.removeOwned generation
+            GenerationFiles.removeOwned (CompletedState.retiredGeneration generation)
             removeSecondary state.Receipt.Workspace generation
 
         for context, _ in state.Data do

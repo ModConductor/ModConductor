@@ -87,3 +87,37 @@ type WorkspaceTests() =
         after.GetProperty("profiles").GetInt32() |> should equal 1
         after.GetProperty("selectionMatches").GetBoolean() |> should equal true
         after.GetProperty("files").GetInt32() |> should equal 1
+
+    [<Test>]
+    member _.``legacy saved device numbers should not prevent reopen ordinary access or freshly observed mutations``
+        ()
+        =
+        let reopened = NativeObservations.report.RootElement.GetProperty("workspaceReopen")
+
+        for name in
+            [ "logicalSelectionRetained"
+              "modAndPayloadRetained"
+              "legacyKeysDerived"
+              "refreshRetainsAssociation"
+              "copiedArchiveReadable"
+              "referencedArchiveReadable"
+              "newArchiveDeletionUsesContentProof"
+              "pendingArchiveDeletionRetainsRecordedExpectation"
+              "outputAssociationRetained"
+              "staleDiscardPreservesFile"
+              "freshOutputDiscardWorks"
+              "completedDeploymentReadable"
+              "newDeploymentUsesCurrentFiles"
+              "legacyOriginalRestored"
+              "restoredOriginalSupportsNextDeployment"
+              "privateSettingsRetained"
+              "privateOriginalRestored"
+              "freshModDeletionWorks"
+              "restoredOriginalRetainedAfterModDeletion"
+              "modSourcePreserved"
+              "foreignRootFilePreserved"
+              "associationSurvivesAnotherReopen"
+              "differentInstallationHasSeparateAssociation"
+              "differentInstallationDoesNotAdoptOutput"
+              "legacyTupleReuseDoesNotBlockNewWorkspace" ] do
+            reopened.GetProperty(name).GetBoolean() |> should equal true

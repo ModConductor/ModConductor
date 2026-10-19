@@ -23,14 +23,7 @@ type OwnedWorkspaceRootStore internal (database: StateDatabase) =
     let leave id =
         lock gate (fun () -> active.Remove id |> ignore)
 
-    let contents row =
-        Encoding.UTF8.GetBytes(
-            "ModConductor root 1\n"
-            + row.Receipt.Workspace.Id.ToString("N")
-            + "\n"
-            + row.Marker.ToString("N")
-            + "\n"
-        )
+    let contents = WorkspaceRootFiles.contents
 
     let finish row phase identity detail =
         database.EnqueueInternal(fun () ->
@@ -148,23 +141,21 @@ type OwnedWorkspaceRootStore internal (database: StateDatabase) =
                 | Ok() -> return Ok row.Receipt
                 | Error _ -> return Error WorkspaceFailure.IdentityConflict
             | Some row ->
-                match row.Receipt.MarkerIdentity with
-                | None -> return Error WorkspaceFailure.IdentityConflict
-                | Some identity ->
-                    let! observed =
-                        fileAttempt (fun () ->
-                            let root = row.Receipt.Workspace
+                let! observed =
+                    fileAttempt (fun () ->
+                        RootIdentityFile.observe row.Receipt.Workspace.Path (contents row))
 
-                            RootIdentityFile.matches
-                                root.Path
-                                root.Identity
-                                identity
-                                (contents row))
-
-                    match observed with
-                    | Ok true -> return Ok row.Receipt
-                    | Ok false -> return Error WorkspaceFailure.IdentityConflict
-                    | Error _ -> return Error WorkspaceFailure.InvalidRoot
+                match observed with
+                | Ok(Some(rootIdentity, markerIdentity)) ->
+                    return
+                        Ok
+                            { row.Receipt with
+                                Workspace =
+                                    { row.Receipt.Workspace with
+                                        Identity = rootIdentity }
+                                MarkerIdentity = Some markerIdentity }
+                | Ok None -> return Error WorkspaceFailure.IdentityConflict
+                | Error _ -> return Error WorkspaceFailure.InvalidRoot
         }
 
     member _.Validate(id: Guid) =

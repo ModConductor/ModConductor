@@ -166,6 +166,18 @@ module internal DeploymentRows =
                   "$digest", box (DeploymentEncoding.hash body)
                   "$saved", box (if value.Provenance.IsSome then 1 else 0) ]
 
+    let captureGeneration connection transaction contextId (value: Generation) =
+        let body = DeploymentEncoding.generationBytes value
+
+        Sqlite.execute
+            connection
+            transaction
+            "UPDATE deployment_generations SET body=$body,digest=$digest WHERE context_id=$context AND id=$id"
+            [ "$context", identifier contextId
+              "$id", identifier value.Id
+              "$body", box body
+              "$digest", box (DeploymentEncoding.hash body) ]
+
     let insert connection transaction owner (value: Receipt) =
         let body = DeploymentEncoding.receiptBytes value
 

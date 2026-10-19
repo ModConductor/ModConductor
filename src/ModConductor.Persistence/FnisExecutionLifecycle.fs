@@ -35,7 +35,7 @@ type internal FnisExecutionLifecycle(database: StateDatabase, access: LibraryAcc
         |> Result.toOption
         |> Option.bind _.Binding
         |> Option.bind (fun binding ->
-            ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence
+            ModConductor.Deployment.DeploymentContextId.fingerprint binding
             |> ModConductor.Deployment.DeploymentContextId.create workspace profile
             |> DeploymentRows.context connection transaction)
         |> Option.bind (fun context ->

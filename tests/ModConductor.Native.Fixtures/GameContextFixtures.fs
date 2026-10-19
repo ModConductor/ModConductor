@@ -311,7 +311,7 @@ module GameContextFixtures =
             )
 
             let deploymentFingerprint =
-                ModConductor.Deployment.DeploymentContextId.fingerprint saved.Binding.Value.Evidence
+                ModConductor.Deployment.DeploymentContextId.fingerprint saved.Binding.Value
 
             writer.WriteBoolean(
                 "profileDeploymentContextsAreDistinct",
@@ -421,6 +421,9 @@ module GameContextFixtures =
             writer.WriteBoolean(
                 "failedRefreshRetainsEvidence",
                 failed.Binding.Value.NeedsCheck
+                && failed.Binding.Value.Id = saved.Binding.Value.Id
+                && failed.Binding.Value.DeploymentKey = saved.Binding.Value.DeploymentKey
+                && failed.Binding.Value.ComponentRoot = saved.Binding.Value.ComponentRoot
                 && failed.Binding.Value.Failure.IsSome
                 && failed.Binding.Value.Evidence = saved.Binding.Value.Evidence
                 && failed.Binding.Value.Path = game

@@ -177,9 +177,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
 
                                 if row.Artifact.Storage = ArtifactStorage.Reference then
                                     let file, _ =
-                                        ArtifactFiles.openExternal
-                                            row.Artifact.Path
-                                            row.SourceIdentity
+                                        ArtifactFiles.openExternal row.Artifact.Path None
 
                                     Ok(inspect file)
                                 else
@@ -190,7 +188,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                                         let file, _ =
                                             directory.Read(
                                                 ArtifactFiles.final row.Artifact.Id,
-                                                row.StoredIdentity
+                                                None
                                             )
 
                                         inspect file)))
@@ -362,6 +360,30 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                     then
                         Error ArtifactError.Conflict
                     else
+                        let row =
+                            if row.Phase <> 2 then
+                                row
+                            else
+                                library row.Artifact.WorkspaceId
+                                |> Result.map (fun directory ->
+                                    use directory = directory
+
+                                    let file, identity =
+                                        directory.Read(ArtifactFiles.final row.Artifact.Id, None)
+
+                                    use file = file
+
+                                    ArtifactFiles.verify
+                                        CancellationToken.None
+                                        row.Artifact.Length
+                                        row.Artifact.Sha256
+                                        file
+
+                                    { row with
+                                        StoredIdentity = Some identity })
+                                |> Result.defaultWith (fun _ ->
+                                    raise (IO.IOException "The archive library is unavailable."))
+
                         let row = finish row 4 None
 
                         let hasLibrary =

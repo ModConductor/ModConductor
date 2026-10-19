@@ -141,13 +141,7 @@ type ModLibraryStore internal (database: StateDatabase, roots: OwnedWorkspaceRoo
                                 return!
                                     Task.Run(fun () ->
                                         use directory = LibraryFiles.openLibrary root library
-                                        LibraryFiles.verify directory payload
-
-                                        let stream, _ =
-                                            directory.Read(
-                                                LibraryFiles.payloadName payloadId,
-                                                Some payload.Identity
-                                            )
+                                        let stream, _ = LibraryFiles.readPayload directory payload
 
                                         use stream = stream
 

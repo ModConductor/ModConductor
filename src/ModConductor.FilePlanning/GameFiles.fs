@@ -33,17 +33,13 @@ module GameFiles =
                 |> Option.defaultWith (fun () ->
                     raise (IOException("Select a checked game installation.")))
 
-            let identity =
-                evidence.DataIdentity
-                |> Option.defaultWith (fun () ->
-                    raise (IOException("The game Data folder has no checked identity.")))
-
             let rootPath =
                 HostPath.create directory
                 |> Result.defaultWith (fun _ ->
                     raise (IOException("The checked Data path is invalid.")))
 
-            use root = HeldDirectory.Open(rootPath, identity)
+            use root = HeldDirectory.Open rootPath
+            let identity = root.Identity
 
             let ownsPluginList =
                 GameCatalog.tryRules evidence.DefinitionId

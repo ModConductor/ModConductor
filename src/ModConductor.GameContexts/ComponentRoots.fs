@@ -20,14 +20,10 @@ module ComponentRoots =
         writer.Write value.Low
         writer.Write value.High
 
-    let gameRootId (workspace: Guid) (evidence: InstallationEvidence) =
-        if
-            not evidence.Valid
-            || evidence.DefinitionRevision
-               <> (GameCatalog.forGame evidence.DefinitionId).Revision
-        then
-            Error "Select a checked game installation."
-        else
+    let legacyRootId (workspace: Guid) (evidence: InstallationEvidence) =
+        match evidence.RootIdentity with
+        | None -> None
+        | Some rootIdentity ->
             use bytes = new MemoryStream()
             use writer = new BinaryWriter(bytes, Encoding.UTF8, true)
 
@@ -47,11 +43,27 @@ module ComponentRoots =
             writer.Write(workspace.ToByteArray())
             writer.Write(GameId.value evidence.DefinitionId)
             writer.Write evidence.RootPath
-            identity writer evidence.RootIdentity.Value
+            identity writer rootIdentity
             writer.Flush()
             let value = Guid(SHA256.HashData(bytes.ToArray()).AsSpan(0, 16))
 
             if value = workspace then
                 invalidOp "The component target identities collided."
 
-            Ok value
+            Some value
+
+    let logicalRootId (workspace: Guid) (evidence: InstallationEvidence) =
+        use bytes = new MemoryStream()
+        use writer = new BinaryWriter(bytes, Encoding.UTF8, true)
+        writer.Write "mc-component-root-v2"
+        writer.Write(workspace.ToByteArray())
+        writer.Write(GameId.value evidence.DefinitionId)
+        writer.Write evidence.RootPath
+        writer.Flush()
+        Guid(SHA256.HashData(bytes.ToArray()).AsSpan(0, 16))
+
+    let registeredRootId (binding: GameBinding) =
+        if not binding.Evidence.Valid then
+            Error "Select a checked game installation."
+        else
+            Ok binding.ComponentRoot

@@ -318,5 +318,7 @@ module internal Preparation =
                       Detail = "" })
 
     let prepare token existing request =
+        let existing = existing |> Option.map CompletedState.context
+
         validateRequest existing request
         |> Result.bind (fun context -> prepareValidated token context request)

@@ -177,7 +177,7 @@ module GameViewFixtures =
             DeploymentContextId.create
                 workspace
                 first
-                (DeploymentContextId.fingerprint selected.Binding.Value.Evidence)
+                (DeploymentContextId.fingerprint selected.Binding.Value)
 
         let active = (store.Deployment.Context contextId |> wait).Value
 

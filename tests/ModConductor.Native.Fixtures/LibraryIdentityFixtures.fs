@@ -131,8 +131,8 @@ module LibraryIdentityFixtures =
         File.WriteAllText(Path.Combine(source, "foreign"), "not adopted")
 
         writer.WriteBoolean(
-            "replacementPublishRefused",
-            library.Publish(modId, 1L, Guid.NewGuid()) |> wait |> Result.isError
+            "replacementPublished",
+            library.Publish(modId, 1L, Guid.NewGuid()) |> wait |> Result.isOk
         )
 
         writer.WriteBoolean(

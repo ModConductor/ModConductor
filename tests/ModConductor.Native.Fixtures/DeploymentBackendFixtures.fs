@@ -206,11 +206,14 @@ module DeploymentBackendFixtures =
         let generation =
             (backend.Read profile |> wait |> backendResult "generation read").ActiveGeneration.Value
 
-        let evidence =
-            (contexts.Read(workspace, profile) |> wait |> result).Binding.Value.Evidence
+        let binding =
+            (contexts.Read(workspace, profile) |> wait |> result).Binding.Value
 
         let contextId =
-            DeploymentContextId.create workspace profile (DeploymentContextId.fingerprint evidence)
+            DeploymentContextId.create
+                workspace
+                profile
+                (DeploymentContextId.fingerprint binding)
 
         let originalTree =
             (store.Deployment.Generation(contextId, generation) |> wait).Value.Directory.Path

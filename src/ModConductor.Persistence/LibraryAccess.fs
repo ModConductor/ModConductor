@@ -155,25 +155,36 @@ module internal LibraryFiles =
     let openLibrary (root: WorkspaceRoot) (row: StoredLibrary) =
         match row.Identity with
         | None -> raise (IOException("The library folder has no recorded identity."))
-        | Some identity ->
+        | Some _ ->
             use directory = HeldDirectory.Open(root.Path, root.Identity)
-            directory.Directory(row.Name, Some identity)
+            directory.Directory(row.Name, None)
 
     let openSource (root: WorkspaceRoot) (modRow: StoredMod) forbidden =
         match modRow.Entry.SourcePath, modRow.SourceIdentity with
-        | Some path, Some identity ->
+        | Some path, Some _ ->
             use directory = HeldDirectory.Open(root.Path, root.Identity)
-            SourceFiles.child directory path (Some identity) forbidden
+            SourceFiles.child directory path None forbidden
         | _ -> Error LibraryError.FileUnavailable
 
     let payloadName (id: Guid) = id.ToString("N") + ".payload"
 
-    let verify (library: HeldDirectory) (payload: StoredPayload) =
-        let stream, _ = library.Read(payloadName payload.Payload.Id, Some payload.Identity)
-        use stream = stream
+    let readPayload (library: HeldDirectory) (payload: StoredPayload) =
+        let stream, identity = library.Read(payloadName payload.Payload.Id, None)
 
-        if
-            stream.Length <> payload.Payload.Length
-            || SourceFiles.digest stream <> payload.Payload.Sha256
-        then
-            raise (IOException("The published file changed."))
+        try
+            if
+                stream.Length <> payload.Payload.Length
+                || SourceFiles.digest stream <> payload.Payload.Sha256
+            then
+                raise (IOException("The published file changed."))
+
+            stream.Position <- 0L
+            stream, identity
+        with _ ->
+            stream.Dispose()
+            reraise ()
+
+    let verify library payload =
+        let stream, _ = readPayload library payload
+        use stream = stream
+        ()

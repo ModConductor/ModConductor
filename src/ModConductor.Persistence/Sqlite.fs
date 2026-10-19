@@ -82,6 +82,8 @@ module internal Sqlite =
         | Schema.CurrentVersion, Schema.ApplicationId, _ -> ()
         | _ -> incompatible ()
 
+        execute connection transaction "DROP INDEX IF EXISTS workspace_root_identity" []
+
         beforeCommit ()
         transaction.Commit()
 
