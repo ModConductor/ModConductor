@@ -836,7 +836,7 @@ type NexusServer() =
     interface IDisposable with
         member _.Dispose() =
             stop.Cancel()
-            listener.Close()
             loop.GetAwaiter().GetResult()
             Task.WhenAll(jobs.ToArray()).GetAwaiter().GetResult()
+            listener.Close()
             stop.Dispose()

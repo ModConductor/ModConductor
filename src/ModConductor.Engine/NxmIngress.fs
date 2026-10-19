@@ -10,7 +10,7 @@ let internal create
         (fun (id, input) ->
             let accepted = nexus.AcceptNxm(id, input)
 
-            if accepted then
+            if accepted && not (nexus.NxmHandled id) then
                 match nexus.ReadNxm id with
                 | Ok file when
                     file.Game = "skyrimspecialedition"

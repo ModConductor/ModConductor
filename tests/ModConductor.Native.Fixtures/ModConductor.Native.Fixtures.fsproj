@@ -30,6 +30,7 @@
     <Compile Include="SkyrimSetupFixtures.fs" />
     <Compile Include="NexusMetadataFixtures.fs" />
     <Compile Include="NxmInboxFixtures.fs" />
+    <Compile Include="NxmComponentFixtures.fs" />
     <Compile Include="NxmFixtures.fs" />
     <Compile Include="NxmDeliveryFixtures.fs" />
     <Compile Include="DesktopFixtures.fs" />

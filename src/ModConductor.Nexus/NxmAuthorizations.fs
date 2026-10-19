@@ -170,10 +170,14 @@ type internal NxmAuthorizations() =
         pending.Clear()
         transfers.Clear()
 
-type NxmAdmission internal (file: NxmFile, cancel: unit -> unit) =
+type NxmAdmission internal (file: NxmFile, completeRequest: unit -> unit, cancel: unit -> unit) =
     let mutable complete = false
     member _.File = file
-    member _.Complete() = complete <- true
+
+    member _.Complete() =
+        // The transfer already has an owner even if inbox retirement fails.
+        complete <- true
+        completeRequest ()
 
     interface IDisposable with
         member _.Dispose() =
