@@ -107,6 +107,8 @@ module NxmFixtures =
                             CheckpointBytes = 16384L }
                 )
 
+            session.AttachNxmInbox store.NxmInbox
+
             let created =
                 (store.Workspaces :> IWorkspaceState)
                     .Create(workspace, "NXM fixture", StorageWorker.select root)
@@ -146,7 +148,14 @@ module NxmFixtures =
                     session.DismissNxm
                 )
 
-            use service = new NxmService(session, ingress, store.Downloads, store.GameContexts)
+            use service =
+                new NxmService(
+                    session,
+                    ingress,
+                    store.Downloads,
+                    store.GameContexts,
+                    server.Handoff
+                )
 
             let link (user: string) (expiry: int64) =
                 "nxm://skyrimspecialedition/mods/64012/files/501?key=synthetic-nxm-private-grant&expires="
@@ -284,10 +293,17 @@ module NxmFixtures =
                  && not (durable.Contains "synthetic-nxm-private-grant")
                  && not (durable.Contains "http"))
 
+            store.Downloads.Control(workspace, original, DownloadAction.Pause)
+            |> wait
+            |> result
+            |> ignore
+
         session.Stop() |> wait
 
         do
             use reopened = new OperationStore(state, nexusLinks = NexusDownloadLinks(session))
+
+            session.AttachNxmInbox reopened.NxmInbox
 
             let read () =
                 reopened.Artifacts.Read(workspace, original) |> wait |> result
@@ -295,6 +311,7 @@ module NxmFixtures =
             check
                 "restartRetainsPartialBytesWithoutReplayingAuthorization"
                 ((read ()).Download.Value.Bytes = kept
+                 && (read ()).Download.Value.State = DownloadState.Paused
                  && (session.ReadNxm acceptedReference |> Result.isError))
 
         use restoredSession =
@@ -323,17 +340,50 @@ module NxmFixtures =
             + DateTimeOffset.UtcNow.AddMinutes(5.).ToUnixTimeSeconds().ToString()
             + "&user_id=42"
 
-        restoredSession.AcceptNxm(id, link) |> ignore
-
-        use prepared =
-            restoredSession.AdmitNxm(id, "42")
-            |> Result.defaultWith (fun _ -> failwith "grant")
-
-        prepared.Complete()
         server.Slow <- false
 
         use resumed =
             new OperationStore(state, nexusLinks = NexusDownloadLinks(restoredSession))
+
+        restoredSession.AttachNxmInbox resumed.NxmInbox
+
+        use restoredIngress =
+            new PrivateIngress(
+                (fun (reference, input) -> restoredSession.AcceptNxm(reference, input)),
+                restoredSession.DismissNxm
+            )
+
+        use restoredService =
+            new NxmService(
+                restoredSession,
+                restoredIngress,
+                resumed.Downloads,
+                resumed.GameContexts,
+                server.Handoff
+            )
+
+        let restoredRequest =
+            NexusLinkRequest(
+                Reference = id.ToString("N"),
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+
+        let beforeResume = server.NxmRequests
+        restoredSession.AcceptNxm(id, link) |> ignore
+
+        let recovered =
+            restoredService.DownloadNexusLink(restoredRequest, Unchecked.defaultof<_>)
+            |> wait
+
+        check
+            "freshRequestRecoversRestartPausedPartialWithoutImplicitResume"
+            (recovered.Problem = ""
+             && recovered.Artifact.Id = original.ToString("N")
+             && recovered.Artifact.Download.Phase = DownloadPhase.Paused
+             && int64 recovered.Artifact.Download.Bytes = kept
+             && server.NxmRequests = beforeResume
+             && restoredSession.NxmHandled id)
 
         resumed.Downloads.Control(workspace, original, DownloadAction.Restart)
         |> wait
@@ -429,7 +479,13 @@ module NxmFixtures =
             )
 
         use retryService =
-            new NxmService(restoredSession, retryIngress, resumed.Downloads, resumed.GameContexts)
+            new NxmService(
+                restoredSession,
+                retryIngress,
+                resumed.Downloads,
+                resumed.GameContexts,
+                server.Handoff
+            )
 
         let retryId = Guid.NewGuid()
 
@@ -455,7 +511,9 @@ module NxmFixtures =
              && failed.Download.Value.State = DownloadState.Failed
              && retried.Artifact.Id = replacement.Id.ToString("N")
              && (readReplacement ()).State = ArtifactState.Ready
-             && server.NxmRequests > beforeLinks)
+             && server.NxmRequests > beforeLinks
+             && restoredSession.NxmHandled retryId
+             && (resumed.NxmInbox.Read retryId).IsNone)
 
         resumed.Downloads.Stop() |> wait
 

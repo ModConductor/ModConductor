@@ -77,12 +77,13 @@ class ArtifactDownload {
     this.total,
     this.expectedSha256,
     this.retryAt,
+    this.modPage,
   });
   final DownloadPhase phase;
   final int bytes;
   final int? total;
   final String source;
-  final String? expectedSha256;
+  final String? expectedSha256, modPage;
   final bool checksumMatched, restartRequired;
   final DateTime? retryAt;
   bool get active =>

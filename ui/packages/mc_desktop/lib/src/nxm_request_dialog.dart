@@ -44,7 +44,13 @@ class NexusRequestDialog extends StatelessWidget {
           'Nexus Mods download',
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        if (file != null) ...[const SizedBox(height: 8), Text(file.name)],
+        if (file != null) ...[
+          const SizedBox(height: 8),
+          Text(file.name),
+        ] else if (link != null && link.modId > 0) ...[
+          const SizedBox(height: 8),
+          Text('Mod ${link.modId} · File ${link.fileId}'),
+        ],
         if (link != null && link.game.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
@@ -116,6 +122,19 @@ class NexusRequestDialog extends StatelessWidget {
                   if (context.mounted) Navigator.pop(context);
                 },
         ),
+        if (link?.sourcePage.isNotEmpty == true)
+          McAction(
+            label: link!.freshLinkRequired
+                ? 'Get a fresh download link'
+                : 'Open mod page',
+            icon: Icons.open_in_new,
+            onPressed: () {
+              if (requests.id != requestId ||
+                  requests.nexusReference != requestReference)
+                return;
+              requests.openNexusPage();
+            },
+          ),
         if (requests.nexusFailed)
           McAction(label: 'Retry connection', onPressed: requests.connectNexus),
         if (link?.signInRequired == true)

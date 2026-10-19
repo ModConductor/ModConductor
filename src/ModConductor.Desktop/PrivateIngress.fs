@@ -85,8 +85,15 @@ type PrivateIngress(accept: Guid * string -> bool, dismiss: Guid -> unit) =
                 )
             then
                 let id = Guid(header.AsSpan(33, 16))
-                dismiss id
-                do! stream.WriteAsync(id.ToByteArray().AsMemory(), token)
+
+                let reply =
+                    try
+                        dismiss id
+                        id.ToByteArray()
+                    with _ ->
+                        Array.zeroCreate<byte> 16
+
+                do! stream.WriteAsync(reply.AsMemory(), token)
             elif
                 header[0] = 1uy
                 && count > 0
@@ -102,7 +109,12 @@ type PrivateIngress(accept: Guid * string -> bool, dismiss: Guid -> unit) =
                     do! stream.ReadExactlyAsync(payload.AsMemory(), token)
                     let id = Guid(header.AsSpan(33, 16))
                     let text = UTF8Encoding(false, true).GetString payload
-                    let accepted = accept (id, text)
+
+                    let accepted =
+                        try
+                            accept (id, text)
+                        with _ ->
+                            false
 
                     let reply =
                         if accepted then

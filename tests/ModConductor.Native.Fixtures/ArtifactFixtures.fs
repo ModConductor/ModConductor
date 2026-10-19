@@ -88,7 +88,14 @@ module ArtifactFixtures =
 
             after |> Option.iter (fun cursor -> request.After <- cursor)
 
-            ModConductor.Engine.ArtifactService(store.Artifacts).ListArtifacts(request, context)
+            ModConductor.Engine
+                .ArtifactService(
+                    store.Artifacts,
+                    (ModConductor.Engine.OAuthHandoff(fun _ ->
+                        System.Threading.Tasks.Task.CompletedTask)
+                    :> ModConductor.Nexus.IOAuthHandoff)
+                )
+                .ListArtifacts(request, context)
             |> wait
 
         writer.WriteStartObject("ordering")

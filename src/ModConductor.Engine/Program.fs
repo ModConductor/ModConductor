@@ -65,6 +65,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     use store =
         new OperationStore(directory, nexusLinks = ModConductor.Engine.NexusDownloadLinks(nexus))
 
+    nexus.AttachNxmInbox store.NxmInbox
     downloads <- Some store.Downloads
 
     use skse =

@@ -10,7 +10,11 @@ import 'package:mod_conductor/src/app.dart';
 
 class _NxmFake extends Fake implements NxmClient {
   int downloads = 0;
+  List<PendingNexusLink> saved = const [];
   final dismissed = <String>[];
+
+  @override
+  Future<List<PendingNexusLink>> pending() async => saved;
 
   @override
   Future<NexusIngress> configure(int processId) async =>
@@ -80,6 +84,7 @@ void main() {
   Future<void> mount(
     WidgetTester tester, {
     bool attachAfterFirstFrame = false,
+    List<PendingNexusLink> pending = const [],
     DesktopClient? desktop,
     WorkspacesClient? workspaces,
   }) async {
@@ -88,7 +93,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     requests = DesktopRequests();
-    nxm = _NxmFake();
+    nxm = _NxmFake()..saved = pending;
     if (!attachAfterFirstFrame) requests.attach(desktop, nxm: nxm);
     await tester.pumpWidget(
       ModConductorApp(desktopRequests: requests, workspaces: workspaces),
@@ -131,6 +136,22 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
+
+  testWidgets(
+    'saved Nexus intent appears after restart with an empty native queue',
+    (tester) async {
+      await mount(
+        tester,
+        pending: const [
+          PendingNexusLink('saved', ['saved', 'old-delivery']),
+        ],
+      );
+      expect(find.text('Request saved'), findsOneWidget);
+      expect(nxm.downloads, 0);
+      expect(requests.workspaceId, isNull);
+      requests.dispose();
+    },
+  );
 
   testWidgets('cold-start NXM appears without a request click or download', (
     tester,

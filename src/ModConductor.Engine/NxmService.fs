@@ -15,7 +15,8 @@ type NxmService
         session: NexusSession,
         ingress: PrivateIngress,
         downloads: DownloadSession,
-        games: IGameContexts
+        games: IGameContexts,
+        handoff: IOAuthHandoff
     ) =
     inherit NexusLinks.NexusLinksBase()
 
@@ -33,13 +34,20 @@ type NxmService
         task {
             do! session.SavedConnection
             let id = ModLibraryWire.id request.Reference
-            let result = NexusLinkReply()
+            let result = NexusLinkReply(Handled = session.NxmHandled id)
 
             match session.ReadNxm id with
             | Error detail ->
                 result.Problem <- detail.Title
                 result.ProblemDetail <- detail.Detail
             | Ok file ->
+                result.SourcePage <-
+                    (NexusWebLinks.fileDownload file.Game file.ModId file.FileId).AbsoluteUri
+
+                result.ModId <- file.ModId
+                result.FileId <- file.FileId
+                result.FreshLinkRequired <- session.NxmNeedsGrant id
+
                 let definition =
                     GameCatalog.definitions
                     |> List.filter (fun game -> GameCatalog.isBethesda game.Id)
@@ -100,6 +108,30 @@ type NxmService
                                         result.Artifact <- ArtifactWire.artifact artifact)
 
             return result
+        }
+
+    override _.ListPendingNexusLinks(_, _) =
+        let reply = PendingNexusLinks()
+
+        for request in session.PendingNxm() do
+            let entry = PendingNexusLink(Reference = request.Id.ToString("N"))
+            entry.Deliveries.AddRange(request.Deliveries |> List.map (fun id -> id.ToString("N")))
+            reply.Entries.Add entry
+
+        Task.FromResult reply
+
+    override _.OpenNexusLinkPage(request, context) =
+        task {
+            match session.ReadNxm(ModLibraryWire.id request.Reference) with
+            | Ok file ->
+                do!
+                    handoff.Open(
+                        NexusWebLinks.fileDownload file.Game file.ModId file.FileId,
+                        context.CancellationToken
+                    )
+            | _ -> ModLibraryWire.reject "This Nexus request is no longer pending."
+
+            return NexusStatusRequest()
         }
 
     override _.ConfigureNexusIngress(request, _) =
@@ -188,6 +220,9 @@ type NxmService
                                 result.Artifact <- ArtifactWire.artifact artifact
 
                                 prepared.Complete()
+
+                if result.Problem = "" && not (isNull result.Artifact) then
+                    session.DismissNxm(ModLibraryWire.id request.Reference)
 
                 return result
             finally

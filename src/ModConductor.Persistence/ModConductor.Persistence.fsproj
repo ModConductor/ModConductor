@@ -23,6 +23,7 @@
     <Compile Include="SelectionRows.fs" />
     <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
+    <Compile Include="NxmInbox.fs" />
     <Compile Include="ProfileImageStore.fs" />
     <Compile Include="OperationSession.fs" />
     <Compile Include="EnbStore.fs" />

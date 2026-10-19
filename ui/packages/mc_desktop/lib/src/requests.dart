@@ -20,6 +20,19 @@ class DesktopRequests extends ChangeNotifier {
   String? nexusReference;
   bool nexusPending = false, nexusFailed = false, startingNexus = false;
   int _connectionGeneration = 0;
+  final _restoredIds = <String, int>{};
+  int _nextRestoredId = 0;
+
+  Future<void> openNexusPage() async {
+    final reference = nexusReference;
+    if (reference == null) return;
+    try {
+      await _nxm?.openPage(reference);
+    } on DesktopNexusProblem catch (error) {
+      if (!disposed && reference == nexusReference) fail(error.message);
+    }
+  }
+
   bool get isNexus => nexusPending || nexusReference != null;
 
   Future<void> connectNexus() async {
@@ -134,52 +147,80 @@ class DesktopRequests extends ChangeNotifier {
     _nxm = nxm;
     ++_connectionGeneration;
     unawaited(connectNexus());
+    unawaited(refresh());
     unawaited(_resolve());
   }
 
   Future<void> refresh() async {
-    final generation = ++_readGeneration;
+    final generation = ++_readGeneration, connection = _connectionGeneration;
+    Map<String, Object?> state = const {'count': 0};
     try {
-      final state = await _channel.invokeMapMethod<String, Object?>('state');
-      if (disposed || state == null || generation != _readGeneration) return;
-      available = state['available'] == true;
-      count = state['count'] as int;
-      final next = state['id'] as int?;
-      final nextReference = state['nxmReference'] as String?;
-      final reference = nextReference == null || nextReference.isEmpty
-          ? null
-          : nextReference;
-      final pending = state['nxmPending'] == true,
-          failed = state['nxmFailed'] == true;
-      final nxmChanged =
-          reference != nexusReference ||
-          pending != nexusPending ||
-          failed != nexusFailed;
-      nexusReference = reference;
-      nexusPending = pending;
-      nexusFailed = failed;
-      if (next != id) {
-        id = next;
-        arguments = (state['arguments'] as List<Object?>? ?? const [])
-            .cast<String>();
-        workspaceId = null;
-        hasWorkspaceSelection = false;
-        await _resolve();
-      } else if (nxmChanged) {
-        await _resolve();
-      } else {
-        notifyListeners();
-      }
+      state = await _channel.invokeMapMethod<String, Object?>('state') ?? state;
     } on MissingPluginException {
-      if (!disposed) {
-        available = false;
-        notifyListeners();
-      }
+      available = false;
     } on PlatformException {
-      if (!disposed) {
-        available = false;
-        notifyListeners();
-      }
+      available = false;
+    }
+    if (disposed || generation != _readGeneration) return;
+    List<PendingNexusLink> pending = const [];
+    try {
+      if (_nxm != null) pending = await _nxm!.pending();
+    } on DesktopNexusProblem catch (error) {
+      if (!disposed && generation == _readGeneration) fail(error.message);
+      return;
+    }
+    if (disposed ||
+        generation != _readGeneration ||
+        connection != _connectionGeneration)
+      return;
+    available = state['available'] == true;
+    final nativeReference = state['nxmReference'] as String?;
+    final reference = nativeReference == null || nativeReference.isEmpty
+        ? null
+        : nativeReference;
+    final delivered = pending
+        .where(
+          (entry) =>
+              entry.reference == reference ||
+              entry.deliveries.contains(reference),
+        )
+        .firstOrNull;
+    final restored = state['id'] == null ? pending.firstOrNull : null;
+    final selected = delivered ?? restored;
+    final nextReference = selected?.reference ?? reference;
+    final next =
+        state['id'] as int? ??
+        (restored == null
+            ? null
+            : _restoredIds.putIfAbsent(
+                restored.reference,
+                () => --_nextRestoredId,
+              ));
+    final waiting = selected == null && state['nxmPending'] == true;
+    final failed = selected == null && state['nxmFailed'] == true;
+    final changed =
+        next != id ||
+        nextReference != nexusReference ||
+        waiting != nexusPending ||
+        failed != nexusFailed;
+    count =
+        (state['count'] as int? ?? 0) +
+        pending.length -
+        (delivered == null ? 0 : 1);
+    if (next != id) {
+      workspaceId = null;
+      hasWorkspaceSelection = false;
+    }
+    id = next;
+    nexusReference = nextReference;
+    nexusPending = waiting;
+    nexusFailed = failed;
+    arguments = (state['arguments'] as List<Object?>? ?? const [])
+        .cast<String>();
+    if (changed) {
+      await _resolve();
+    } else {
+      notifyListeners();
     }
   }
 
@@ -209,6 +250,13 @@ class DesktopRequests extends ChangeNotifier {
             profile: profileId,
           );
           if (!disposed && generation == _generation) {
+            if (result.handled) {
+              final stale = id;
+              if (stale != null && stale > 0)
+                await _channel.invokeMethod<Object?>('dismiss', stale);
+              await refresh();
+              return;
+            }
             nexusLink = result;
             problem = result.problem;
           }
@@ -249,7 +297,8 @@ class DesktopRequests extends ChangeNotifier {
       final reference =
           nexusReference ?? (requestId == id ? this.nexusReference : null);
       if (reference != null && _nxm != null) await _nxm!.dismiss(reference);
-      await _channel.invokeMethod<Object?>('dismiss', requestId);
+      if (requestId > 0)
+        await _channel.invokeMethod<Object?>('dismiss', requestId);
       _actionProblems.remove(requestId);
       _operations.remove(requestId);
       await refresh();

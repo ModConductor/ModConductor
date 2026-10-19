@@ -58,6 +58,7 @@ module internal ArtifactWire =
                 RestartRequired = value.RestartRequired
             )
 
+        value.ModPage |> Option.iter (fun page -> wire.ModPage <- page)
         value.Total |> Option.iter (fun n -> wire.Total <- uint64 n)
         value.ExpectedSha256 |> Option.iter (fun text -> wire.ExpectedSha256 <- text)
 
@@ -116,7 +117,7 @@ module internal ArtifactWire =
             return value |> result |> artifact
         }
 
-type ArtifactService(library: IArtifactLibrary) =
+type ArtifactService(library: IArtifactLibrary, handoff: ModConductor.Nexus.IOAuthHandoff) =
     inherit ArtifactLibrary.ArtifactLibraryBase()
 
     override _.ListArtifacts(request, context) =
@@ -170,6 +171,20 @@ type ArtifactService(library: IArtifactLibrary) =
 
             page.Next |> Option.iter (fun id -> reply.Next <- id.ToString("N"))
             return reply
+        }
+
+    override _.OpenArtifactModPage(request, context) =
+        task {
+            let! saved =
+                library.Read(ModLibraryWire.id request.WorkspaceId, ModLibraryWire.id request.Id)
+
+            let artifact = ArtifactWire.result saved
+
+            match artifact.Download |> Option.bind _.ModPage with
+            | Some page -> do! handoff.Open(System.Uri page, context.CancellationToken)
+            | None -> ModLibraryWire.reject "This archive has no known mod page."
+
+            return ArtifactRemoved()
         }
 
     override _.ReadArtifact(request, _) =

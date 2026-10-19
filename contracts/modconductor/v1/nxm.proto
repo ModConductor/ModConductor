@@ -6,10 +6,14 @@ import "modconductor/v1/artifacts.proto";
 
 service NexusLinks {
   rpc ConfigureNexusIngress(NexusIngressRequest) returns (NexusIngressReply);
+  rpc ListPendingNexusLinks(NexusStatusRequest) returns (PendingNexusLinks);
+  rpc OpenNexusLinkPage(NexusLinkRequest) returns (NexusStatusRequest);
   rpc ReadNexusLink(NexusLinkRequest) returns (NexusLinkReply);
   rpc DownloadNexusLink(NexusLinkRequest) returns (NexusLinkReply);
   rpc DismissNexusLink(NexusLinkRequest) returns (NexusStatusRequest);
 }
+message PendingNexusLink { string reference = 1; repeated string deliveries = 2; }
+message PendingNexusLinks { repeated PendingNexusLink entries = 1; }
 message NexusIngressRequest { int32 process_id = 1; }
 message NexusIngressReply { string endpoint = 1; bytes capability = 2; int32 process_id = 3; }
 message NexusLinkRequest { string reference = 1; string workspace_id = 2; string profile_id = 3; }
@@ -20,4 +24,9 @@ message NexusLinkReply {
   bool sign_in_required = 4;
   ArchiveArtifact artifact = 5;
   string problem_detail = 6;
+  string source_page = 7;
+  int64 mod_id = 8;
+  int64 file_id = 9;
+  bool fresh_link_required = 10;
+  bool handled = 11;
 }

@@ -54,6 +54,8 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactReadRequest> __Marshaller_modconductor_v1_ArtifactReadRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactReadRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactRemoved> __Marshaller_modconductor_v1_ArtifactRemoved = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactRemoved.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArchiveArtifact> __Marshaller_modconductor_v1_ArchiveArtifact = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArchiveArtifact.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactAddRequest> __Marshaller_modconductor_v1_ArtifactAddRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactAddRequest.Parser));
@@ -63,8 +65,6 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactLocateRequest> __Marshaller_modconductor_v1_ArtifactLocateRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactLocateRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactLinkRequest> __Marshaller_modconductor_v1_ArtifactLinkRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactLinkRequest.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactRemoved> __Marshaller_modconductor_v1_ArtifactRemoved = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactRemoved.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ArtifactListRequest, global::ModConductor.Protocol.V1.ArtifactPage> __Method_ListArtifacts = new grpc::Method<global::ModConductor.Protocol.V1.ArtifactListRequest, global::ModConductor.Protocol.V1.ArtifactPage>(
@@ -81,6 +81,14 @@ namespace ModConductor.Protocol.V1 {
         "ListArtifactLinkOptions",
         __Marshaller_modconductor_v1_ArtifactListRequest,
         __Marshaller_modconductor_v1_ArtifactLinkPage);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ArtifactReadRequest, global::ModConductor.Protocol.V1.ArtifactRemoved> __Method_OpenArtifactModPage = new grpc::Method<global::ModConductor.Protocol.V1.ArtifactReadRequest, global::ModConductor.Protocol.V1.ArtifactRemoved>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "OpenArtifactModPage",
+        __Marshaller_modconductor_v1_ArtifactReadRequest,
+        __Marshaller_modconductor_v1_ArtifactRemoved);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ArtifactReadRequest, global::ModConductor.Protocol.V1.ArchiveArtifact> __Method_ReadArtifact = new grpc::Method<global::ModConductor.Protocol.V1.ArtifactReadRequest, global::ModConductor.Protocol.V1.ArchiveArtifact>(
@@ -156,6 +164,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ArtifactLinkPage> ListArtifactLinkOptions(global::ModConductor.Protocol.V1.ArtifactListRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ArtifactRemoved> OpenArtifactModPage(global::ModConductor.Protocol.V1.ArtifactReadRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -270,6 +284,26 @@ namespace ModConductor.Protocol.V1 {
       public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ArtifactLinkPage> ListArtifactLinkOptionsAsync(global::ModConductor.Protocol.V1.ArtifactListRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_ListArtifactLinkOptions, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ArtifactRemoved OpenArtifactModPage(global::ModConductor.Protocol.V1.ArtifactReadRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenArtifactModPage(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ArtifactRemoved OpenArtifactModPage(global::ModConductor.Protocol.V1.ArtifactReadRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_OpenArtifactModPage, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ArtifactRemoved> OpenArtifactModPageAsync(global::ModConductor.Protocol.V1.ArtifactReadRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenArtifactModPageAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ArtifactRemoved> OpenArtifactModPageAsync(global::ModConductor.Protocol.V1.ArtifactReadRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_OpenArtifactModPage, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.ArchiveArtifact ReadArtifact(global::ModConductor.Protocol.V1.ArtifactReadRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
@@ -427,6 +461,7 @@ namespace ModConductor.Protocol.V1 {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_ListArtifacts, serviceImpl.ListArtifacts)
           .AddMethod(__Method_ListArtifactLinkOptions, serviceImpl.ListArtifactLinkOptions)
+          .AddMethod(__Method_OpenArtifactModPage, serviceImpl.OpenArtifactModPage)
           .AddMethod(__Method_ReadArtifact, serviceImpl.ReadArtifact)
           .AddMethod(__Method_AddArtifact, serviceImpl.AddArtifact)
           .AddMethod(__Method_RetryArtifact, serviceImpl.RetryArtifact)
@@ -445,6 +480,7 @@ namespace ModConductor.Protocol.V1 {
     {
       serviceBinder.AddMethod(__Method_ListArtifacts, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactListRequest, global::ModConductor.Protocol.V1.ArtifactPage>(serviceImpl.ListArtifacts));
       serviceBinder.AddMethod(__Method_ListArtifactLinkOptions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactListRequest, global::ModConductor.Protocol.V1.ArtifactLinkPage>(serviceImpl.ListArtifactLinkOptions));
+      serviceBinder.AddMethod(__Method_OpenArtifactModPage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactReadRequest, global::ModConductor.Protocol.V1.ArtifactRemoved>(serviceImpl.OpenArtifactModPage));
       serviceBinder.AddMethod(__Method_ReadArtifact, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactReadRequest, global::ModConductor.Protocol.V1.ArchiveArtifact>(serviceImpl.ReadArtifact));
       serviceBinder.AddMethod(__Method_AddArtifact, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactAddRequest, global::ModConductor.Protocol.V1.ArchiveArtifact>(serviceImpl.AddArtifact));
       serviceBinder.AddMethod(__Method_RetryArtifact, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactReference, global::ModConductor.Protocol.V1.ArchiveArtifact>(serviceImpl.RetryArtifact));

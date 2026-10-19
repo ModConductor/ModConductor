@@ -15,11 +15,17 @@ type internal NxmIngress
             TimeSpan.FromSeconds 30.
         )
 
+    member _.Handled id = lock gate (fun () -> authorizations.Handled id)
+    member _.Attach(inbox) = lock gate (fun () -> authorizations.Attach inbox)
+    member _.Pending() = lock gate (fun () -> authorizations.Pending())
+
     member _.Accept(id, input) =
         lock gate (fun () -> authorizations.Accept(id, input))
 
     member _.Read(id) =
         lock gate (fun () -> authorizations.Read id |> Result.map (fun link -> link.File))
+
+    member _.NeedsGrant id = lock gate (fun () -> authorizations.NeedsGrant id)
 
     member _.Validate(id, subject) =
         lock gate (fun () ->

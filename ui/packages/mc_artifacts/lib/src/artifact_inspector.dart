@@ -96,6 +96,14 @@ class ArtifactInspector extends StatelessWidget {
                         ? () => onBundle!(artifact)
                         : null,
                   ),
+                if (artifact.download?.modPage != null)
+                  McAction(
+                    label: 'Open mod page',
+                    icon: Icons.open_in_new,
+                    onPressed: controller.client == null
+                        ? null
+                        : () => controller.openModPage(artifact),
+                  ),
                 if (artifact.download != null)
                   DownloadControls(artifact: artifact, controller: controller),
                 if (artifact.canLocate)

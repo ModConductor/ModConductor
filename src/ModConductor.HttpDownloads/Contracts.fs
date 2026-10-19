@@ -160,6 +160,29 @@ module DownloadSource =
             | true, uri -> uri.GetLeftPart(UriPartial.Path)
             | _ -> "Download source"
 
+    let modPage =
+        function
+        | DownloadSource.Nexus value ->
+            Some(
+                "https://www.nexusmods.com/"
+                + value.Game
+                + "/mods/"
+                + value.ModId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            )
+        | DownloadSource.Thunderstore value ->
+            let package = value.Reference.Package
+
+            Some(
+                "https://thunderstore.io/c/"
+                + package.Community
+                + "/p/"
+                + package.Namespace
+                + "/"
+                + package.Name
+                + "/"
+            )
+        | DownloadSource.Url _ -> None
+
     let rec valid =
         function
         | DownloadSource.Thunderstore value ->

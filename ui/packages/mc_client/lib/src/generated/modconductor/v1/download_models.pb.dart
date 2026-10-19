@@ -31,6 +31,7 @@ class ArchiveDownload extends $pb.GeneratedMessage {
     $core.bool? checksumMatched,
     $core.bool? restartRequired,
     $fixnum.Int64? retryAtUnixMs,
+    $core.String? modPage,
   }) {
     final result = create();
     if (phase != null) result.phase = phase;
@@ -41,6 +42,7 @@ class ArchiveDownload extends $pb.GeneratedMessage {
     if (checksumMatched != null) result.checksumMatched = checksumMatched;
     if (restartRequired != null) result.restartRequired = restartRequired;
     if (retryAtUnixMs != null) result.retryAtUnixMs = retryAtUnixMs;
+    if (modPage != null) result.modPage = modPage;
     return result;
   }
 
@@ -69,6 +71,7 @@ class ArchiveDownload extends $pb.GeneratedMessage {
     ..aOB(6, _omitFieldNames ? '' : 'checksumMatched')
     ..aOB(7, _omitFieldNames ? '' : 'restartRequired')
     ..aInt64(8, _omitFieldNames ? '' : 'retryAtUnixMs')
+    ..aOS(9, _omitFieldNames ? '' : 'modPage')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -161,6 +164,15 @@ class ArchiveDownload extends $pb.GeneratedMessage {
   $core.bool hasRetryAtUnixMs() => $_has(7);
   @$pb.TagNumber(8)
   void clearRetryAtUnixMs() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get modPage => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set modPage($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasModPage() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearModPage() => $_clearField(9);
 }
 
 const $core.bool _omitFieldNames =

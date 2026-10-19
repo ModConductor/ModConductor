@@ -6,6 +6,7 @@ import "modconductor/v1/download_models.proto";
 service ArtifactLibrary {
   rpc ListArtifacts(ArtifactListRequest) returns (ArtifactPage);
   rpc ListArtifactLinkOptions(ArtifactListRequest) returns (ArtifactLinkPage);
+  rpc OpenArtifactModPage(ArtifactReadRequest) returns (ArtifactRemoved);
   rpc ReadArtifact(ArtifactReadRequest) returns (ArchiveArtifact);
   rpc AddArtifact(ArtifactAddRequest) returns (ArchiveArtifact);
   rpc RetryArtifact(ArtifactReference) returns (ArchiveArtifact);

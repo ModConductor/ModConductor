@@ -11,6 +11,18 @@ type NxmFile =
       FileId: int64
       Keyed: bool }
 
+type NxmRequest =
+    { Id: Guid
+      File: NxmFile
+      Deliveries: Guid list }
+
+type INxmInbox =
+    abstract Accept: Guid * NxmFile -> Result<NxmRequest option, unit>
+    abstract Read: Guid -> NxmRequest option
+    abstract Handled: Guid -> bool
+    abstract Pending: unit -> NxmRequest list
+    abstract Dismiss: Guid -> unit
+
 type NxmProblem = { Title: string; Detail: string }
 
 type internal NxmGrant =
@@ -26,10 +38,6 @@ module internal Nxm =
     let malformed =
         { Title = "This Nexus link cannot be read"
           Detail = "Get a new Mod Manager Download link from Nexus Mods." }
-
-    let expired =
-        { Title = "This download link has expired"
-          Detail = "Use Mod Manager Download on Nexus Mods again." }
 
     let missing =
         { Title = "A new download link is needed"

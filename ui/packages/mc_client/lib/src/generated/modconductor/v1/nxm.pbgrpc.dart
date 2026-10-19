@@ -40,6 +40,20 @@ class NexusLinksClient extends $grpc.Client {
     return $createUnaryCall(_$configureNexusIngress, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.PendingNexusLinks> listPendingNexusLinks(
+    $1.NexusStatusRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listPendingNexusLinks, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$1.NexusStatusRequest> openNexusLinkPage(
+    $0.NexusLinkRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$openNexusLinkPage, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.NexusLinkReply> readNexusLink(
     $0.NexusLinkRequest request, {
     $grpc.CallOptions? options,
@@ -68,6 +82,16 @@ class NexusLinksClient extends $grpc.Client {
           '/modconductor.v1.NexusLinks/ConfigureNexusIngress',
           ($0.NexusIngressRequest value) => value.writeToBuffer(),
           $0.NexusIngressReply.fromBuffer);
+  static final _$listPendingNexusLinks =
+      $grpc.ClientMethod<$1.NexusStatusRequest, $0.PendingNexusLinks>(
+          '/modconductor.v1.NexusLinks/ListPendingNexusLinks',
+          ($1.NexusStatusRequest value) => value.writeToBuffer(),
+          $0.PendingNexusLinks.fromBuffer);
+  static final _$openNexusLinkPage =
+      $grpc.ClientMethod<$0.NexusLinkRequest, $1.NexusStatusRequest>(
+          '/modconductor.v1.NexusLinks/OpenNexusLinkPage',
+          ($0.NexusLinkRequest value) => value.writeToBuffer(),
+          $1.NexusStatusRequest.fromBuffer);
   static final _$readNexusLink =
       $grpc.ClientMethod<$0.NexusLinkRequest, $0.NexusLinkReply>(
           '/modconductor.v1.NexusLinks/ReadNexusLink',
@@ -99,6 +123,21 @@ abstract class NexusLinksServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.NexusIngressRequest.fromBuffer(value),
             ($0.NexusIngressReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.NexusStatusRequest, $0.PendingNexusLinks>(
+        'ListPendingNexusLinks',
+        listPendingNexusLinks_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $1.NexusStatusRequest.fromBuffer(value),
+        ($0.PendingNexusLinks value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.NexusLinkRequest, $1.NexusStatusRequest>(
+        'OpenNexusLinkPage',
+        openNexusLinkPage_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.NexusLinkRequest.fromBuffer(value),
+        ($1.NexusStatusRequest value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.NexusLinkRequest, $0.NexusLinkReply>(
         'ReadNexusLink',
         readNexusLink_Pre,
@@ -130,6 +169,24 @@ abstract class NexusLinksServiceBase extends $grpc.Service {
 
   $async.Future<$0.NexusIngressReply> configureNexusIngress(
       $grpc.ServiceCall call, $0.NexusIngressRequest request);
+
+  $async.Future<$0.PendingNexusLinks> listPendingNexusLinks_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$1.NexusStatusRequest> $request) async {
+    return listPendingNexusLinks($call, await $request);
+  }
+
+  $async.Future<$0.PendingNexusLinks> listPendingNexusLinks(
+      $grpc.ServiceCall call, $1.NexusStatusRequest request);
+
+  $async.Future<$1.NexusStatusRequest> openNexusLinkPage_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.NexusLinkRequest> $request) async {
+    return openNexusLinkPage($call, await $request);
+  }
+
+  $async.Future<$1.NexusStatusRequest> openNexusLinkPage(
+      $grpc.ServiceCall call, $0.NexusLinkRequest request);
 
   $async.Future<$0.NexusLinkReply> readNexusLink_Pre($grpc.ServiceCall $call,
       $async.Future<$0.NexusLinkRequest> $request) async {

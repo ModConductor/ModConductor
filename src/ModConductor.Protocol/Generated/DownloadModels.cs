@@ -25,23 +25,23 @@ namespace ModConductor.Protocol.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CiVtb2Rjb25kdWN0b3IvdjEvZG93bmxvYWRfbW9kZWxzLnByb3RvEg9tb2Rj",
-            "b25kdWN0b3IudjEilwIKD0FyY2hpdmVEb3dubG9hZBItCgVwaGFzZRgBIAEo",
-            "DjIeLm1vZGNvbmR1Y3Rvci52MS5Eb3dubG9hZFBoYXNlEg0KBWJ5dGVzGAIg",
-            "ASgEEhIKBXRvdGFsGAMgASgESACIAQESDgoGc291cmNlGAQgASgJEhwKD2V4",
-            "cGVjdGVkX3NoYTI1NhgFIAEoCUgBiAEBEhgKEGNoZWNrc3VtX21hdGNoZWQY",
-            "BiABKAgSGAoQcmVzdGFydF9yZXF1aXJlZBgHIAEoCBIdChByZXRyeV9hdF91",
-            "bml4X21zGAggASgDSAKIAQFCCAoGX3RvdGFsQhIKEF9leHBlY3RlZF9zaGEy",
-            "NTZCEwoRX3JldHJ5X2F0X3VuaXhfbXMq1QEKDURvd25sb2FkUGhhc2USHgoa",
-            "RE9XTkxPQURfUEhBU0VfVU5TUEVDSUZJRUQQABIZChVET1dOTE9BRF9QSEFT",
-            "RV9RVUVVRUQQARIaChZET1dOTE9BRF9QSEFTRV9SVU5OSU5HEAISGgoWRE9X",
-            "TkxPQURfUEhBU0VfV0FJVElORxADEhkKFURPV05MT0FEX1BIQVNFX1BBVVNF",
-            "RBAEEhkKFURPV05MT0FEX1BIQVNFX0ZBSUxFRBAFEhsKF0RPV05MT0FEX1BI",
-            "QVNFX0NPTVBMRVRFEAZCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIG",
-            "cHJvdG8z"));
+            "b25kdWN0b3IudjEiuwIKD0FyY2hpdmVEb3dubG9hZBIVCghtb2RfcGFnZRgJ",
+            "IAEoCUgAiAEBEi0KBXBoYXNlGAEgASgOMh4ubW9kY29uZHVjdG9yLnYxLkRv",
+            "d25sb2FkUGhhc2USDQoFYnl0ZXMYAiABKAQSEgoFdG90YWwYAyABKARIAYgB",
+            "ARIOCgZzb3VyY2UYBCABKAkSHAoPZXhwZWN0ZWRfc2hhMjU2GAUgASgJSAKI",
+            "AQESGAoQY2hlY2tzdW1fbWF0Y2hlZBgGIAEoCBIYChByZXN0YXJ0X3JlcXVp",
+            "cmVkGAcgASgIEh0KEHJldHJ5X2F0X3VuaXhfbXMYCCABKANIA4gBAUILCglf",
+            "bW9kX3BhZ2VCCAoGX3RvdGFsQhIKEF9leHBlY3RlZF9zaGEyNTZCEwoRX3Jl",
+            "dHJ5X2F0X3VuaXhfbXMq1QEKDURvd25sb2FkUGhhc2USHgoaRE9XTkxPQURf",
+            "UEhBU0VfVU5TUEVDSUZJRUQQABIZChVET1dOTE9BRF9QSEFTRV9RVUVVRUQQ",
+            "ARIaChZET1dOTE9BRF9QSEFTRV9SVU5OSU5HEAISGgoWRE9XTkxPQURfUEhB",
+            "U0VfV0FJVElORxADEhkKFURPV05MT0FEX1BIQVNFX1BBVVNFRBAEEhkKFURP",
+            "V05MT0FEX1BIQVNFX0ZBSUxFRBAFEhsKF0RPV05MT0FEX1BIQVNFX0NPTVBM",
+            "RVRFEAZCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.DownloadPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchiveDownload), global::ModConductor.Protocol.V1.ArchiveDownload.Parser, new[]{ "Phase", "Bytes", "Total", "Source", "ExpectedSha256", "ChecksumMatched", "RestartRequired", "RetryAtUnixMs" }, new[]{ "Total", "ExpectedSha256", "RetryAtUnixMs" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchiveDownload), global::ModConductor.Protocol.V1.ArchiveDownload.Parser, new[]{ "ModPage", "Phase", "Bytes", "Total", "Source", "ExpectedSha256", "ChecksumMatched", "RestartRequired", "RetryAtUnixMs" }, new[]{ "ModPage", "Total", "ExpectedSha256", "RetryAtUnixMs" }, null, null, null)
           }));
     }
     #endregion
@@ -98,6 +98,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ArchiveDownload(ArchiveDownload other) : this() {
       _hasBits0 = other._hasBits0;
+      modPage_ = other.modPage_;
       phase_ = other.phase_;
       bytes_ = other.bytes_;
       total_ = other.total_;
@@ -113,6 +114,32 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ArchiveDownload Clone() {
       return new ArchiveDownload(this);
+    }
+
+    /// <summary>Field number for the "mod_page" field.</summary>
+    public const int ModPageFieldNumber = 9;
+    private readonly static string ModPageDefaultValue = "";
+
+    private string modPage_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ModPage {
+      get { return modPage_ ?? ModPageDefaultValue; }
+      set {
+        modPage_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+    /// <summary>Gets whether the "mod_page" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasModPage {
+      get { return modPage_ != null; }
+    }
+    /// <summary>Clears the value of the "mod_page" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearModPage() {
+      modPage_ = null;
     }
 
     /// <summary>Field number for the "phase" field.</summary>
@@ -270,6 +297,7 @@ namespace ModConductor.Protocol.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
+      if (ModPage != other.ModPage) return false;
       if (Phase != other.Phase) return false;
       if (Bytes != other.Bytes) return false;
       if (Total != other.Total) return false;
@@ -285,6 +313,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
+      if (HasModPage) hash ^= ModPage.GetHashCode();
       if (Phase != global::ModConductor.Protocol.V1.DownloadPhase.Unspecified) hash ^= Phase.GetHashCode();
       if (Bytes != 0UL) hash ^= Bytes.GetHashCode();
       if (HasTotal) hash ^= Total.GetHashCode();
@@ -343,6 +372,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(64);
         output.WriteInt64(RetryAtUnixMs);
       }
+      if (HasModPage) {
+        output.WriteRawTag(74);
+        output.WriteString(ModPage);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -385,6 +418,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(64);
         output.WriteInt64(RetryAtUnixMs);
       }
+      if (HasModPage) {
+        output.WriteRawTag(74);
+        output.WriteString(ModPage);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -395,6 +432,9 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
+      if (HasModPage) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ModPage);
+      }
       if (Phase != global::ModConductor.Protocol.V1.DownloadPhase.Unspecified) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Phase);
       }
@@ -430,6 +470,9 @@ namespace ModConductor.Protocol.V1 {
     public void MergeFrom(ArchiveDownload other) {
       if (other == null) {
         return;
+      }
+      if (other.HasModPage) {
+        ModPage = other.ModPage;
       }
       if (other.Phase != global::ModConductor.Protocol.V1.DownloadPhase.Unspecified) {
         Phase = other.Phase;
@@ -506,6 +549,10 @@ namespace ModConductor.Protocol.V1 {
             RetryAtUnixMs = input.ReadInt64();
             break;
           }
+          case 74: {
+            ModPage = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -555,6 +602,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 64: {
             RetryAtUnixMs = input.ReadInt64();
+            break;
+          }
+          case 74: {
+            ModPage = input.ReadString();
             break;
           }
         }

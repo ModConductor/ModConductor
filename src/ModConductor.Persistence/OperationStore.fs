@@ -16,6 +16,7 @@ type OperationStore
     ) =
     let catalogue = ModConductor.GameCatalogue.Catalogue(directory)
     let database = new StateDatabase(directory)
+    let nxmInbox = NxmInbox(database) :> ModConductor.Nexus.INxmInbox
     let profileImages = ProfileImageStore(database, directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
@@ -306,6 +307,8 @@ type OperationStore
         )
 
     let operations = OperationSession(database) :> IOperationStore
+
+    member _.NxmInbox = nxmInbox
 
     member _.WorkspaceRoots = workspaceRoots
 

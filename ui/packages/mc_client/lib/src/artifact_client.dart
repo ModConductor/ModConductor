@@ -42,6 +42,7 @@ abstract interface class ArtifactsClient {
   });
   Future<Artifact> deleteCopy(Artifact expected);
   Future<void> remove(Artifact expected);
+  Future<void> openModPage(Artifact artifact);
   Future<Artifact> download(
     String workspaceId,
     String id,
@@ -115,6 +116,16 @@ class GrpcArtifactsClient implements ArtifactsClient {
     );
   }
 
+  @override
+  Future<void> openModPage(Artifact artifact) => _call(
+    _client.openArtifactModPage(
+      wire.ArtifactReadRequest(
+        workspaceId: artifact.workspaceId,
+        id: artifact.id,
+      ),
+    ),
+  );
+
   final transfer.ArtifactDownloadsClient _downloads;
   Future<T> _call<T>(Future<T> pending) async {
     try {
@@ -176,6 +187,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
         bytes: d.bytes.toInt(),
         total: d.hasTotal() ? d.total.toInt() : null,
         source: d.source,
+        modPage: d.hasModPage() ? d.modPage : null,
         expectedSha256: d.hasExpectedSha256() ? d.expectedSha256 : null,
         checksumMatched: d.checksumMatched,
         restartRequired: d.restartRequired,

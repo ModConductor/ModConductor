@@ -15,6 +15,40 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use pendingNexusLinkDescriptor instead')
+const PendingNexusLink$json = {
+  '1': 'PendingNexusLink',
+  '2': [
+    {'1': 'reference', '3': 1, '4': 1, '5': 9, '10': 'reference'},
+    {'1': 'deliveries', '3': 2, '4': 3, '5': 9, '10': 'deliveries'},
+  ],
+};
+
+/// Descriptor for `PendingNexusLink`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List pendingNexusLinkDescriptor = $convert.base64Decode(
+    'ChBQZW5kaW5nTmV4dXNMaW5rEhwKCXJlZmVyZW5jZRgBIAEoCVIJcmVmZXJlbmNlEh4KCmRlbG'
+    'l2ZXJpZXMYAiADKAlSCmRlbGl2ZXJpZXM=');
+
+@$core.Deprecated('Use pendingNexusLinksDescriptor instead')
+const PendingNexusLinks$json = {
+  '1': 'PendingNexusLinks',
+  '2': [
+    {
+      '1': 'entries',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.PendingNexusLink',
+      '10': 'entries'
+    },
+  ],
+};
+
+/// Descriptor for `PendingNexusLinks`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List pendingNexusLinksDescriptor = $convert.base64Decode(
+    'ChFQZW5kaW5nTmV4dXNMaW5rcxI7CgdlbnRyaWVzGAEgAygLMiEubW9kY29uZHVjdG9yLnYxLl'
+    'BlbmRpbmdOZXh1c0xpbmtSB2VudHJpZXM=');
+
 @$core.Deprecated('Use nexusIngressRequestDescriptor instead')
 const NexusIngressRequest$json = {
   '1': 'NexusIngressRequest',
@@ -82,6 +116,17 @@ const NexusLinkReply$json = {
       '10': 'artifact'
     },
     {'1': 'problem_detail', '3': 6, '4': 1, '5': 9, '10': 'problemDetail'},
+    {'1': 'source_page', '3': 7, '4': 1, '5': 9, '10': 'sourcePage'},
+    {'1': 'mod_id', '3': 8, '4': 1, '5': 3, '10': 'modId'},
+    {'1': 'file_id', '3': 9, '4': 1, '5': 3, '10': 'fileId'},
+    {
+      '1': 'fresh_link_required',
+      '3': 10,
+      '4': 1,
+      '5': 8,
+      '10': 'freshLinkRequired'
+    },
+    {'1': 'handled', '3': 11, '4': 1, '5': 8, '10': 'handled'},
   ],
 };
 
@@ -91,4 +136,7 @@ final $typed_data.Uint8List nexusLinkReplyDescriptor = $convert.base64Decode(
     'Rjb25kdWN0b3IudjEuTmV4dXNGaWxlSW5mb1IEZmlsZRIYCgdwcm9ibGVtGAMgASgJUgdwcm9i'
     'bGVtEigKEHNpZ25faW5fcmVxdWlyZWQYBCABKAhSDnNpZ25JblJlcXVpcmVkEjwKCGFydGlmYW'
     'N0GAUgASgLMiAubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVBcnRpZmFjdFIIYXJ0aWZhY3QSJQoO'
-    'cHJvYmxlbV9kZXRhaWwYBiABKAlSDXByb2JsZW1EZXRhaWw=');
+    'cHJvYmxlbV9kZXRhaWwYBiABKAlSDXByb2JsZW1EZXRhaWwSHwoLc291cmNlX3BhZ2UYByABKA'
+    'lSCnNvdXJjZVBhZ2USFQoGbW9kX2lkGAggASgDUgVtb2RJZBIXCgdmaWxlX2lkGAkgASgDUgZm'
+    'aWxlSWQSLgoTZnJlc2hfbGlua19yZXF1aXJlZBgKIAEoCFIRZnJlc2hMaW5rUmVxdWlyZWQSGA'
+    'oHaGFuZGxlZBgLIAEoCFIHaGFuZGxlZA==');

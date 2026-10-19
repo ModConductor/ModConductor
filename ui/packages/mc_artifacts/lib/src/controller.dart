@@ -125,6 +125,15 @@ class ArtifactController extends ChangeNotifier {
         );
   }
 
+  Future<void> openModPage(Artifact artifact) async {
+    try {
+      await client?.openModPage(artifact);
+    } on ArtifactProblem catch (error) {
+      problem = error.detail;
+      _notify();
+    }
+  }
+
   bool get busy => activity != null;
   bool get canEdit =>
       client != null && workspaceId != null && !busy && !needsRead;

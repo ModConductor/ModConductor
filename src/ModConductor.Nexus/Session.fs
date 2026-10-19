@@ -433,9 +433,16 @@ type NexusSession
                     | Ok bearer -> return! metadata.ReadFile(game, modId, fileId, bearer, token)
             })
 
+    member _.AttachNxmInbox inbox = nxm.Attach inbox
+    member _.PendingNxm() = nxm.Pending()
+
     member _.AcceptNxm(id, input) = nxm.Accept(id, input)
 
     member _.ReadNxm id = nxm.Read id
+
+    member _.NxmHandled id = nxm.Handled id
+
+    member _.NxmNeedsGrant id = nxm.NeedsGrant id
 
     member _.ValidateNxm(id, subject) = nxm.Validate(id, subject)
 

@@ -103,6 +103,7 @@ let private run (args: string array) =
         writeJson true (fun writer -> NxmDeliveryFixtures.observe writer first second)
     | [| "--nxm"; path |] ->
         writeJson true (fun writer ->
+            NxmInboxFixtures.observe writer path
             NxmFixtures.ingress writer
             NxmFixtures.observe writer path
             NxmFixtures.setup writer (Path.Combine(path, "link-setup")))

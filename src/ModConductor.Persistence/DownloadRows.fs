@@ -78,6 +78,9 @@ module internal DownloadRows =
                     DownloadSource.display (
                         DownloadSource.decode ((r.GetString 3).Split('\n')[r.GetInt32 4])
                     )
+                  ModPage =
+                    (r.GetString 3).Split('\n')
+                    |> Array.tryPick (DownloadSource.decode >> DownloadSource.modPage)
                   ExpectedSha256 = optional r 5 r.GetString
                   ChecksumMatched = phase = 2 && r.GetBoolean 6
                   RestartRequired =

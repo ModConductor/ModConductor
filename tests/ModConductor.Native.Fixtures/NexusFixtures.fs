@@ -175,7 +175,8 @@ module NexusFixtures =
                     restored,
                     Unchecked.defaultof<_>,
                     Unchecked.defaultof<_>,
-                    Unchecked.defaultof<_>
+                    Unchecked.defaultof<_>,
+                    server.Handoff
                 )
 
             let firstStatus =

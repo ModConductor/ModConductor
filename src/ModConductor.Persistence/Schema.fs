@@ -7,6 +7,16 @@ module internal Schema =
     [<Literal>]
     let ApplicationId = 1296253774L
 
+    let inboxSql =
+        """
+CREATE TABLE IF NOT EXISTS nexus_requests(
+  id TEXT PRIMARY KEY, game TEXT NOT NULL, mod_id INTEGER NOT NULL, file_id INTEGER NOT NULL,
+  keyed INTEGER NOT NULL, pending INTEGER NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS nexus_pending_file ON nexus_requests(game,mod_id,file_id) WHERE pending=1;
+CREATE TABLE IF NOT EXISTS nexus_request_deliveries(
+  id TEXT PRIMARY KEY, request_id TEXT NOT NULL REFERENCES nexus_requests(id));
+"""
+
     let sql =
         """
 CREATE TABLE archive_installations(

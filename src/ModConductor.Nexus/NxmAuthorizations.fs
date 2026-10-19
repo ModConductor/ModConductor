@@ -5,6 +5,7 @@ open System.Collections.Generic
 
 type internal NxmAuthorizations() =
     let pending = Dictionary<Guid, Result<NxmLink, NxmProblem>>()
+    let mutable inbox: INxmInbox option = None
     let transfers = Dictionary<string * int64 * int64 * string, NxmGrant>()
 
     let prune () =
@@ -25,32 +26,91 @@ type internal NxmAuthorizations() =
                 | Error _ -> false)
             |> Seq.map (fun p -> p.Key)
             |> Seq.toArray do
-            pending[key] <- Error Nxm.expired
+            match pending[key] with
+            | Ok link -> pending[key] <- Ok { link with Grant = None }
+            | Error _ -> ()
+
+    member _.Handled id =
+        inbox |> Option.exists (fun store -> store.Handled id)
+
+    member _.Attach(value) = inbox <- Some value
+
+    member _.Pending() =
+        inbox |> Option.map (fun store -> store.Pending()) |> Option.defaultValue []
 
     member _.Accept(id, input) =
         prune ()
 
         if id = Guid.Empty then
             false
-        elif pending.ContainsKey id then
-            true
-        elif pending.Count >= 16 then
-            false
         else
-            pending.Add(id, Nxm.parse input)
-            true
+            match Nxm.parse input, inbox with
+            | Ok link, Some store ->
+                let saved = store.Pending()
+                let invalid = pending.Values |> Seq.filter Result.isError |> Seq.length
+
+                let duplicate =
+                    saved
+                    |> List.exists (fun request ->
+                        request.File.Game = link.File.Game
+                        && request.File.ModId = link.File.ModId
+                        && request.File.FileId = link.File.FileId)
+
+                let accepted =
+                    if saved.Length + invalid >= 16 && not duplicate && not (store.Handled id) then
+                        Error()
+                    else
+                        store.Accept(id, link.File)
+
+                match accepted with
+                | Error() -> false
+                | Ok None -> true
+                | Ok(Some request) when
+                    request.File.Game <> link.File.Game
+                    || request.File.ModId <> link.File.ModId
+                    || request.File.FileId <> link.File.FileId
+                    ->
+                    false
+                | Ok(Some request) ->
+                    pending[request.Id] <- Ok link
+                    true
+            | parsed, _ ->
+                if pending.ContainsKey id then
+                    true
+                elif
+                    (match inbox with
+                     | None -> pending.Count
+                     | Some store ->
+                         store.Pending().Length
+                         + (pending.Values |> Seq.filter Result.isError |> Seq.length))
+                    >= 16
+                then
+                    false
+                else
+                    pending.Add(id, parsed)
+                    true
 
     member _.Read id =
         prune ()
+        let saved = inbox |> Option.bind (fun store -> store.Read id)
 
-        match pending.TryGetValue id with
-        | true, value -> value
+        let canonical = saved |> Option.map _.Id |> Option.defaultValue id
+
+        match pending.TryGetValue canonical, saved with
+        | (true, value), _ -> value
+        | _, Some request -> Ok { File = request.File; Grant = None }
         | _ -> Error Nxm.missing
+
+    member this.NeedsGrant id =
+        match this.Read id with
+        | Ok link -> link.File.Keyed && link.Grant.IsNone
+        | Error _ -> false
 
     member this.Validate(id, subject) =
         this.Read id
         |> Result.bind (fun link ->
             match link.Grant with
+            | None when link.File.Keyed -> Error Nxm.missing
             | Some grant ->
                 match Nxm.positive subject with
                 | None ->
@@ -100,7 +160,11 @@ type internal NxmAuthorizations() =
         | _ -> None
 
     member _.Expire() = prune ()
-    member _.Dismiss id = pending.Remove id |> ignore
+
+    member _.Dismiss id =
+        let canonical = inbox |> Option.bind (fun store -> store.Read id) |> Option.map _.Id
+        inbox |> Option.iter (fun store -> store.Dismiss id)
+        pending.Remove(defaultArg canonical id) |> ignore
 
     member _.Clear() =
         pending.Clear()

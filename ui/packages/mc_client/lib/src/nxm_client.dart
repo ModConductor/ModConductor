@@ -5,6 +5,7 @@ import 'package:grpc/grpc.dart';
 import 'artifact_client.dart';
 import 'nexus_client.dart';
 import 'generated/modconductor/v1/nxm.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/nexus.pb.dart' as nexus;
 
 class NexusIngress {
   const NexusIngress(this.endpoint, this.capability, this.processId);
@@ -20,14 +21,28 @@ class NexusLink {
     this.problem,
     this.signInRequired,
     this.artifact,
-    this.detail,
-  );
+    this.detail, {
+    this.sourcePage = '',
+    this.modId = 0,
+    this.fileId = 0,
+    this.freshLinkRequired = false,
+    this.handled = false,
+  });
+  final String sourcePage;
+  final int modId, fileId;
+  final bool freshLinkRequired, handled;
   final String game;
   final NexusFile? file;
   final String? problem;
   final String detail;
   final bool signInRequired;
   final Artifact? artifact;
+}
+
+class PendingNexusLink {
+  const PendingNexusLink(this.reference, this.deliveries);
+  final String reference;
+  final List<String> deliveries;
 }
 
 class NxmClient {
@@ -48,6 +63,35 @@ class NxmClient {
       throw const DesktopNexusProblem(
         'The Nexus link connection is unavailable.',
       );
+    }
+  }
+
+  Future<List<PendingNexusLink>> pending() async {
+    try {
+      final value = await _client.listPendingNexusLinks(
+        nexus.NexusStatusRequest(),
+      );
+      return [
+        for (final entry in value.entries)
+          PendingNexusLink(
+            entry.reference,
+            List.unmodifiable(entry.deliveries),
+          ),
+      ];
+    } on GrpcError {
+      throw const DesktopNexusProblem(
+        'Pending Nexus requests could not be loaded. Retry the connection.',
+      );
+    }
+  }
+
+  Future<void> openPage(String reference) async {
+    try {
+      await _client.openNexusLinkPage(
+        wire.NexusLinkRequest(reference: reference),
+      );
+    } on GrpcError {
+      throw const DesktopNexusProblem('The mod page could not be opened.');
     }
   }
 
@@ -83,6 +127,11 @@ class NxmClient {
         value.signInRequired,
         value.hasArtifact() ? GrpcArtifactsClient.decode(value.artifact) : null,
         value.problemDetail,
+        sourcePage: value.sourcePage,
+        modId: value.modId.toInt(),
+        fileId: value.fileId.toInt(),
+        freshLinkRequired: value.freshLinkRequired,
+        handled: value.handled,
       );
     } on GrpcError {
       throw const DesktopNexusProblem(

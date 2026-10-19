@@ -41,6 +41,7 @@ type DownloadInfo =
       Bytes: int64
       Total: int64 option
       Source: string
+      ModPage: string option
       ExpectedSha256: string option
       ChecksumMatched: bool
       RestartRequired: bool

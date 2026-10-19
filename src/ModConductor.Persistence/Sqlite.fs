@@ -84,6 +84,8 @@ module internal Sqlite =
 
         execute connection transaction "DROP INDEX IF EXISTS workspace_root_identity" []
 
+        execute connection transaction Schema.inboxSql []
+
         beforeCommit ()
         transaction.Commit()
 

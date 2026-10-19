@@ -30,6 +30,8 @@ Artifact archive(
 
 class Client implements ArtifactsClient {
   @override
+  Future<void> openModPage(Artifact artifact) async {}
+  @override
   ArchiveRead readContents(Artifact artifact) => throw UnimplementedError();
   @override
   FilePreviewRead previewEntry(

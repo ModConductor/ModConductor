@@ -50,11 +50,13 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusIngressReply> __Marshaller_modconductor_v1_NexusIngressReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusIngressReply.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusStatusRequest> __Marshaller_modconductor_v1_NexusStatusRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusStatusRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.PendingNexusLinks> __Marshaller_modconductor_v1_PendingNexusLinks = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.PendingNexusLinks.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusLinkRequest> __Marshaller_modconductor_v1_NexusLinkRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusLinkRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusLinkReply> __Marshaller_modconductor_v1_NexusLinkReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusLinkReply.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusStatusRequest> __Marshaller_modconductor_v1_NexusStatusRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusStatusRequest.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusIngressRequest, global::ModConductor.Protocol.V1.NexusIngressReply> __Method_ConfigureNexusIngress = new grpc::Method<global::ModConductor.Protocol.V1.NexusIngressRequest, global::ModConductor.Protocol.V1.NexusIngressReply>(
@@ -63,6 +65,22 @@ namespace ModConductor.Protocol.V1 {
         "ConfigureNexusIngress",
         __Marshaller_modconductor_v1_NexusIngressRequest,
         __Marshaller_modconductor_v1_NexusIngressReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.PendingNexusLinks> __Method_ListPendingNexusLinks = new grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.PendingNexusLinks>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ListPendingNexusLinks",
+        __Marshaller_modconductor_v1_NexusStatusRequest,
+        __Marshaller_modconductor_v1_PendingNexusLinks);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusStatusRequest> __Method_OpenNexusLinkPage = new grpc::Method<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "OpenNexusLinkPage",
+        __Marshaller_modconductor_v1_NexusLinkRequest,
+        __Marshaller_modconductor_v1_NexusStatusRequest);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusLinkReply> __Method_ReadNexusLink = new grpc::Method<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusLinkReply>(
@@ -100,6 +118,18 @@ namespace ModConductor.Protocol.V1 {
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusIngressReply> ConfigureNexusIngress(global::ModConductor.Protocol.V1.NexusIngressRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.PendingNexusLinks> ListPendingNexusLinks(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusLinkPage(global::ModConductor.Protocol.V1.NexusLinkRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -170,6 +200,46 @@ namespace ModConductor.Protocol.V1 {
       public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusIngressReply> ConfigureNexusIngressAsync(global::ModConductor.Protocol.V1.NexusIngressRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_ConfigureNexusIngress, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.PendingNexusLinks ListPendingNexusLinks(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListPendingNexusLinks(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.PendingNexusLinks ListPendingNexusLinks(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ListPendingNexusLinks, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.PendingNexusLinks> ListPendingNexusLinksAsync(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListPendingNexusLinksAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.PendingNexusLinks> ListPendingNexusLinksAsync(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ListPendingNexusLinks, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusStatusRequest OpenNexusLinkPage(global::ModConductor.Protocol.V1.NexusLinkRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenNexusLinkPage(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusStatusRequest OpenNexusLinkPage(global::ModConductor.Protocol.V1.NexusLinkRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_OpenNexusLinkPage, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusLinkPageAsync(global::ModConductor.Protocol.V1.NexusLinkRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenNexusLinkPageAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusLinkPageAsync(global::ModConductor.Protocol.V1.NexusLinkRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_OpenNexusLinkPage, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.NexusLinkReply ReadNexusLink(global::ModConductor.Protocol.V1.NexusLinkRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
@@ -246,6 +316,8 @@ namespace ModConductor.Protocol.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_ConfigureNexusIngress, serviceImpl.ConfigureNexusIngress)
+          .AddMethod(__Method_ListPendingNexusLinks, serviceImpl.ListPendingNexusLinks)
+          .AddMethod(__Method_OpenNexusLinkPage, serviceImpl.OpenNexusLinkPage)
           .AddMethod(__Method_ReadNexusLink, serviceImpl.ReadNexusLink)
           .AddMethod(__Method_DownloadNexusLink, serviceImpl.DownloadNexusLink)
           .AddMethod(__Method_DismissNexusLink, serviceImpl.DismissNexusLink).Build();
@@ -259,6 +331,8 @@ namespace ModConductor.Protocol.V1 {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, NexusLinksBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_ConfigureNexusIngress, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusIngressRequest, global::ModConductor.Protocol.V1.NexusIngressReply>(serviceImpl.ConfigureNexusIngress));
+      serviceBinder.AddMethod(__Method_ListPendingNexusLinks, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.PendingNexusLinks>(serviceImpl.ListPendingNexusLinks));
+      serviceBinder.AddMethod(__Method_OpenNexusLinkPage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(serviceImpl.OpenNexusLinkPage));
       serviceBinder.AddMethod(__Method_ReadNexusLink, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusLinkReply>(serviceImpl.ReadNexusLink));
       serviceBinder.AddMethod(__Method_DownloadNexusLink, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusLinkReply>(serviceImpl.DownloadNexusLink));
       serviceBinder.AddMethod(__Method_DismissNexusLink, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusLinkRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(serviceImpl.DismissNexusLink));

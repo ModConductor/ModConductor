@@ -47,6 +47,13 @@ class ArtifactLibraryClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.ArtifactRemoved> openArtifactModPage(
+    $0.ArtifactReadRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$openArtifactModPage, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.ArchiveArtifact> readArtifact(
     $0.ArtifactReadRequest request, {
     $grpc.CallOptions? options,
@@ -108,6 +115,11 @@ class ArtifactLibraryClient extends $grpc.Client {
           '/modconductor.v1.ArtifactLibrary/ListArtifactLinkOptions',
           ($0.ArtifactListRequest value) => value.writeToBuffer(),
           $0.ArtifactLinkPage.fromBuffer);
+  static final _$openArtifactModPage =
+      $grpc.ClientMethod<$0.ArtifactReadRequest, $0.ArtifactRemoved>(
+          '/modconductor.v1.ArtifactLibrary/OpenArtifactModPage',
+          ($0.ArtifactReadRequest value) => value.writeToBuffer(),
+          $0.ArtifactRemoved.fromBuffer);
   static final _$readArtifact =
       $grpc.ClientMethod<$0.ArtifactReadRequest, $0.ArchiveArtifact>(
           '/modconductor.v1.ArtifactLibrary/ReadArtifact',
@@ -166,6 +178,14 @@ abstract class ArtifactLibraryServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.ArtifactListRequest.fromBuffer(value),
         ($0.ArtifactLinkPage value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ArtifactReadRequest, $0.ArtifactRemoved>(
+        'OpenArtifactModPage',
+        openArtifactModPage_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ArtifactReadRequest.fromBuffer(value),
+        ($0.ArtifactRemoved value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ArtifactReadRequest, $0.ArchiveArtifact>(
         'ReadArtifact',
         readArtifact_Pre,
@@ -238,6 +258,15 @@ abstract class ArtifactLibraryServiceBase extends $grpc.Service {
 
   $async.Future<$0.ArtifactLinkPage> listArtifactLinkOptions(
       $grpc.ServiceCall call, $0.ArtifactListRequest request);
+
+  $async.Future<$0.ArtifactRemoved> openArtifactModPage_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ArtifactReadRequest> $request) async {
+    return openArtifactModPage($call, await $request);
+  }
+
+  $async.Future<$0.ArtifactRemoved> openArtifactModPage(
+      $grpc.ServiceCall call, $0.ArtifactReadRequest request);
 
   $async.Future<$0.ArchiveArtifact> readArtifact_Pre($grpc.ServiceCall $call,
       $async.Future<$0.ArtifactReadRequest> $request) async {
