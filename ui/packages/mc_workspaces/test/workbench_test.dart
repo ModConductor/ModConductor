@@ -69,7 +69,7 @@ void main() {
                 discoveryBuilder: (_, _, visible) => const SizedBox.shrink(),
                 gameContextBuilder: (_, _) => const SizedBox.shrink(),
                 executableBuilder: (_, _) => const SizedBox.shrink(),
-                artifactBuilder: (_, _, _) => const SizedBox.shrink(),
+                artifactBuilder: (_, _, _, _) => const SizedBox.shrink(),
                 helpBuilder: (_, workspace, actions) => const Center(
                   key: ValueKey('help-content'),
                   child: Text('Help content'),

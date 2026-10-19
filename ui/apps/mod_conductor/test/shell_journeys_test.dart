@@ -9,6 +9,7 @@ import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_executables/mc_executables.dart';
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
+import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 import 'package:mod_conductor/src/app.dart';
 
@@ -34,6 +35,8 @@ Future<void> mount(
   DeploymentsClient? deployments,
   GameLaunchingClient? gameLaunching,
   ExecutablesClient? executables,
+  ArtifactsClient? artifacts,
+  InstallationsClient? installations,
   DirectoryChooser? chooseDirectory,
   AppUpdatesController? updates,
   Future<void> Function(AppUpdateManager)? onQuitAndUpdate,
@@ -64,6 +67,8 @@ Future<void> mount(
       deployments: deployments,
       gameLaunching: gameLaunching,
       executables: executables,
+      artifacts: artifacts,
+      installations: installations,
       chooseDirectory: chooseDirectory ?? chooseWorkspaceDirectory,
     ),
   );
@@ -177,6 +182,7 @@ class _SetupEvents extends Fake implements SkyrimSetupClient {
 
 class _SetupQuery extends Fake implements ModOrganizationClient {
   int reads = 0;
+  Completer<ModQueryPage>? nextPage;
   @override
   Future<List<String>> loadOrderLayout(String profile) async => const [];
   @override
@@ -193,6 +199,9 @@ class _SetupQuery extends Fake implements ModOrganizationClient {
     String? inspectedId,
   }) async {
     reads++;
+    final pending = nextPage;
+    nextPage = null;
+    if (pending != null) return pending.future;
     return const ModQueryPage(
       catalogueRevision: 1,
       selectionRevision: 1,
@@ -212,6 +221,114 @@ class _SetupQuery extends Fake implements ModOrganizationClient {
 class _SetupProfileMods extends Fake implements ProfileModsClient {}
 
 class _SetupModLibrary extends Fake implements ModLibraryClient {}
+
+class _QueueArtifacts extends Fake implements ArtifactsClient {
+  final entries = [
+    for (final (id, order) in [('newer', 2), ('older', 1)])
+      Artifact(
+        id: id,
+        workspaceId: 'one',
+        revision: 1,
+        arrivalOrder: order,
+        originalName: '$id.zip',
+        originalPath: '/fixture/$id.zip',
+        path: '/fixture/$id.zip',
+        storage: ArtifactStorage.reference,
+        state: ArtifactState.ready,
+        links: const [],
+        canRetry: false,
+        canLocate: true,
+        canDeleteCopy: false,
+        canRemove: true,
+      ),
+  ];
+
+  @override
+  Future<ArtifactPage> list(
+    String workspaceId, {
+    String? after,
+    bool refresh = false,
+  }) async => ArtifactPage(entries, null);
+}
+
+class _QueueInstallations extends Fake implements InstallationsClient {
+  final events = StreamController<InstallationStatus>.broadcast();
+  final starts = <InstallationStatus>[];
+  int cancellations = 0;
+
+  @override
+  Future<List<InstallationStatus>> recent(String workspaceId) async => [];
+
+  @override
+  InstallationPreparation prepare(Artifact artifact) => InstallationPreparation(
+    Future.value(
+      InstallationDraft(
+        id: 'draft-${artifact.id}',
+        workspaceId: artifact.workspaceId,
+        revision: 1,
+        artifactId: artifact.id,
+        archiveName: artifact.originalName,
+        manifest: const InspectedArchive('digest', 'ZIP', [
+          InspectedEntry(0, ['Data', 'texture.dds'], false, 4, 4),
+        ], 4),
+        root: const ['Data'],
+        files: const [
+          InstallationFile(0, ['texture.dds']),
+        ],
+        name: artifact.id,
+        version: '',
+        bytes: 4,
+        canInstall: true,
+      ),
+    ),
+    () async {},
+  );
+
+  InstallationStatus result(
+    String artifact,
+    String id,
+    InstallationPhase phase,
+  ) => InstallationStatus(
+    id: id,
+    workspaceId: 'one',
+    artifactId: artifact,
+    archiveName: '$artifact.zip',
+    name: artifact,
+    version: '',
+    phase: phase,
+    files: phase == InstallationPhase.complete ? 1 : 0,
+    totalFiles: 1,
+    bytes: phase == InstallationPhase.complete ? 4 : 0,
+    totalBytes: 4,
+  );
+
+  @override
+  Future<InstallationStatus> start(InstallationDraft draft, String id) async {
+    final status = result(draft.artifactId, id, InstallationPhase.running);
+    starts.add(status);
+    return status;
+  }
+
+  @override
+  Stream<InstallationStatus> watch(InstallationStatus status) =>
+      events.stream.where((value) => value.id == status.id);
+
+  @override
+  Future<InstallationStatus> cancel(InstallationStatus status) async {
+    cancellations++;
+    return result(status.artifactId, status.id, InstallationPhase.stopped);
+  }
+
+  @override
+  Future<void> closeDraft(InstallationDraft draft) async {}
+
+  void complete() {
+    final status = starts.single;
+    events.add(
+      result(status.artifactId, status.id, InstallationPhase.complete),
+    );
+  }
+}
 
 class _CapabilityGameContexts extends Fake implements GameContextsClient {
   _CapabilityGameContexts({this.skyrim = false});
@@ -659,6 +776,110 @@ Brightness brightness(WidgetTester tester) =>
     Theme.of(tester.element(keyed('quit'))).brightness;
 
 void main() {
+  for (final destination in [
+    'workspace-mods-tab',
+    'nav-games',
+    'nav-preferences',
+  ]) {
+    for (final awaitingRefresh in [false, true]) {
+      testWidgets(
+        'leaving Archives through $destination ${awaitingRefresh ? 'during committed refresh' : 'while installing'} preserves current work without resuming the queue',
+        (tester) async {
+          final artifacts = _QueueArtifacts(),
+              installations = _QueueInstallations(),
+              query = _SetupQuery();
+          addTearDown(installations.events.close);
+          await mount(
+            tester,
+            status: const DesktopConnected((
+              runtime: (
+                architecture: 'x64',
+                nativeAot: true,
+                sqliteVersion: '3',
+              ),
+              heartbeats: 1,
+            )),
+            workspaces: _WorkspacesFake(),
+            gameContexts: _CapabilityGameContexts(skyrim: true),
+            profileMods: _SetupProfileMods(),
+            modOrganization: query,
+            modLibrary: _SetupModLibrary(),
+            artifacts: artifacts,
+            installations: installations,
+          );
+          await openWorkspace(tester, 'one');
+          await activate(tester, 'workspace-archives-tab');
+          final controller = tester
+              .widget<ArtifactBrowser>(find.byType(ArtifactBrowser))
+              .controller;
+          for (final archive in artifacts.entries) {
+            await tester.tap(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is Checkbox &&
+                    widget.semanticLabel ==
+                        'Select ${archive.originalName} for installation',
+              ),
+            );
+            await tester.pumpAndSettle();
+          }
+          await tester.tap(
+            find.byWidgetPredicate(
+              (widget) => widget is McAction && widget.label == 'Install all',
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(installations.starts.single.artifactId, 'newer');
+          final refresh = Completer<ModQueryPage>();
+          if (awaitingRefresh) {
+            query.nextPage = refresh;
+            final before = query.reads;
+            installations.complete();
+            await tester.pumpAndSettle();
+            expect(query.reads, before + 1);
+            expect(controller.checked, {'older'});
+          }
+
+          await activate(tester, destination);
+          expect(installations.cancellations, 0);
+          if (awaitingRefresh) {
+            refresh.complete(
+              await _SetupQuery().query('profile', const ModQuery()),
+            );
+          } else {
+            expect(installations.events.hasListener, isTrue);
+            final before = query.reads;
+            installations.complete();
+            await tester.pumpAndSettle();
+            expect(query.reads, greaterThan(before));
+          }
+          await tester.pumpAndSettle();
+          expect(installations.starts, hasLength(1));
+          expect(controller.checked, contains('older'));
+
+          if (destination == 'workspace-mods-tab') {
+            await activate(tester, 'workspace-archives-tab');
+          } else {
+            await activate(tester, 'nav-workspaces');
+          }
+          expect(
+            find
+                .byWidgetPredicate(
+                  (widget) =>
+                      widget is McAction && widget.label == 'Install all',
+                )
+                .hitTestable(),
+            findsOneWidget,
+          );
+          expect(installations.starts, hasLength(1));
+          expect(installations.cancellations, 0);
+          expect(controller.checked, contains('older'));
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'Settings migration uses the open workspace and refreshes completion',
     (tester) async {

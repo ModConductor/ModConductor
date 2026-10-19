@@ -130,7 +130,8 @@ mixin _ShellContent
           ),
     artifactBuilder: !_supportsGameMods || widget.artifacts == null
         ? null
-        : (context, workspace, openMods) => ArtifactBrowser(
+        : (context, workspace, openMods, visible) => ArtifactBrowser(
+            visible: visible && _destination == _Destination.workspaces,
             nexus: widget.nexus,
             nexusFileRequest: _nexusFileRequest,
             onNexusRequestClosed: () =>

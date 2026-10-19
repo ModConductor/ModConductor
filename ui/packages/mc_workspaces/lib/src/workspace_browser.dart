@@ -101,7 +101,12 @@ class WorkspaceBrowser extends StatefulWidget {
   discoveryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
-  final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?
+  final Widget Function(
+    BuildContext,
+    WorkspaceInfo,
+    VoidCallback,
+    bool visible,
+  )?
   artifactBuilder;
   final WorkspaceHelpBuilder? entryHelpBuilder;
   final WorkspaceHelpBuilder? helpBuilder;

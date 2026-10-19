@@ -75,6 +75,7 @@ extension _WorkspaceWorkbench on _WorkspaceBrowserState {
                 context,
                 workspace,
                 () => _change(() => _mode = _WorkspaceMode.mods),
+                mode == _WorkspaceMode.archives,
               ),
             )
           else

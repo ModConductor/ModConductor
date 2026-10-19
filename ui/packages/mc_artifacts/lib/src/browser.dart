@@ -43,6 +43,7 @@ class ArtifactBrowser extends StatefulWidget {
     this.updateTargets,
     this.onInstalled,
     this.onQueueInstalled,
+    this.visible = true,
     this.onInstallationDetached,
     this.onInstallationAttached,
     this.onOpenMods,
@@ -62,6 +63,7 @@ class ArtifactBrowser extends StatefulWidget {
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final Future<void> Function()? onInstalled;
   final Future<bool> Function()? onQueueInstalled;
+  final bool visible;
   final void Function(InstallationStatus)? onInstallationDetached;
   final void Function(InstallationStatus)? onInstallationAttached;
   final VoidCallback? onOpenMods;
@@ -134,6 +136,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   @override
   void didUpdateWidget(ArtifactBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!widget.visible && oldWidget.visible) queue.leave();
     if (oldWidget.controller != controller) {
       oldWidget.controller.removeListener(bindInstallationContext);
       controller.addListener(bindInstallationContext);
@@ -473,7 +476,8 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                           pane.currentState?.closeEndDrawer();
                           suggestedTarget = null;
                           suggestedVersion = null;
-                          queue.start(controller.checkedArtifacts);
+                          if (widget.visible)
+                            queue.start(controller.checkedArtifacts);
                         },
                   onAdd: () => unawaited(fileForm()),
                   onDownload: () => unawaited(download()),
