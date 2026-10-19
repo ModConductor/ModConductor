@@ -202,6 +202,13 @@ module private DirectDeletion =
 
             privatePayloads, privateArtifacts |> List.map fst, names)
 
+    let private libraryPath connection transaction workspace (library: StoredLibrary) =
+        let workspaceRoot =
+            (WorkspaceRows.find connection transaction workspace).Value.Receipt.Workspace.Path
+
+        HostPath.create (Path.Combine(HostPath.value workspaceRoot, library.Name))
+        |> Result.defaultWith invalidOp
+
     let private ownedPaths connection transaction workspace modId expected =
         row connection transaction workspace modId expected
         |> Result.bind (fun _ ->
@@ -228,13 +235,7 @@ module private DirectDeletion =
                     let privateNames =
                         privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
 
-                    let workspaceRoot =
-                        (WorkspaceRows.find connection transaction workspace)
-                            .Value.Receipt.Workspace.Path
-
-                    let libraryPath =
-                        HostPath.create (Path.Combine(HostPath.value workspaceRoot, stored.Name))
-                        |> Result.defaultWith invalidOp
+                    let libraryPath = libraryPath connection transaction workspace stored
 
                     let links =
                         [ for context, generation in values do
@@ -399,7 +400,9 @@ module private DirectDeletion =
         let privateNames =
             privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
 
-        let library = LibraryRows.library connection transaction workspace
+        let library =
+            LibraryRows.library connection transaction workspace
+            |> Option.map (libraryPath connection transaction workspace)
 
         let retainedView =
             targets
@@ -419,9 +422,7 @@ module private DirectDeletion =
                     not (
                         file.Backing
                         |> Option.exists (fun backing ->
-                            (library
-                             |> Option.exists (fun stored ->
-                                 stored.Identity = Some backing.Directory.Identity))
+                            library = Some backing.Directory.Path
                             && (match LogicalPath.components backing.Path with
                                 | [ name ] -> privateNames.Contains name
                                 | _ -> false))

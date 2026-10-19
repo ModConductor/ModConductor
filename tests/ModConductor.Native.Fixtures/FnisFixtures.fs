@@ -31,6 +31,155 @@ module FnisFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
 
+    let private previousIdentity identity =
+        { identity with
+            Device =
+                match identity.Device with
+                | LinuxDevice(major, minor) -> LinuxDevice(major, minor + 37u)
+                | WindowsVolume serial -> WindowsVolume(serial + 37UL) }
+
+    let private editSavedState scenario action =
+        use connection =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+            )
+
+        connection.Open()
+        action connection
+
+    let private previousLibraryIdentity scenario =
+        editSavedState scenario (fun connection ->
+            use query = connection.CreateCommand()
+            query.CommandText <- "SELECT workspace_id,identity FROM mod_libraries"
+            use reader = query.ExecuteReader()
+
+            let rows =
+                [ while reader.Read() do
+                      yield reader.GetString 0, reader.GetString 1 ]
+
+            reader.Close()
+
+            for workspace, identity in rows do
+                Sqlite.execute
+                    connection
+                    null
+                    "UPDATE mod_libraries SET identity=$identity WHERE workspace_id=$workspace"
+                    [ "$workspace", box workspace
+                      "$identity",
+                      box (
+                          LibraryEncoding.readIdentity identity
+                          |> previousIdentity
+                          |> LibraryEncoding.identity
+                      ) ])
+
+    let private previousCompletedDeploymentIdentities scenario =
+        let location (value: ModConductor.DeploymentRecovery.Location) =
+            { value with
+                Identity = previousIdentity value.Identity }
+
+        let entry (value: HeldEntry) =
+            { value with
+                Identity = previousIdentity value.Identity }
+
+        editSavedState scenario (fun connection ->
+            use payloadQuery = connection.CreateCommand()
+            payloadQuery.CommandText <- "SELECT id,identity FROM mod_payloads"
+            use payloadReader = payloadQuery.ExecuteReader()
+
+            let payloads =
+                [ while payloadReader.Read() do
+                      yield payloadReader.GetString 0, payloadReader.GetString 1 ]
+
+            payloadReader.Close()
+
+            for id, identity in payloads do
+                Sqlite.execute
+                    connection
+                    null
+                    "UPDATE mod_payloads SET identity=$identity WHERE id=$id"
+                    [ "$id", box id
+                      "$identity",
+                      box (
+                          LibraryEncoding.readIdentity identity
+                          |> previousIdentity
+                          |> LibraryEncoding.identity
+                      ) ]
+
+            for table in [ "deployment_contexts"; "deployment_generations" ] do
+                use query = connection.CreateCommand()
+                query.CommandText <- "SELECT rowid,body FROM " + table
+                use reader = query.ExecuteReader()
+
+                let rows =
+                    [ while reader.Read() do
+                          yield reader.GetInt64 0, reader.GetFieldValue<byte array> 1 ]
+
+                reader.Close()
+
+                for id, bytes in rows do
+                    let changed =
+                        if table = "deployment_contexts" then
+                            let value = DeploymentEncoding.contextFrom bytes
+
+                            if value.Pending.IsSome then
+                                invalidOp "The restart fixture requires completed deployments."
+
+                            { value with
+                                Roots =
+                                    value.Roots
+                                    |> List.map (fun root ->
+                                        { root with
+                                            Directory = location root.Directory
+                                            Originals = location root.Originals })
+                                Links =
+                                    value.Links
+                                    |> List.map (fun link -> { link with Entry = entry link.Entry })
+                                Originals =
+                                    value.Originals
+                                    |> List.map (fun original ->
+                                        { original with Entry = entry original.Entry })
+                                Directories =
+                                    value.Directories
+                                    |> List.map (fun directory ->
+                                        { directory with
+                                            Identity = previousIdentity directory.Identity }) }
+                            |> DeploymentEncoding.contextBytes
+                        else
+                            let value = DeploymentEncoding.generationFrom bytes
+
+                            { value with
+                                Directory = location value.Directory
+                                Files =
+                                    value.Files
+                                    |> List.map (fun file ->
+                                        { file with
+                                            Identity = previousIdentity file.Identity
+                                            Backing =
+                                                file.Backing
+                                                |> Option.map (fun backing ->
+                                                    { backing with
+                                                        Directory = location backing.Directory
+                                                        Identity = previousIdentity backing.Identity }) })
+                                Observed =
+                                    value.Observed
+                                    |> List.map (fun file ->
+                                        { file with Identity = previousIdentity file.Identity })
+                                Working =
+                                    value.Working
+                                    |> List.map (fun working ->
+                                        { working with
+                                            Root = location working.Root
+                                            Identity = working.Identity |> Option.map previousIdentity }) }
+                            |> DeploymentEncoding.generationBytes
+
+                    Sqlite.execute
+                        connection
+                        null
+                        ("UPDATE " + table + " SET body=$body,digest=$digest WHERE rowid=$id")
+                        [ "$id", box id
+                          "$body", box changed
+                          "$digest", box (DeploymentEncoding.hash changed) ])
+
     type private StreamContext() =
         inherit ServerCallContext()
         let mutable status = Status.DefaultSuccess
@@ -1298,6 +1447,7 @@ module FnisFixtures =
         |> wait
 
         (store :> IDisposable).Dispose()
+        previousCompletedDeploymentIdentities scenario
 
         use reopened =
             new OperationStore(
@@ -1378,6 +1528,66 @@ module FnisFixtures =
                  StringComparison.OrdinalIgnoreCase
              ))
 
+        let beforeRun = reopened.Deployments.Read profile |> wait |> result
+        let foreign = Path.Combine(beforeRun.RunnableRoot, "Data", "reopen-foreign.txt")
+        File.WriteAllText(foreign, "preserve after restart")
+        let animation =
+            Path.Combine(beforeRun.RunnableRoot, "Data", "meshes", "actors", "character", "behaviors", "0_master.hkx")
+        let animationLink = FileInfo(animation).LinkTarget
+        let animationBytes = File.ReadAllBytes animation
+
+        let receiptSequence () =
+            editSavedState scenario (fun connection ->
+                Sqlite.number
+                    connection
+                    null
+                    "SELECT coalesce(max(seq),0) FROM sqlite_sequence WHERE name='deployment_receipts'"
+                    [])
+
+        let receipts = receiptSequence ()
+
+        let savedDeployments =
+            (reopened.Deployments.Saved(profile, None) |> wait |> result).Entries.Length
+
+        let runId = Guid.NewGuid()
+        File.WriteAllText(Path.Combine(scenario, "fnis-mode"), "after-reopen")
+
+        restarted.Run(
+            { Id = runId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let completed =
+            until
+                "first FNIS publication after device-renumbered restart"
+                (fun () ->
+                    restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value ->
+                    value.LatestRunId = Some runId
+                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current)
+
+        let afterRun = reopened.Deployments.Read profile |> wait |> result
+
+        let outputFile =
+            Path.Combine(afterRun.RunnableRoot, "Data", "meshes", "actors", "character", "behaviors", "generated.hkx")
+
+        check
+            writer
+            "firstFnisAfterRenumberedRestartPublishesWithoutRedeployment"
+            (completed.LatestRunId = Some runId
+             && receiptSequence () = receipts
+             && afterRun.RunnableRoot = beforeRun.RunnableRoot
+             && (reopened.Deployments.Saved(profile, None) |> wait |> result).Entries.Length = savedDeployments
+             && File.ReadAllText outputFile = "generated-after-reopen"
+             && FileInfo(animation).LinkTarget = animationLink
+             && File.ReadAllBytes animation = animationBytes
+             && File.ReadAllText foreign = "preserve after restart")
+
         let ownedPayloads =
             use connection =
                 new Microsoft.Data.Sqlite.SqliteConnection(
@@ -1401,7 +1611,7 @@ module FnisFixtures =
                           scenario,
                           "workspace",
                           reader.GetString 0,
-                          reader.GetString 1 + ".payload"
+                          (Guid.Parse(reader.GetString 1)).ToString("N") + ".payload"
                       ) ]
 
         let reopenedWorkspaces = reopened.Workspaces :> IWorkspaceState
@@ -1721,6 +1931,8 @@ module FnisFixtures =
         |> result
         |> ignore
 
+        previousLibraryIdentity scenario
+
         let pending = store.Deployments.Read profile |> wait |> result
 
         let prepared =
@@ -1821,7 +2033,7 @@ module FnisFixtures =
 
         database.Open()
 
-        let generationDirectory generation =
+        let generationRecord generation =
             use query =
                 Sqlite.command
                     database
@@ -1830,7 +2042,10 @@ module FnisFixtures =
                     [ "$id", box (string generation) ]
 
             let context = Guid.Parse(query.ExecuteScalar() :?> string)
-            (DeploymentRows.generation database null context generation |> Option.get).Directory
+            context, DeploymentRows.generation database null context generation |> Option.get
+
+        let generationDirectory generation =
+            (generationRecord generation |> snd).Directory
 
         let retainedDirectory = generationDirectory before.ActiveGeneration.Value
 
@@ -1859,8 +2074,34 @@ module FnisFixtures =
                           scenario,
                           "workspace",
                           reader.GetString 0,
-                          reader.GetString 1 + ".payload"
+                          (Guid.Parse(reader.GetString 1)).ToString("N") + ".payload"
                       ) ]
+
+        let contextId, ownedGeneration = generationRecord before.ActiveGeneration.Value
+        let privatePaths = Set.ofList payloads
+
+        let privateBacking (file: ModConductor.DeploymentRecovery.GenerationFile) =
+            file.Backing
+            |> Option.exists (fun backing ->
+                match LogicalPath.components backing.Path with
+                | [ name ] ->
+                    privatePaths.Contains(Path.Combine(HostPath.value backing.Directory.Path, name))
+                | _ -> false)
+
+        let ownedFiles = ownedGeneration.Files |> List.filter privateBacking
+
+        let ownedTargets =
+            ownedFiles
+            |> List.map (fun file ->
+                ModConductor.DeploymentRecovery.RecoveryFiles.nativeTarget ownedGeneration file.Target)
+            |> Set.ofList
+
+        let savedLibrary = LibraryRows.library database null workspace |> Option.get
+
+        let libraryIdentityDiffers =
+            ownedFiles
+            |> List.exists (fun file ->
+                Some file.Backing.Value.Directory.Identity <> savedLibrary.Identity)
 
         let foreign = Path.Combine(before.RunnableRoot, "Data", "foreign-output-delete.txt")
         File.WriteAllText(foreign, "foreign content")
@@ -1910,6 +2151,19 @@ module FnisFixtures =
              && toolAfter.OutputStatus <> ""
              && FileInfo(inputFile).LinkTarget = inputLink
              && File.ReadAllText inputFile = inputBytes)
+
+        check
+            writer
+            "renumberedLibraryDeletionPrunesOwnedGenerationFilesAndActiveLinks"
+            (let context = DeploymentRows.context database null contextId |> Option.get
+             let generation = generationRecord before.ActiveGeneration.Value |> snd
+
+             not ownedFiles.IsEmpty
+             && libraryIdentityDiffers
+             && (generation.Files |> List.forall (privateBacking >> not))
+             && (context.Links
+                 |> List.forall (fun link ->
+                     link.Spec.Directory || not (ownedTargets.Contains link.Target))))
 
         let externalId = Guid.NewGuid()
 
@@ -2496,7 +2750,7 @@ module FnisFixtures =
 
             use reader = query.ExecuteReader()
             reader.Read() |> ignore
-            Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload")
+            Path.Combine(scenario, "workspace", reader.GetString 0, (Guid.Parse(reader.GetString 1)).ToString("N") + ".payload")
 
         check
             writer

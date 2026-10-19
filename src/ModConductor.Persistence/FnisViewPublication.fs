@@ -120,6 +120,8 @@ type internal FnisViewPublication(database: StateDatabase, access: LibraryAccess
                 Ok((context, generation, current, library, payloads, transient), sources.Context)
 
     let write
+        (expectedContext: Context)
+        (expectedGeneration: Generation)
         (context: Context)
         (generation: Generation)
         transient
@@ -131,7 +133,9 @@ type internal FnisViewPublication(database: StateDatabase, access: LibraryAccess
         use transaction = connection.BeginTransaction(deferred = false)
 
         if
-            DeploymentRows.context connection transaction context.Id <> Some context
+            DeploymentRows.context connection transaction context.Id <> Some expectedContext
+            || DeploymentRows.generation connection transaction context.Id expectedGeneration.Id
+               <> Some expectedGeneration
             || FilePlanRows.stamp connection transaction stamp.ProfileId <> Some stamp
         then
             Error FnisExecutionError.Stale
@@ -180,7 +184,7 @@ type internal FnisViewPublication(database: StateDatabase, access: LibraryAccess
     let publish
         (stage: FnisRunStage)
         (token: CancellationToken)
-        (context, previous, stamp, library, desired, transient)
+        (expectedContext, expectedGeneration, stamp, library, desired, transient)
         root
         =
         task {
@@ -192,26 +196,34 @@ type internal FnisViewPublication(database: StateDatabase, access: LibraryAccess
                     |> Result.defaultWith invalidOp
                   Identity = held.Identity }
 
-            let changes =
-                desired
-                |> List.map (fun (target, pin, payload: StoredPayload option) ->
-                    target,
-                    pin,
-                    payload
-                    |> Option.map (fun payload ->
-                        { Directory = location
-                          Path =
-                            LogicalPath.create [ LibraryFiles.payloadName payload.Payload.Id ]
-                            |> Result.defaultWith (fun _ ->
-                                invalidOp "Invalid FNIS payload path.")
-                          Identity = payload.Identity
-                          OwnerGeneration = None }))
-
             token.ThrowIfCancellationRequested()
 
-            let! files, links, rollback, complete =
+            let! context, previous, (files, links, rollback, complete) =
                 System.Threading.Tasks.Task.Run(fun () ->
-                    FnisViewFiles.apply context previous changes)
+                    // These are completed snapshots for this new publication, not a
+                    // replay of pending effects. Keep the raw rows for commit admission.
+                    let context = CompletedState.context expectedContext
+                    let previous = CompletedState.generation context expectedGeneration
+
+                    let changes =
+                        desired
+                        |> List.map (fun (target, pin, payload: StoredPayload option) ->
+                            target,
+                            pin,
+                            payload
+                            |> Option.map (fun payload ->
+                                let stream, identity = LibraryFiles.readPayload held payload
+                                use stream = stream
+
+                                { Directory = location
+                                  Path =
+                                    LogicalPath.create [ LibraryFiles.payloadName payload.Payload.Id ]
+                                    |> Result.defaultWith (fun _ ->
+                                        invalidOp "Invalid FNIS payload path.")
+                                  Identity = identity
+                                  OwnerGeneration = None }))
+
+                    context, previous, FnisViewFiles.apply context previous changes)
 
             let output = FnisRunRows.outputId stage.Request.ProfileId
 
@@ -239,7 +251,15 @@ type internal FnisViewPublication(database: StateDatabase, access: LibraryAccess
                     try
                         return!
                             database.EnqueueInternal(fun () ->
-                                write context generation transient files links stamp)
+                                write
+                                    expectedContext
+                                    expectedGeneration
+                                    context
+                                    generation
+                                    transient
+                                    files
+                                    links
+                                    stamp)
                     with error ->
                         rollback ()
                         return raise error

@@ -371,6 +371,62 @@ module EnbFixtures =
              && File.Exists(prefs)
              && not (File.Exists(Path.Combine(deployment.RunnableRoot, "d3d11.dll"))))
 
+        let staleRuntimePath = Path.Combine(scenario, "stale-definition-runtime.zip")
+        archive
+            staleRuntimePath
+            [ "WrapperVersion/d3d11.dll", "new runtime"
+              "WrapperVersion/d3dcompiler_46e.dll", "new compiler" ]
+        let staleRuntime = artifact store workspace staleRuntimePath
+
+        use connection =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+            )
+
+        connection.Open()
+        let inventory () =
+            [ "mods"; "mod_versions"; "mod_payloads" ]
+            |> List.map (fun table -> Sqlite.number connection null ("SELECT count(*) FROM " + table) [])
+
+        let beforeImport = inventory ()
+        let currentBinding =
+            (gameContexts.Read(workspace, profile) |> wait |> result).Binding.Value
+        let staleBinding =
+            { currentBinding with
+                Evidence =
+                    { currentBinding.Evidence with
+                        DefinitionRevision = currentBinding.Evidence.DefinitionRevision - 1 } }
+
+        Sqlite.execute
+            connection
+            null
+            "UPDATE game_contexts SET evidence=$evidence WHERE profile_id=$profile"
+            [ "$profile", box (string profile)
+              "$evidence", box (GameContextEncoding.encodeBinding staleBinding) ]
+
+        let staleInstall =
+            store.InstallEnb(
+                workspace,
+                profile,
+                EnbCatalogue.lean,
+                staleRuntime,
+                [],
+                CancellationToken.None,
+                runtimeOnly = true
+            )
+            |> wait
+
+        let afterRefusal = store.Deployments.Read profile |> wait |> result
+
+        check
+            writer
+            "staleDefinitionRefusesEnbBeforeManagedImportsWithInitializedSettings"
+            (Result.isError staleInstall
+             && inventory () = beforeImport
+             && afterRefusal.ActiveGeneration = deployment.ActiveGeneration
+             && File.Exists prefs
+             && not (File.Exists(Path.Combine(game, "d3d11.dll"))))
+
     type private Handoff() =
         let opened = ResizeArray<Uri>()
         member _.Opened = List.ofSeq opened

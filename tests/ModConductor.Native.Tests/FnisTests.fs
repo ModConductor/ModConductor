@@ -81,6 +81,17 @@ type FnisTests() =
         |> should equal true
 
     [<Test>]
+    member _.``device renumbering should retain deletable output and permit the first reopened FNIS run without deployment``() =
+        if not (OperatingSystem.IsLinux()) then
+            Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
+
+        flag "renumberedLibraryDeletionPrunesOwnedGenerationFilesAndActiveLinks"
+        |> should equal true
+
+        flag "firstFnisAfterRenumberedRestartPublishesWithoutRedeployment"
+        |> should equal true
+
+    [<Test>]
     member _.``cancel retry failure and recovery should preserve the active setup``() =
         flag "cancelledUpdatePreservesPriorGeneration" |> should equal true
         flag "retryResumesAndPublishesSelectedUpdate" |> should equal true

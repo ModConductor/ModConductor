@@ -78,3 +78,8 @@ type EnbTests() =
         =
         flag "freshProfileSettingsInitializedBeforeEnbInstall" |> should equal true
         flag "enbRemovalRetainsInitializedProfileSettings" |> should equal true
+
+    [<Test>]
+    member _.``stale game definitions should refuse ENB before managed imports even with initialized settings``() =
+        flag "staleDefinitionRefusesEnbBeforeManagedImportsWithInitializedSettings"
+        |> should equal true

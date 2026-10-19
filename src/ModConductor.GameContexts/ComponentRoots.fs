@@ -63,7 +63,11 @@ module ComponentRoots =
         Guid(SHA256.HashData(bytes.ToArray()).AsSpan(0, 16))
 
     let registeredRootId (binding: GameBinding) =
-        if not binding.Evidence.Valid then
+        if
+            not binding.Evidence.Valid
+            || binding.Evidence.DefinitionRevision
+               <> (GameCatalog.forGame binding.Evidence.DefinitionId).Revision
+        then
             Error "Select a checked game installation."
         else
             Ok binding.ComponentRoot
