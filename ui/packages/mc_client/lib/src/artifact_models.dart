@@ -29,13 +29,14 @@ class Artifact {
     required this.canLocate,
     required this.canDeleteCopy,
     required this.canRemove,
+    this.arrivalOrder = 0,
     this.length,
     this.sha256,
     this.problem,
     this.download,
   });
   final String id, workspaceId, originalName, originalPath, path;
-  final int revision;
+  final int revision, arrivalOrder;
   final ArtifactStorage storage;
   final ArtifactState state;
   final int? length;

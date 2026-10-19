@@ -50,6 +50,7 @@ type Artifact =
     { Id: Guid
       WorkspaceId: Guid
       Revision: int64
+      ArrivalOrder: int64
       OriginalName: string
       OriginalPath: string
       Path: string
@@ -67,7 +68,7 @@ type Artifact =
 
 type ArtifactPage =
     { Entries: Artifact list
-      Next: Guid option }
+      Next: int64 option }
 
 [<RequireQualifiedAccess>]
 type ArtifactError =
@@ -93,7 +94,7 @@ type ArtifactRef =
 
 type IArtifactLibrary =
     abstract List:
-        Guid * Guid option * bool * CancellationToken -> Task<Result<ArtifactPage, ArtifactError>>
+        Guid * int64 option * bool * CancellationToken -> Task<Result<ArtifactPage, ArtifactError>>
 
     abstract LinkOptions: Guid * Guid option -> Task<Result<ArtifactLinkPage, ArtifactError>>
     abstract Read: Guid * Guid -> Task<Result<Artifact, ArtifactError>>

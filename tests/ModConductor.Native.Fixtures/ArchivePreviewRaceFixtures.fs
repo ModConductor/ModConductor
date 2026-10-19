@@ -93,6 +93,7 @@ module ArchivePreviewRaceFixtures =
                             { Id = reference.Id
                               WorkspaceId = reference.WorkspaceId
                               Revision = reference.Revision
+                              ArrivalOrder = 1L
                               OriginalName = "race.zip"
                               OriginalPath = "fixture/race.zip"
                               Path = "fixture/race.zip"

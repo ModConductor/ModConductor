@@ -135,6 +135,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
     id: a.id,
     workspaceId: a.workspaceId,
     revision: a.revision.toInt(),
+    arrivalOrder: a.arrivalOrder.toInt(),
     originalName: a.originalName,
     originalPath: a.originalPath,
     path: a.path,

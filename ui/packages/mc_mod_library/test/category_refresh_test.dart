@@ -25,10 +25,33 @@ void main() {
     expect(state.model.visible, [(modId: 'skse')]);
     expect(state.model.selectedId, (modId: 'skse'));
     pending.complete(queryPage([row('skse', 0), row('fnis', 1)], catalogue: 2));
-    await updating;
+    expect(await updating, isTrue);
     expect(state.model.visible, [(modId: 'skse'), (modId: 'fnis')]);
     expect(state.model.selectedId, (modId: 'skse'));
   });
+
+  test(
+    'failed or superseded catalogue refresh cannot report committed readiness',
+    () async {
+      final queries = QueryClient()
+        ..onQuery = (_, _, _, _) async => queryPage([row('old', 0)]);
+      final state = ProfileModsController();
+      addTearDown(state.dispose);
+      state.attach(ProfileClient(), queries, 'workspace', 'profile');
+      await settle();
+      queries.onQuery = (_, _, _, _) async =>
+          throw const FormatException('Unavailable');
+      expect(await state.refreshCatalogue(), isFalse);
+      expect(state.model.visible, [(modId: 'old')]);
+      final pending = Completer<ModQueryPage>();
+      queries.onQuery = (_, _, _, _) => pending.future;
+      final refresh = state.refreshCatalogue();
+      state.attach(ProfileClient(), queries, 'workspace', 'another-profile');
+      pending.complete(queryPage([row('new', 0)]));
+      expect(await refresh, isFalse);
+      await settle();
+    },
+  );
 
   test('flat priority keeps locked rows after saved order while name sort follows the query', () async {
     final regular = row('z', 0);
@@ -125,7 +148,7 @@ void main() {
           await settle();
           expect(state.loading, isTrue);
         }
-        await state.refreshCatalogue();
+        expect(await state.refreshCatalogue(), isFalse);
         queries.onQuery = (_, _, cursor, _) async {
           expect(cursor, isNull);
           return queryPage([row('b', 0)], revision: 5, catalogue: 2);

@@ -84,20 +84,21 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
     _profileData.invalidate();
   }
 
-  Future<void> _installationCommitted(String workspace, String? profile) async {
+  Future<bool> _installationCommitted(String workspace, String? profile) async {
     if (_installationWorkspace != workspace ||
         _installationProfile != profile) {
-      return;
+      return false;
     }
-    await _mods.inventory.refreshCatalogue();
+    final refreshed = await _mods.inventory.refreshCatalogue();
     if (!mounted ||
         _installationWorkspace != workspace ||
         _installationProfile != profile) {
-      return;
+      return false;
     }
     _deploymentChanged();
     _play.invalidate();
     _profileData.invalidate();
+    return refreshed;
   }
 
   void _syncInstallationScope(

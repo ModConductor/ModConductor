@@ -40,7 +40,7 @@ module internal ArtifactRows =
             Sqlite.command
                 connection
                 transaction
-                "SELECT revision,original_name,original_path,path,storage,phase,owner,busy,length,sha256,source_identity,stored_identity,problem FROM artifacts WHERE workspace_id=$workspace AND id=$id"
+                "SELECT revision,original_name,original_path,path,storage,phase,owner,busy,length,sha256,source_identity,stored_identity,problem,rowid FROM artifacts WHERE workspace_id=$workspace AND id=$id"
                 [ "$workspace", box (string workspace); "$id", box (string id) ]
 
         use reader = query.ExecuteReader()
@@ -55,6 +55,7 @@ module internal ArtifactRows =
                     { Id = id
                       WorkspaceId = workspace
                       Revision = reader.GetInt64 0
+                      ArrivalOrder = reader.GetInt64 13
                       OriginalName = reader.GetString 1
                       OriginalPath = reader.GetString 2
                       Path = reader.GetString 3
@@ -131,9 +132,9 @@ module internal ArtifactRows =
             Sqlite.command
                 connection
                 null
-                "SELECT id FROM artifacts WHERE workspace_id=$workspace AND id>$after ORDER BY id LIMIT 65"
+                "SELECT id FROM artifacts WHERE workspace_id=$workspace AND rowid<$after ORDER BY rowid DESC LIMIT 65"
                 [ "$workspace", box (string workspace)
-                  "$after", box (after |> Option.map string |> Option.defaultValue "") ]
+                  "$after", box (after |> Option.defaultValue Int64.MaxValue) ]
 
         use reader = query.ExecuteReader()
 

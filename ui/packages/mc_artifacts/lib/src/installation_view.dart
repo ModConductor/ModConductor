@@ -36,6 +36,7 @@ class ArchiveInstallationView extends StatefulWidget {
     required this.onCommitted,
     this.onDetached,
     this.onAttached,
+    this.onInterrupted,
     required this.onOpenMods,
   });
   final ModEntry? suggestedTarget;
@@ -52,6 +53,7 @@ class ArchiveInstallationView extends StatefulWidget {
   final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final VoidCallback onBack, onCommitted, onOpenMods;
+  final VoidCallback? onInterrupted;
   final void Function(InstallationStatus)? onDetached;
   final void Function(InstallationStatus)? onAttached;
   @override
@@ -68,6 +70,7 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
     widget.onCommitted,
     onDetached: widget.onDetached,
     onAttached: widget.onAttached,
+    onInterrupted: widget.onInterrupted,
     initialDraft: widget.initialDraft,
     initialStatus: widget.initialStatus,
   );

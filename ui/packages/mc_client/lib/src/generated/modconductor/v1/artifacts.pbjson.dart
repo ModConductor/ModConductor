@@ -134,6 +134,7 @@ const ArchiveArtifact$json = {
       '10': 'download',
       '17': true
     },
+    {'1': 'arrival_order', '3': 18, '4': 1, '5': 4, '10': 'arrivalOrder'},
   ],
   '8': [
     {'1': '_length'},
@@ -156,8 +157,9 @@ final $typed_data.Uint8List archiveArtifactDescriptor = $convert.base64Decode(
     'BWxpbmtzEhsKCWNhbl9yZXRyeRgNIAEoCFIIY2FuUmV0cnkSHQoKY2FuX2xvY2F0ZRgOIAEoCF'
     'IJY2FuTG9jYXRlEiYKD2Nhbl9kZWxldGVfY29weRgPIAEoCFINY2FuRGVsZXRlQ29weRIdCgpj'
     'YW5fcmVtb3ZlGBAgASgIUgljYW5SZW1vdmUSQQoIZG93bmxvYWQYESABKAsyIC5tb2Rjb25kdW'
-    'N0b3IudjEuQXJjaGl2ZURvd25sb2FkSANSCGRvd25sb2FkiAEBQgkKB19sZW5ndGhCCQoHX3No'
-    'YTI1NkIKCghfcHJvYmxlbUILCglfZG93bmxvYWQ=');
+    'N0b3IudjEuQXJjaGl2ZURvd25sb2FkSANSCGRvd25sb2FkiAEBEiMKDWFycml2YWxfb3JkZXIY'
+    'EiABKARSDGFycml2YWxPcmRlckIJCgdfbGVuZ3RoQgkKB19zaGEyNTZCCgoIX3Byb2JsZW1CCw'
+    'oJX2Rvd25sb2Fk');
 
 @$core.Deprecated('Use artifactLinkPageDescriptor instead')
 const ArtifactLinkPage$json = {

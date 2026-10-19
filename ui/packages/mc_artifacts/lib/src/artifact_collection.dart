@@ -20,6 +20,7 @@ class ArtifactCollection extends StatelessWidget {
     required this.onDownload,
     required this.onNexus,
     required this.onSelect,
+    this.onInstallAll,
   });
 
   final ArtifactController controller;
@@ -27,6 +28,7 @@ class ArtifactCollection extends StatelessWidget {
   final FocusNode focus, addFocus;
   final ScrollController scroll;
   final VoidCallback onAdd, onDownload, onNexus, onSelect;
+  final VoidCallback? onInstallAll;
 
   List<Widget> filterActions() => [
     if (narrow) ...[
@@ -46,6 +48,15 @@ class ArtifactCollection extends StatelessWidget {
   ];
 
   List<Widget> actions() => [
+    McAction(
+      label: 'Install all',
+      icon: Icons.install_desktop,
+      emphasis: McActionEmphasis.primary,
+      onPressed: controller.canEdit && controller.checkedArtifacts.isNotEmpty
+          ? onInstallAll
+          : null,
+    ),
+    if (!narrow) const SizedBox(width: 8),
     if (!narrow && hasNexus) McAction(label: 'Nexus Mods', onPressed: onNexus),
     if (!narrow)
       McAction(
@@ -59,13 +70,24 @@ class ArtifactCollection extends StatelessWidget {
       McAction(
         label: 'Download',
         icon: Icons.download,
-        emphasis: McActionEmphasis.primary,
         onPressed: controller.canEdit ? onDownload : null,
       ),
     ],
   ];
 
   List<McColumn<Artifact>> columns() => [
+    McColumn(
+      '',
+      (artifact) => Checkbox(
+        semanticLabel: 'Select ${artifact.originalName} for installation',
+        value: controller.checked.contains(artifact.id),
+        onChanged: controller.canEdit && controller.installable(artifact)
+            ? (value) => controller.check(artifact, value == true)
+            : null,
+      ),
+      width: 48,
+      interactive: true,
+    ),
     McColumn(
       'Name',
       (artifact) => McCollectionName(
@@ -81,7 +103,7 @@ class ArtifactCollection extends StatelessWidget {
             ? downloadLabel(artifact.download!)
             : archiveState(artifact.state),
       ),
-      width: 160,
+      width: narrow ? 80 : 160,
     ),
     if (!narrow)
       McColumn(
@@ -108,7 +130,7 @@ class ArtifactCollection extends StatelessWidget {
         ? 'Filter archives'
         : 'Filter loaded archives',
     countLabel:
-        '${controller.model.ids.length} ${controller.model.ids.length == 1 ? 'archive' : 'archives'}${controller.next == null ? '' : ' loaded'}',
+        '${controller.model.ids.length} ${controller.model.ids.length == 1 ? 'archive' : 'archives'}${controller.next == null ? '' : ' loaded'} · ${controller.checkedArtifacts.length} selected · Newest first',
     empty: 'No archives.',
     loading: controller.busy,
     problem: controller.problem ?? controller.progressProblem,

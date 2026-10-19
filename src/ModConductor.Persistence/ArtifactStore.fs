@@ -327,7 +327,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                         { Entries = entries
                           Next =
                             if ids.Length > 64 then
-                                entries |> List.tryLast |> Option.map (fun a -> a.Id)
+                                entries |> List.tryLast |> Option.map (fun a -> a.ArrivalOrder)
                             else
                                 None })))
 

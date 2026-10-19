@@ -156,7 +156,7 @@ class ProfileModsController extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshCatalogue() async {
+  Future<bool> refreshCatalogue() async {
     _debounce?.cancel();
     ++_request;
     loading = false;
@@ -165,8 +165,9 @@ class ProfileModsController extends ChangeNotifier {
     _notify();
     if (!changing) {
       _catalogueRefresh = false;
-      await load(refresh: true);
+      return load(refresh: true);
     }
+    return false;
   }
 
   Future<bool> load({

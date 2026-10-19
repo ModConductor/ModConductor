@@ -10,6 +10,7 @@ class InstallationController extends ChangeNotifier {
     this.onCommitted, {
     this.onDetached,
     this.onAttached,
+    this.onInterrupted,
     this.initialDraft,
     this.initialStatus,
   });
@@ -18,6 +19,7 @@ class InstallationController extends ChangeNotifier {
   final InstallationsClient client;
   final Artifact artifact;
   final VoidCallback onCommitted;
+  final VoidCallback? onInterrupted;
   final void Function(InstallationStatus)? onDetached;
   final void Function(InstallationStatus)? onAttached;
   InstallationDraft? draft;
@@ -70,7 +72,10 @@ class InstallationController extends ChangeNotifier {
       }
       draft = value;
     } on Exception catch (error) {
-      if (!_disposed && epoch == _epoch) problem = _message(error);
+      if (!_disposed && epoch == _epoch) {
+        problem = _message(error);
+        onInterrupted?.call();
+      }
     } finally {
       if (!_disposed && epoch == _epoch) {
         busy = false;
@@ -93,7 +98,10 @@ class InstallationController extends ChangeNotifier {
       updatePreview = null;
       return true;
     } on Exception catch (error) {
-      if (!_disposed) problem = _message(error);
+      if (!_disposed) {
+        problem = _message(error);
+        onInterrupted?.call();
+      }
       return false;
     } finally {
       busy = false;
@@ -128,7 +136,10 @@ class InstallationController extends ChangeNotifier {
         _accept(value);
       }
     } on Exception catch (error) {
-      if (!_disposed) problem = _message(error);
+      if (!_disposed) {
+        problem = _message(error);
+        onInterrupted?.call();
+      }
     } finally {
       busy = false;
       _notify();
@@ -159,7 +170,10 @@ class InstallationController extends ChangeNotifier {
       updateTarget = target;
       updatePreview = value;
     } on Exception catch (error) {
-      if (!_disposed) problem = _message(error);
+      if (!_disposed) {
+        problem = _message(error);
+        onInterrupted?.call();
+      }
     } finally {
       busy = false;
       _notify();
@@ -190,7 +204,10 @@ class InstallationController extends ChangeNotifier {
         _accept(value);
       }
     } on Exception catch (error) {
-      if (!_disposed) problem = _message(error);
+      if (!_disposed) {
+        problem = _message(error);
+        onInterrupted?.call();
+      }
     } finally {
       busy = false;
       _notify();
@@ -198,13 +215,23 @@ class InstallationController extends ChangeNotifier {
   }
 
   void _accept(InstallationStatus value) {
-    if (_disposed) return;
+    if (_disposed ||
+        value.workspaceId != artifact.workspaceId ||
+        value.artifactId != artifact.id ||
+        (status != null && status!.id != value.id))
+      return;
     final before = status;
+    if (before?.phase == InstallationPhase.complete &&
+        value.phase != InstallationPhase.complete)
+      return;
     if (before?.id == value.id &&
         before?.phase != InstallationPhase.running &&
         value.phase == InstallationPhase.running)
       return;
     status = value;
+    if (value.phase == InstallationPhase.stopped ||
+        value.phase == InstallationPhase.discarded)
+      onInterrupted?.call();
     if (value.phase == InstallationPhase.running &&
         before?.phase != InstallationPhase.running)
       onAttached?.call(value);
@@ -229,12 +256,19 @@ class InstallationController extends ChangeNotifier {
           onError: (Object error) {
             if (!_disposed) {
               problem = _message(error);
+              onInterrupted?.call();
               _watch = null;
               _notify();
             }
           },
           onDone: () {
             _watch = null;
+            if (!_disposed && status?.phase == InstallationPhase.running) {
+              problem =
+                  'Installation progress ended before a result was received.';
+              onInterrupted?.call();
+              _notify();
+            }
           },
           cancelOnError: true,
         );
@@ -252,7 +286,10 @@ class InstallationController extends ChangeNotifier {
           : await client.cancel(current);
       _accept(value);
     } on Exception catch (error) {
-      if (!_disposed) problem = _message(error);
+      if (!_disposed) {
+        problem = _message(error);
+        onInterrupted?.call();
+      }
     } finally {
       busy = false;
       _notify();

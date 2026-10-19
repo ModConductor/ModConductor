@@ -52,6 +52,7 @@ type NativeObservationSetup() =
         | "workspace-deletion" -> info.ArgumentList.Add "--workspace-deletion"
         | "workspaces" -> info.ArgumentList.Add "--workspaces"
         | "library" -> info.ArgumentList.Add "--library"
+        | "artifacts" -> info.ArgumentList.Add "--artifacts"
         | "executables" -> info.ArgumentList.Add "--executables"
         | "generated-outputs" -> info.ArgumentList.Add "--generated-outputs"
         | "deployment-removal" -> info.ArgumentList.Add "--deployment-removal"

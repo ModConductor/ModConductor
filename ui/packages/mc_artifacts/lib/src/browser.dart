@@ -5,6 +5,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
+import 'queue_controller.dart';
 import 'nexus_view.dart';
 import 'bundle_view.dart';
 import 'installation_view.dart';
@@ -41,6 +42,7 @@ class ArtifactBrowser extends StatefulWidget {
     this.profileId,
     this.updateTargets,
     this.onInstalled,
+    this.onQueueInstalled,
     this.onInstallationDetached,
     this.onInstallationAttached,
     this.onOpenMods,
@@ -59,6 +61,7 @@ class ArtifactBrowser extends StatefulWidget {
   final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final Future<void> Function()? onInstalled;
+  final Future<bool> Function()? onQueueInstalled;
   final void Function(InstallationStatus)? onInstallationDetached;
   final void Function(InstallationStatus)? onInstallationAttached;
   final VoidCallback? onOpenMods;
@@ -82,6 +85,40 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   Artifact? contents, installing, bundle;
   Future<void>? installationRefresh;
   ArtifactController get controller => widget.controller;
+  late final queue = ArchiveQueueController(
+    resolve: (id) => controller.model[id],
+    refresh: () => refreshInstallation(queued: true),
+    onInstalled: (id) => controller.installed(id),
+  );
+  Object? installationContext;
+
+  Future<bool> refreshInstallation({bool queued = false}) async {
+    final context = installationContext;
+    if (queued && widget.onQueueInstalled != null) {
+      if (!await widget.onQueueInstalled!()) return false;
+    } else {
+      await widget.onInstalled?.call();
+    }
+    if (!mounted || context != installationContext) return false;
+    return controller.load();
+  }
+
+  void bindInstallationContext() {
+    final context = (
+      controller,
+      controller.client,
+      controller.workspaceId,
+      widget.profileId,
+      widget.installations,
+    );
+    if (context == installationContext) return;
+    installationContext = context;
+    installing = null;
+    suggestedTarget = null;
+    suggestedVersion = null;
+    queue.bind(context);
+  }
+
   bool get hasDiscoveryRequest =>
       widget.nexusFileRequest?.workspace == controller.workspaceId &&
       widget.nexusFileRequest?.profile == widget.profileId;
@@ -90,11 +127,18 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   void initState() {
     super.initState();
     nexus = hasDiscoveryRequest;
+    bindInstallationContext();
+    controller.addListener(bindInstallationContext);
   }
 
   @override
   void didUpdateWidget(ArtifactBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != controller) {
+      oldWidget.controller.removeListener(bindInstallationContext);
+      controller.addListener(bindInstallationContext);
+    }
+    bindInstallationContext();
     if (!hasDiscoveryRequest) {
       nexus = false;
     } else if (widget.nexusFileRequest != null &&
@@ -106,6 +150,8 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
 
   @override
   void dispose() {
+    controller.removeListener(bindInstallationContext);
+    queue.dispose();
     focus.dispose();
     addFocus.dispose();
     scroll.dispose();
@@ -238,7 +284,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: controller,
+    listenable: Listenable.merge([controller, queue]),
     builder: (context, _) => LayoutBuilder(
       builder: (c, constraints) {
         final narrow =
@@ -322,11 +368,18 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             suggestedVersion = review.version;
           }
         }
-        if (installing != null && widget.installations != null) {
-          return ArchiveInstallationView(
-            key: ValueKey((installing!.id, widget.installations)),
-            artifact: installing!,
-            installImmediately: installImmediately,
+        final queued = queue.current;
+        final currentInstallation = queued ?? installing;
+        if (currentInstallation != null && widget.installations != null) {
+          final archive = currentInstallation;
+          final view = ArchiveInstallationView(
+            key: ValueKey((
+              archive.id,
+              widget.installations,
+              installationContext,
+            )),
+            artifact: archive,
+            installImmediately: queued != null || installImmediately,
             suggestedTarget: suggestedTarget,
             suggestedVersion: suggestedVersion,
             client: widget.installations!,
@@ -336,22 +389,53 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             profileId: widget.profileId,
             updateTargets: widget.updateTargets,
             onBack: () => setState(() {
-              installing = null;
+              queue.leave();
+              this.installing = null;
               suggestedTarget = null;
               suggestedVersion = null;
             }),
             onCommitted: () {
-              installationRefresh = () async {
-                await widget.onInstalled?.call();
-                if (mounted) await controller.load();
-              }();
+              installationRefresh = queued == null
+                  ? refreshInstallation()
+                  : queue.committed(archive);
             },
+            onInterrupted: queued == null
+                ? null
+                : () => queue.interrupted(archive),
             onDetached: widget.onInstallationDetached,
             onAttached: widget.onInstallationAttached,
             onOpenMods: () async {
+              queue.stop();
               await installationRefresh;
               if (mounted) widget.onOpenMods?.call();
             },
+          );
+          if (queued == null) return view;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        queue.active
+                            ? 'Installing ${queue.position} of ${queue.total}'
+                            : 'Queue ended · ${controller.checkedArtifacts.length} selected',
+                      ),
+                    ),
+                    McAction(
+                      label: 'Stop queue',
+                      onPressed: queue.active ? queue.stop : null,
+                    ),
+                  ],
+                ),
+              ),
+              if (queue.problem != null)
+                McStatus(title: queue.problem!, tone: McStatusTone.error),
+              Expanded(child: view),
+            ],
           );
         }
         final archive = contents;
@@ -383,6 +467,14 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                   focus: focus,
                   addFocus: addFocus,
                   scroll: scroll,
+                  onInstallAll: widget.installations == null
+                      ? null
+                      : () {
+                          pane.currentState?.closeEndDrawer();
+                          suggestedTarget = null;
+                          suggestedVersion = null;
+                          queue.start(controller.checkedArtifacts);
+                        },
                   onAdd: () => unawaited(fileForm()),
                   onDownload: () => unawaited(download()),
                   onNexus: () => setState(() => nexus = true),

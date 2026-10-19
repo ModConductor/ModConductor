@@ -49,6 +49,102 @@ module ArtifactFixtures =
         |> result
         |> ignore
 
+    let private ordering (writer: Utf8JsonWriter) primary =
+        let area = mkdir (Path.Combine(primary, "artifact-ordering"))
+        let state = mkdir (Path.Combine(area, "state"))
+        let root = mkdir (Path.Combine(area, "workspace"))
+        let path = Path.Combine(area, "source.zip")
+        File.WriteAllText(path, "archive ordering fixture")
+        let workspace = Guid.NewGuid()
+        let ids = [ for n in 1..70 -> Guid.Parse(((n * 37) % 71).ToString("x32")) ]
+        let newest = Guid.NewGuid()
+        let mutable expected = []
+        let mutable originalOrder = []
+        let context = WatchCountFixtures.StreamContext(token)
+
+        let check (name: string) condition =
+            writer.WriteBoolean(name, condition)
+
+            if not condition then
+                invalidOp ("Artifact ordering fixture failed: " + name)
+
+        let add (store: OperationStore) id =
+            store.Artifacts.Add(
+                { Id = id
+                  WorkspaceId = workspace
+                  Path = path
+                  Storage = ArtifactStorage.Reference },
+                token
+            )
+            |> wait
+            |> result
+
+        let page (store: OperationStore) after refresh =
+            let request =
+                ModConductor.Protocol.V1.ArtifactListRequest(
+                    WorkspaceId = workspace.ToString("N"),
+                    Refresh = refresh
+                )
+
+            after |> Option.iter (fun cursor -> request.After <- cursor)
+
+            ModConductor.Engine.ArtifactService(store.Artifacts).ListArtifacts(request, context)
+            |> wait
+
+        writer.WriteStartObject("ordering")
+
+        do
+            use store = new OperationStore(state)
+
+            (store.Workspaces :> IWorkspaceState)
+                .Create(workspace, "Ordering", StorageWorker.select root)
+            |> wait
+            |> result
+            |> ignore
+
+            let added = ids |> List.map (add store)
+            originalOrder <- added |> List.map (fun a -> a.Id, a.ArrivalOrder)
+            let first = page store None false
+            let second = page store (Some first.Next) false
+
+            check
+                "newestFirstAcrossPages"
+                ([ yield! first.Entries; yield! second.Entries ]
+                 |> List.map (fun a -> Guid.Parse a.Id) = List.rev ids
+                 && first.Entries.Count = 64
+                 && not second.HasNext)
+
+            let oldest = add store ids.Head
+            check "replayPreservesArrivalOrder" (oldest.ArrivalOrder = added.Head.ArrivalOrder)
+            let cursor = added |> List.find (fun a -> a.Id = Guid.Parse first.Entries[63].Id)
+            store.Artifacts.Remove(reference cursor) |> wait |> result
+            let late = add store newest
+            let continuation = page store (Some first.Next) false
+
+            let continuationIds =
+                continuation.Entries |> Seq.map (fun a -> Guid.Parse a.Id) |> Seq.toList
+
+            let secondIds = second.Entries |> Seq.map (fun a -> Guid.Parse a.Id) |> Seq.toList
+            check "deletedCursorRetainsContinuation" (continuationIds = secondIds)
+            expected <- newest :: (List.rev ids |> List.filter ((<>) cursor.Id))
+            check "lateAdditionPrecedesOlderPages" (late.ArrivalOrder > added[69].ArrivalOrder)
+
+        do
+            use restarted = new OperationStore(state)
+            let first = page restarted None true
+            let second = page restarted (Some first.Next) false
+            let entries = [ yield! first.Entries; yield! second.Entries ]
+
+            check
+                "restartRetainsArrivalOrder"
+                (entries |> List.map (fun a -> Guid.Parse a.Id) = expected
+                 && (entries
+                     |> List.forall (fun a ->
+                         let id = Guid.Parse a.Id
+                         id = newest || (originalOrder |> List.contains (id, int64 a.ArrivalOrder)))))
+
+        writer.WriteEndObject()
+
     let observe (writer: Utf8JsonWriter) primary =
         let check (name: string) condition =
             writer.WriteBoolean(name, condition)
@@ -57,6 +153,7 @@ module ArtifactFixtures =
                 invalidOp ("Artifact fixture failed: " + name)
 
         writer.WriteStartObject("artifacts")
+        ordering writer primary
         let area = mkdir (Path.Combine(primary, "artifacts"))
         let state = mkdir (Path.Combine(area, "state"))
         let root = mkdir (Path.Combine(area, "workspace"))

@@ -9,10 +9,12 @@ Artifact archive(
   String id, {
   ArtifactDownload? download,
   int revision = 0,
+  int arrivalOrder = 0,
 }) => Artifact(
   id: id,
   workspaceId: workspace,
   revision: revision,
+  arrivalOrder: arrivalOrder,
   download: download,
   originalName: '$id.zip',
   originalPath: '/$id.zip',
@@ -140,6 +142,35 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(controller.workspaceId, 'second');
     expect(controller.model.ids, ['other']);
+  });
+
+  test('new download snapshots keep chronological position through an overlapping refresh', () async {
+    final client = Client(), controller = ArtifactController();
+    addTearDown(controller.dispose);
+    controller.attach(client, 'workspace');
+    final old = archive('workspace', 'z-old', arrivalOrder: 10);
+    client.pages.single.complete(ArtifactPage([old], '10'));
+    await Future<void>.delayed(Duration.zero);
+    controller.check(old, true);
+    controller.model.select(old.id);
+    final refresh = controller.load();
+    final fresh = archive('workspace', 'a-fresh', arrivalOrder: 30);
+    controller.acceptDownload(fresh, select: false);
+    controller.acceptDownload(
+      archive('workspace', 'm-middle', arrivalOrder: 20),
+      select: false,
+    );
+    client.pages.last.complete(ArtifactPage([old], null));
+    expect(await refresh, isTrue);
+    expect(controller.model.visible, ['a-fresh', 'm-middle', 'z-old']);
+    expect(controller.selected!.id, old.id);
+    expect(controller.checkedArtifacts.single.id, old.id);
+    final another = controller.load();
+    client.known[old.id] = old;
+    client.pages.last.complete(ArtifactPage([fresh], '30'));
+    expect(await another, isTrue);
+    expect(controller.model.visible, ['a-fresh', 'z-old']);
+    expect(controller.checkedArtifacts.single.id, old.id);
   });
 
   test(

@@ -144,6 +144,7 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
     $core.bool? canDeleteCopy,
     $core.bool? canRemove,
     $1.ArchiveDownload? download,
+    $fixnum.Int64? arrivalOrder,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -163,6 +164,7 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
     if (canDeleteCopy != null) result.canDeleteCopy = canDeleteCopy;
     if (canRemove != null) result.canRemove = canRemove;
     if (download != null) result.download = download;
+    if (arrivalOrder != null) result.arrivalOrder = arrivalOrder;
     return result;
   }
 
@@ -204,6 +206,9 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
     ..aOB(16, _omitFieldNames ? '' : 'canRemove')
     ..aOM<$1.ArchiveDownload>(17, _omitFieldNames ? '' : 'download',
         subBuilder: $1.ArchiveDownload.create)
+    ..a<$fixnum.Int64>(
+        18, _omitFieldNames ? '' : 'arrivalOrder', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -373,6 +378,15 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
   void clearDownload() => $_clearField(17);
   @$pb.TagNumber(17)
   $1.ArchiveDownload ensureDownload() => $_ensure(16);
+
+  @$pb.TagNumber(18)
+  $fixnum.Int64 get arrivalOrder => $_getI64(17);
+  @$pb.TagNumber(18)
+  set arrivalOrder($fixnum.Int64 value) => $_setInt64(17, value);
+  @$pb.TagNumber(18)
+  $core.bool hasArrivalOrder() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearArrivalOrder() => $_clearField(18);
 }
 
 class ArtifactLinkPage extends $pb.GeneratedMessage {

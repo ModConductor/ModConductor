@@ -5,6 +5,39 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
 class ArtifactController extends ChangeNotifier {
+  ArtifactController() {
+    model.sort(compareArrival);
+  }
+
+  static int compareArrival(Artifact a, Artifact b) {
+    final order = b.arrivalOrder.compareTo(a.arrivalOrder);
+    return order == 0 ? a.id.compareTo(b.id) : order;
+  }
+
+  final checked = <String>{};
+  bool installable(Artifact artifact) =>
+      artifact.state == ArtifactState.ready ||
+      artifact.state == ArtifactState.installed;
+  List<Artifact> get checkedArtifacts => [
+    for (final id in checked)
+      if (model[id] case final artifact? when installable(artifact)) artifact,
+  ]..sort(compareArrival);
+
+  void check(Artifact artifact, bool value) {
+    if (!canEdit || !installable(artifact)) return;
+    if (value) {
+      checked.add(artifact.id);
+    } else {
+      checked.remove(artifact.id);
+    }
+    _notify();
+  }
+
+  void installed(String id) {
+    checked.remove(id);
+    _notify();
+  }
+
   ({Artifact artifact, ModEntry target, String version})? updateReview;
   int reviewNavigation = 0;
   void reviewUpdate(
@@ -110,6 +143,7 @@ class ArtifactController extends ChangeNotifier {
     _cancelObservation();
     this.client = client;
     this.workspaceId = workspaceId;
+    checked.clear();
     model.clear();
     next = null;
     problem = null;
@@ -117,14 +151,19 @@ class ArtifactController extends ChangeNotifier {
     activity = null;
     loaded = false;
     needsRead = false;
-    if (client != null && workspaceId != null) unawaited(load());
+    if (client != null && workspaceId != null) {
+      unawaited(load());
+    } else {
+      _notify();
+    }
   }
 
-  Future<void> load({bool more = false}) async {
+  Future<bool> load({bool more = false}) async {
     final client = this.client, workspace = workspaceId;
     if (client == null || workspace == null || busy || (more && next == null))
-      return;
+      return false;
     final epoch = _epoch;
+    final before = {for (final id in model.ids) id: model[id]};
     activity = 'Reading archives';
     problem = null;
     _notify();
@@ -134,14 +173,28 @@ class ArtifactController extends ChangeNotifier {
         after: more ? next : null,
         refresh: !more && loaded,
       );
-      if (_disposed || epoch != _epoch) return;
+      if (_disposed || epoch != _epoch) return false;
       final entries = [...page.entries], selected = model.selectedId;
-      if (!more &&
-          page.next != null &&
-          selected != null &&
-          !entries.any((a) => a.id == selected)) {
-        entries.add(await client.read(workspace, selected));
-        if (_disposed || epoch != _epoch) return;
+      if (!more && page.next != null) {
+        final retained = {...checked, if (selected != null) selected};
+        retained.removeAll(entries.map((artifact) => artifact.id));
+        for (final id in retained) {
+          entries.add(await client.read(workspace, id));
+          if (_disposed || epoch != _epoch) return false;
+        }
+      }
+      for (var i = 0; i < entries.length; i++) {
+        final existing = model[entries[i].id];
+        if (existing != null && existing.revision > entries[i].revision) {
+          entries[i] = existing;
+        }
+      }
+      final received = entries.map((artifact) => artifact.id).toSet();
+      for (final id in model.ids) {
+        final current = model[id]!;
+        if (!identical(current, before[id]) && received.add(id)) {
+          entries.add(current);
+        }
       }
       model.apply(
         upserts: entries,
@@ -150,11 +203,13 @@ class ArtifactController extends ChangeNotifier {
       next = page.next;
       loaded = true;
       needsRead = false;
+      return true;
     } on Exception catch (error) {
       if (!_disposed && epoch == _epoch)
         problem = error is ArtifactProblem
             ? error.detail
             : 'The archives could not be read.';
+      return false;
     } finally {
       if (!_disposed && epoch == _epoch) {
         activity = null;
@@ -189,7 +244,10 @@ class ArtifactController extends ChangeNotifier {
     try {
       final value = await action(client, workspace);
       if (_disposed || epoch != _epoch) return false;
-      if (removed != null) model.apply(removed: [removed]);
+      if (removed != null) {
+        checked.remove(removed);
+        model.apply(removed: [removed]);
+      }
       if (value != null) {
         model.apply(upserts: [value]);
         model.select(value.id);

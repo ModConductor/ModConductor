@@ -72,6 +72,7 @@ module internal ArtifactWire =
                 Id = value.Id.ToString("N"),
                 WorkspaceId = value.WorkspaceId.ToString("N"),
                 Revision = uint64 value.Revision,
+                ArrivalOrder = uint64 value.ArrivalOrder,
                 OriginalName = value.OriginalName,
                 OriginalPath = value.OriginalPath,
                 Path = value.Path,
@@ -124,7 +125,11 @@ type ArtifactService(library: IArtifactLibrary) =
                 library.List(
                     ModLibraryWire.id request.WorkspaceId,
                     (if request.HasAfter then
-                         Some(ModLibraryWire.id request.After)
+                         Some(
+                             match System.Int64.TryParse request.After with
+                             | true, value when value > 0L -> value
+                             | _ -> ModLibraryWire.reject "The archive page cursor is invalid."
+                         )
                      else
                          None),
                     request.Refresh,
@@ -134,7 +139,7 @@ type ArtifactService(library: IArtifactLibrary) =
             let page = ArtifactWire.result result
             let reply = ModConductor.Protocol.V1.ArtifactPage()
             reply.Entries.AddRange(page.Entries |> List.map ArtifactWire.artifact)
-            page.Next |> Option.iter (fun id -> reply.Next <- id.ToString("N"))
+            page.Next |> Option.iter (fun order -> reply.Next <- string order)
             return reply
         }
 

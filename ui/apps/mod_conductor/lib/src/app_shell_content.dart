@@ -155,6 +155,10 @@ mixin _ShellContent
                     cursor: cursor,
                   ),
             onOpenMods: openMods,
+            onQueueInstalled: () => _installationCommitted(
+              workspace.id,
+              workspace.selectedProfile?.id,
+            ),
             onInstalled: () => _installationCommitted(
               workspace.id,
               workspace.selectedProfile?.id,
